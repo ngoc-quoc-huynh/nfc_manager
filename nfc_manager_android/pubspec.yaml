@@ -1,0 +1,30 @@
+name: nfc_manager_android
+description: The Android implementation of nfc_manager.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  nfc_manager_platform_interface:
+    path: ../nfc_manager_platform_interface
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  test_cov_console: ^0.2.2
+
+  # Linter
+  cosee_lints: ^0.6.0
+  dart_code_linter: ^1.2.1
+
+flutter:
+  plugin:
+    platforms:
+      implements: nfc_manager
+      android:
+        package: dev.huynh.nfc_manager_android
+        pluginClass: NfcManagerAndroidPlugin
