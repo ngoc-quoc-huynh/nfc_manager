@@ -8,6 +8,10 @@ final class NfcManagerExamplePlatform extends NfcManagerPlatform {
       NfcManagerPlatform.instance = NfcManagerExamplePlatform();
 
   @override
+  Future<bool> isHceSupported() async =>
+      (await _methodChannel.invokeMethod<bool>('isHceSupported'))!;
+
+  @override
   Future<bool> isNfcSupported() async =>
       (await _methodChannel.invokeMethod<bool>('isNfcSupported'))!;
 }

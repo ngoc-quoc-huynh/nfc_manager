@@ -16,6 +16,28 @@ void main() {
     expect(NfcManagerPlatform.instance, isA<NfcManagerAndroidPlatform>());
   });
 
+  group('isHceSupported', () {
+    test('returns true if method channel returns true.', () async {
+      platform.methodChannel.setMockResponse(logs, true);
+
+      expect(await platform.isHceSupported(), isTrue);
+      expect(
+        logs,
+        [isMethodCall('isHceSupported', arguments: null)],
+      );
+    });
+
+    test('returns true if method channel returns false.', () async {
+      platform.methodChannel.setMockResponse(logs, false);
+
+      expect(await platform.isHceSupported(), isFalse);
+      expect(
+        logs,
+        [isMethodCall('isHceSupported', arguments: null)],
+      );
+    });
+  });
+
   group('isNfcSupported', () {
     test('returns true if method channel returns true.', () async {
       platform.methodChannel.setMockResponse(logs, true);

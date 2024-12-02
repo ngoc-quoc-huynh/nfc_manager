@@ -20,17 +20,21 @@ class NfcManagerPlugin :
                 "nfc_manager_android",
             )
         methodChannel.setMethodCallHandler(this)
+        val context = flutterPluginBinding.applicationContext
         nfcService =
-            NfcService(NfcAdapter.getDefaultAdapter(flutterPluginBinding.applicationContext))
+            NfcService(
+                nfcAdapter = NfcAdapter.getDefaultAdapter(context),
+                packageManager = context.packageManager,
+            )
     }
 
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) =
-        methodChannel.setMethodCallHandler(null)
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) = methodChannel.setMethodCallHandler(null)
 
     override fun onMethodCall(
         call: MethodCall,
         result: Result,
     ) = when (call.method) {
+        "isHceSupported" -> result.success(nfcService.isHceSupported())
         "isNfcSupported" -> result.success(nfcService.isNfcSupported())
         else -> result.notImplemented()
     }

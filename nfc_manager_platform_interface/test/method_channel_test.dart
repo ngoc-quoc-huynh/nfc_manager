@@ -10,6 +10,28 @@ void main() {
 
   setUp(logs.clear);
 
+  group('isHceSupported', () {
+    test('returns true if method channel returns true.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, true);
+
+      expect(await nfcManager.isHceSupported(), isTrue);
+      expect(
+        logs,
+        [isMethodCall('isHceSupported', arguments: null)],
+      );
+    });
+
+    test('returns true if method channel returns false.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, false);
+
+      expect(await nfcManager.isHceSupported(), isFalse);
+      expect(
+        logs,
+        [isMethodCall('isHceSupported', arguments: null)],
+      );
+    });
+  });
+
   group('isNfcSupported', () {
     test('returns true if method channel returns true.', () async {
       nfcManager.methodChannel.setMockResponse(logs, true);

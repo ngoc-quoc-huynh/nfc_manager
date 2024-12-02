@@ -21,6 +21,19 @@ void main() {
     expect(NfcManagerPlatform.instance, mockInstance);
   });
 
+  test('isHceSupported throws UnimplementedError.', () async {
+    await expectLater(
+      () => MockNfcManagerPlatform().isHceSupported(),
+      throwsA(
+        isA<UnimplementedError>().having(
+          (e) => e.message,
+          'message',
+          'isHceSupported() has not been implemented.',
+        ),
+      ),
+    );
+  });
+
   test('isNfcSupported throws UnimplementedError.', () async {
     await expectLater(
       () => MockNfcManagerPlatform().isNfcSupported(),

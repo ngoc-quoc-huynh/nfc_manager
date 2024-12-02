@@ -13,6 +13,16 @@ class NfcManagerPluginTest {
     private val mockResult = mock<Result>()
 
     @Test
+    fun `isHceSupported method call returns correctly`() {
+        whenever(mockNfcService.isHceSupported()).thenReturn(true)
+        plugin.onMethodCall(
+            MethodCall("isHceSupported", null),
+            mockResult,
+        )
+        verify(mockResult).success(true)
+    }
+
+    @Test
     fun `isNfcSupported method call returns correctly`() {
         whenever(mockNfcService.isNfcSupported()).thenReturn(true)
         plugin.onMethodCall(
