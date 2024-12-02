@@ -34,10 +34,20 @@ jobs:
           path: |
             ~/.pub-cache
             ./nfc_manager_android/.dart_tool
+            ./nfc_manager_android/example/.dart_tool
           key: ${{ runner.os }}-flutter-android-${{ hashFiles('./nfc_manager_android/pubspec.lock') }}
           restore-keys: ${{ runner.os }}-flutter-android-
       - name: Install dependencies
         run: flutter pub get
+
+      - name: Create local.properties
+        working-directory: ./nfc_manager_android/example/android
+        run: |
+          FLUTTER_PATH=$(asdf where flutter)
+          echo "flutter.sdk=$FLUTTER_PATH" > ./local.properties
+      - name: Run android tests
+        working-directory: ./nfc_manager_android/example/android
+        run: ./gradlew testDebugUnitTest --no-daemon
 
       - name: Format code
         run: dart format --set-exit-if-changed .

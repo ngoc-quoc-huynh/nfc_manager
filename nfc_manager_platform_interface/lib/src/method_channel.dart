@@ -7,5 +7,6 @@ final class MethodChannelNfcManager extends NfcManagerPlatform {
   final methodChannel = const MethodChannel('dev.huynh/nfc_manager');
 
   @override
-  Future<void> foo() => methodChannel.invokeMethod<void>('foo');
+  Future<bool> isNfcSupported() async =>
+      (await methodChannel.invokeMethod<bool>('isNfcSupported'))!;
 }

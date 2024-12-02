@@ -34,6 +34,7 @@ jobs:
           path: |
             ~/.pub-cache
             ./nfc_manager_platform_interface/.dart_tool
+            ./nfc_manager_platform_interface/example/.dart_tool
           key: ${{ runner.os }}-flutter-platform-interface${{ hashFiles('./nfc_manager_platform_interface/pubspec.lock') }}
           restore-keys: ${{ runner.os }}-flutter-platform-interface
       - name: Install dependencies

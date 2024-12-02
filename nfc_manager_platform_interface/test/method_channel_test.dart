@@ -6,28 +6,41 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final nfcManager = MethodChannelNfcManager();
-  final List<MethodCall> log = <MethodCall>[];
+  final logs = <MethodCall>[];
 
-  setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(
-      nfcManager.methodChannel,
-      (methodCall) {
-        log.add(methodCall);
-        return null;
-      },
-    );
+  setUp(logs.clear);
 
-    log.clear();
+  group('isNfcSupported', () {
+    test('returns true if method channel returns true.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, true);
+
+      expect(await nfcManager.isNfcSupported(), isTrue);
+      expect(
+        logs,
+        [isMethodCall('isNfcSupported', arguments: null)],
+      );
+    });
+
+    test('returns true if method channel returns false.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, false);
+
+      expect(await nfcManager.isNfcSupported(), isFalse);
+      expect(
+        logs,
+        [isMethodCall('isNfcSupported', arguments: null)],
+      );
+    });
   });
+}
 
-  test('foo calls method correctly.', () async {
-    await nfcManager.foo();
-    expect(
-      log,
-      [
-        isMethodCall('foo', arguments: null),
-      ],
-    );
-  });
+extension<T> on MethodChannel {
+  void setMockResponse(List<MethodCall> logs, T response) =>
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(
+        this,
+        (methodCall) async {
+          logs.add(methodCall);
+          return response;
+        },
+      );
 }

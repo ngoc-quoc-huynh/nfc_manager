@@ -1,1 +1,1 @@
-
+export 'src/platform.dart';

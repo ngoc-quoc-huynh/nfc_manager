@@ -23,8 +23,9 @@ dev_dependencies:
 
 flutter:
   plugin:
+    implements: nfc_manager
     platforms:
-      implements: nfc_manager
       android:
         package: dev.huynh.nfc_manager_android
-        pluginClass: NfcManagerAndroidPlugin
+        pluginClass: NfcManagerPlugin
+        dartPluginClass: NfcManagerAndroidPlatform

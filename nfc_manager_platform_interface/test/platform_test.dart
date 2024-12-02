@@ -21,14 +21,14 @@ void main() {
     expect(NfcManagerPlatform.instance, mockInstance);
   });
 
-  test('foo throws UnimplementedError.', () async {
+  test('isNfcSupported throws UnimplementedError.', () async {
     await expectLater(
-      () => MockNfcManagerPlatform().foo(),
+      () => MockNfcManagerPlatform().isNfcSupported(),
       throwsA(
         isA<UnimplementedError>().having(
           (e) => e.message,
           'message',
-          'foo() has not been implemented.',
+          'isNfcSupported() has not been implemented.',
         ),
       ),
     );

@@ -16,7 +16,6 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
     _instance = instance;
   }
 
-  Future<void> foo() {
-    throw UnimplementedError('foo() has not been implemented.');
-  }
+  Future<bool> isNfcSupported() =>
+      throw UnimplementedError('isNfcSupported() has not been implemented.');
 }
