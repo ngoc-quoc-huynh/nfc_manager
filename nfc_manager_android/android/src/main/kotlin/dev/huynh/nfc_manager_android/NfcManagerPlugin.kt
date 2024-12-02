@@ -36,6 +36,7 @@ class NfcManagerPlugin :
     ) = when (call.method) {
         "isHceSupported" -> result.success(nfcService.isHceSupported())
         "isNfcSupported" -> result.success(nfcService.isNfcSupported())
+        "isNfcEnabled" -> result.success(nfcService.isNfcEnabled())
         else -> result.notImplemented()
     }
 }

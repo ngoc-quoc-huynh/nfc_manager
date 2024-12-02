@@ -10,4 +10,6 @@ class NfcService(
     fun isHceSupported(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION)
 
     fun isNfcSupported(): Boolean = nfcAdapter != null
+
+    fun isNfcEnabled(): Boolean = nfcAdapter?.isEnabled == true
 }

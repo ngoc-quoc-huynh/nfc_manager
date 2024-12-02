@@ -46,6 +46,19 @@ void main() {
       ),
     );
   });
+
+  test('isNfcEnabled throws UnimplementedError.', () async {
+    await expectLater(
+      () => MockNfcManagerPlatform().isNfcEnabled(),
+      throwsA(
+        isA<UnimplementedError>().having(
+          (e) => e.message,
+          'message',
+          'isNfcEnabled() has not been implemented.',
+        ),
+      ),
+    );
+  });
 }
 
 final class MockNfcManagerPlatform extends NfcManagerPlatform {}

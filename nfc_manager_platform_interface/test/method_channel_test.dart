@@ -53,6 +53,28 @@ void main() {
       );
     });
   });
+
+  group('isNfcEnabled', () {
+    test('returns true if method channel returns true.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, true);
+
+      expect(await nfcManager.isNfcEnabled(), isTrue);
+      expect(
+        logs,
+        [isMethodCall('isNfcEnabled', arguments: null)],
+      );
+    });
+
+    test('returns true if method channel returns false.', () async {
+      nfcManager.methodChannel.setMockResponse(logs, false);
+
+      expect(await nfcManager.isNfcEnabled(), isFalse);
+      expect(
+        logs,
+        [isMethodCall('isNfcEnabled', arguments: null)],
+      );
+    });
+  });
 }
 
 extension<T> on MethodChannel {

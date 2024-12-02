@@ -16,4 +16,8 @@ base class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Future<bool> isNfcSupported() async =>
       (await methodChannel.invokeMethod<bool>('isNfcSupported'))!;
+
+  @override
+  Future<bool> isNfcEnabled() async =>
+      (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 }

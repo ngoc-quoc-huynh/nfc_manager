@@ -31,4 +31,14 @@ class NfcManagerPluginTest {
         )
         verify(mockResult).success(true)
     }
+
+    @Test
+    fun `isNfcEnabled method call returns correctly`() {
+        whenever(mockNfcService.isNfcEnabled()).thenReturn(true)
+        plugin.onMethodCall(
+            MethodCall("isNfcEnabled", null),
+            mockResult,
+        )
+        verify(mockResult).success(true)
+    }
 }
