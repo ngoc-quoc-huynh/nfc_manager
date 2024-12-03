@@ -2,18 +2,18 @@ package dev.huynh.nfc_manager.nfc_manager_android
 
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
-import dev.huynh.nfc_manager_android.NfcService
+import dev.huynh.nfc_manager_android.NfcFeatureChecker
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
-class NfcServiceTest {
+class NfcFeatureCheckerTest {
     private val mockPackageManager = mock<PackageManager>()
     private val mockNfcAdapter = mock<NfcAdapter>()
-    private val nfcService =
-        NfcService(
+    private val nfcFeatureChecker =
+        NfcFeatureChecker(
             packageManager = mockPackageManager,
             nfcAdapter = mockNfcAdapter,
         )
@@ -25,7 +25,7 @@ class NfcServiceTest {
         ).thenReturn(
             true,
         )
-        assertTrue(nfcService.isHceSupported())
+        assertTrue(nfcFeatureChecker.isHceSupported())
     }
 
     @Test
@@ -35,44 +35,44 @@ class NfcServiceTest {
         ).thenReturn(
             false,
         )
-        assertFalse(nfcService.isHceSupported())
+        assertFalse(nfcFeatureChecker.isHceSupported())
     }
 
     @Test
     fun `isNfcSupported returns true when NfcAdapter is not null`() =
         assertTrue(
-            nfcService.isNfcSupported(),
+            nfcFeatureChecker.isNfcSupported(),
         )
 
     @Test
     fun `isNfcSupported returns false when NfcAdapter is null`() {
-        val nfcService =
-            NfcService(
+        val nfcFeatureChecker =
+            NfcFeatureChecker(
                 packageManager = mockPackageManager,
                 nfcAdapter = null,
             )
-        assertFalse(nfcService.isNfcSupported())
+        assertFalse(nfcFeatureChecker.isNfcSupported())
     }
 
     @Test
     fun `isNfcEnabled returns true when NFC is enabled`() {
         whenever(mockNfcAdapter.isEnabled).thenReturn(true)
-        assertTrue(nfcService.isNfcEnabled())
+        assertTrue(nfcFeatureChecker.isNfcEnabled())
     }
 
     @Test
     fun `isNfcEnabled returns false when NfcAdapter is null`() {
-        val nfcService =
-            NfcService(
+        val nfcFeatureChecker =
+            NfcFeatureChecker(
                 packageManager = mockPackageManager,
                 nfcAdapter = null,
             )
-        assertFalse(nfcService.isNfcSupported())
+        assertFalse(nfcFeatureChecker.isNfcSupported())
     }
 
     @Test
     fun `isNfcEnabled returns false when NFC is disabled`() {
         whenever(mockNfcAdapter.isEnabled).thenReturn(false)
-        assertFalse(nfcService.isNfcEnabled())
+        assertFalse(nfcFeatureChecker.isNfcEnabled())
     }
 }
