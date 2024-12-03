@@ -4,7 +4,7 @@ import 'package:nfc_manager_platform_interface/src/platform.dart';
 
 final class MethodChannelNfcManager extends NfcManagerPlatform {
   @visibleForTesting
-  final methodChannel = const MethodChannel('dev.huynh/nfc_manager');
+  static const methodChannel = MethodChannel('dev.huynh/nfc_manager');
 
   @override
   Future<bool> isHceSupported() async =>

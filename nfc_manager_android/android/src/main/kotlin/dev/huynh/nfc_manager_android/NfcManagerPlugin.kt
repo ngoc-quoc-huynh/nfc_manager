@@ -2,41 +2,96 @@ package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import org.jetbrains.annotations.VisibleForTesting
 
 class NfcManagerPlugin :
+    ActivityAware,
     FlutterPlugin,
     MethodCallHandler {
     private lateinit var methodChannel: MethodChannel
-    lateinit var nfcService: NfcService
+    private lateinit var eventChannel: EventChannel
+    private var nfcAdapter: NfcAdapter? = null
+
+    @VisibleForTesting
+    lateinit var nfcFeatureChecker: NfcFeatureChecker
+
+    @VisibleForTesting
+    var nfcReader: NfcReader? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
+        val context = flutterPluginBinding.applicationContext
+        nfcAdapter = NfcAdapter.getDefaultAdapter(context)
+        nfcFeatureChecker =
+            NfcFeatureChecker(
+                nfcAdapter = nfcAdapter,
+                packageManager = context.packageManager,
+            )
+
         methodChannel =
             MethodChannel(
                 flutterPluginBinding.binaryMessenger,
-                "nfc_manager_android",
-            )
-        methodChannel.setMethodCallHandler(this)
-        val context = flutterPluginBinding.applicationContext
-        nfcService =
-            NfcService(
-                nfcAdapter = NfcAdapter.getDefaultAdapter(context),
-                packageManager = context.packageManager,
+                "dev.huynh/nfc_manager_android",
+            ).apply { setMethodCallHandler(this@NfcManagerPlugin) }
+
+        eventChannel =
+            EventChannel(
+                flutterPluginBinding.binaryMessenger,
+                "dev.huynh/nfc_manager_android/discovery",
             )
     }
 
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) = methodChannel.setMethodCallHandler(null)
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        methodChannel.setMethodCallHandler(null)
+        eventChannel.setStreamHandler(null)
+    }
+
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        nfcReader =
+            NfcReader(
+                nfcAdapter = nfcAdapter,
+                activity = binding.activity,
+            )
+        eventChannel.setStreamHandler(nfcReader)
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) =
+        onAttachedToActivity(
+            binding,
+        )
+
+    override fun onDetachedFromActivity() {
+        eventChannel.setStreamHandler(null)
+        nfcReader = null
+    }
 
     override fun onMethodCall(
         call: MethodCall,
         result: Result,
     ) = when (call.method) {
-        "isHceSupported" -> result.success(nfcService.isHceSupported())
-        "isNfcSupported" -> result.success(nfcService.isNfcSupported())
-        "isNfcEnabled" -> result.success(nfcService.isNfcEnabled())
+        "isHceSupported" -> result.success(nfcFeatureChecker.isHceSupported())
+        "isNfcSupported" -> result.success(nfcFeatureChecker.isNfcSupported())
+        "isNfcEnabled" -> result.success(nfcFeatureChecker.isNfcEnabled())
+        "startDiscovery" ->
+            result.trySuccess {
+                nfcReader?.startDiscovery()
+                null
+            }
+
+        "stopDiscovery" ->
+            result.trySuccess {
+                nfcReader?.stopDiscovery()
+                null
+            }
+
         else -> result.notImplemented()
     }
 }

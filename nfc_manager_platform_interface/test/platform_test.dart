@@ -59,6 +59,32 @@ void main() {
       ),
     );
   });
+
+  test('startDiscovery throws UnimplementedError.', () async {
+    await expectLater(
+      () => MockNfcManagerPlatform().startDiscovery(),
+      throwsA(
+        isA<UnimplementedError>().having(
+          (e) => e.message,
+          'message',
+          'startDiscovery() has not been implemented.',
+        ),
+      ),
+    );
+  });
+
+  test('stopDiscovery throws UnimplementedError.', () async {
+    await expectLater(
+      () => MockNfcManagerPlatform().stopDiscovery(),
+      throwsA(
+        isA<UnimplementedError>().having(
+          (e) => e.message,
+          'message',
+          'stopDiscovery() has not been implemented.',
+        ),
+      ),
+    );
+  });
 }
 
 final class MockNfcManagerPlatform extends NfcManagerPlatform {}

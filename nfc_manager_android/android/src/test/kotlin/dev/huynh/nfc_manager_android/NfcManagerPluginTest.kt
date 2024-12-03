@@ -1,5 +1,6 @@
+import dev.huynh.nfc_manager_android.NfcFeatureChecker
 import dev.huynh.nfc_manager_android.NfcManagerPlugin
-import dev.huynh.nfc_manager_android.NfcService
+import dev.huynh.nfc_manager_android.NfcReader
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
@@ -8,13 +9,18 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class NfcManagerPluginTest {
-    private val mockNfcService = mock<NfcService>()
-    private val plugin = NfcManagerPlugin().apply { nfcService = mockNfcService }
+    private val mockNfcFeatureChecker = mock<NfcFeatureChecker>()
+    private val mockNfcReader = mock<NfcReader>()
+    private val plugin =
+        NfcManagerPlugin().apply {
+            nfcFeatureChecker = mockNfcFeatureChecker
+            nfcReader = mockNfcReader
+        }
     private val mockResult = mock<Result>()
 
     @Test
     fun `isHceSupported method call returns correctly`() {
-        whenever(mockNfcService.isHceSupported()).thenReturn(true)
+        whenever(mockNfcFeatureChecker.isHceSupported()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isHceSupported", null),
             mockResult,
@@ -24,7 +30,7 @@ class NfcManagerPluginTest {
 
     @Test
     fun `isNfcSupported method call returns correctly`() {
-        whenever(mockNfcService.isNfcSupported()).thenReturn(true)
+        whenever(mockNfcFeatureChecker.isNfcSupported()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isNfcSupported", null),
             mockResult,
@@ -34,11 +40,29 @@ class NfcManagerPluginTest {
 
     @Test
     fun `isNfcEnabled method call returns correctly`() {
-        whenever(mockNfcService.isNfcEnabled()).thenReturn(true)
+        whenever(mockNfcFeatureChecker.isNfcEnabled()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isNfcEnabled", null),
             mockResult,
         )
         verify(mockResult).success(true)
+    }
+
+    @Test
+    fun `startDiscovery method call returns correctly`() {
+        plugin.onMethodCall(
+            MethodCall("startDiscovery", null),
+            mockResult,
+        )
+        verify(mockResult).success(null)
+    }
+
+    @Test
+    fun `stopDiscovery method call returns correctly`() {
+        plugin.onMethodCall(
+            MethodCall("stopDiscovery", null),
+            mockResult,
+        )
+        verify(mockResult).success(null)
     }
 }

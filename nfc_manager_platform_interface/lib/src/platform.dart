@@ -1,4 +1,5 @@
 import 'package:nfc_manager_platform_interface/src/method_channel.dart';
+import 'package:nfc_manager_platform_interface/src/tag.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 abstract base class NfcManagerPlatform extends PlatformInterface {
@@ -24,4 +25,10 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
 
   Future<bool> isNfcEnabled() =>
       throw UnimplementedError('isNfcEnabled() has not been implemented.');
+
+  Stream<Tag> startDiscovery() =>
+      throw UnimplementedError('startDiscovery() has not been implemented.');
+
+  Future<void> stopDiscovery() =>
+      throw UnimplementedError('stopDiscovery() has not been implemented.');
 }
