@@ -2,6 +2,7 @@ package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
 import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.utils.trySuccess
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -23,6 +24,7 @@ class NfcManagerPlugin :
 
     @VisibleForTesting
     lateinit var nfcFeatureChecker: NfcFeatureChecker
+    private val hostCardEmulation = HostCardEmulation()
 
     @VisibleForTesting
     var nfcReader: NfcReader? = null
@@ -93,6 +95,19 @@ class NfcManagerPlugin :
                 nfcReader?.stopDiscovery()
                 null
             }
+
+        "startEmulation" -> {
+            hostCardEmulation.startEmulation(
+                aid = call.argument<ByteArray>("aid")!!,
+                pin = call.argument<ByteArray>("pin")!!,
+            )
+            result.success(null)
+        }
+
+        "stopEmulation" -> {
+            hostCardEmulation.stopEmulation()
+            result.success(null)
+        }
 
         else -> result.notImplemented()
     }
