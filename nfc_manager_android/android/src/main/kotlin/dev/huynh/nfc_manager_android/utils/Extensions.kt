@@ -23,3 +23,5 @@ fun <T> Result.trySuccess(action: () -> T) {
         error(e)
     }
 }
+
+fun Byte.toUnsignedInt(): Int = toInt() and 0xFF
