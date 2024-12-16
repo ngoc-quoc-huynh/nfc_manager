@@ -1,6 +1,8 @@
 package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
+import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
+import dev.huynh.nfc_manager_android.utils.trySuccess
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding

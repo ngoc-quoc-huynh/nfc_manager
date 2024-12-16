@@ -1,8 +1,7 @@
-package dev.huynh.nfc_manager.nfc_manager_android
+package dev.huynh.nfc_manager_android.feature_checker
 
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
-import dev.huynh.nfc_manager_android.NfcFeatureChecker
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test

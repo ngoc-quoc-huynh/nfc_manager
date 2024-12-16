@@ -2,6 +2,7 @@ package dev.huynh.nfc_manager_android
 
 import android.app.Activity
 import android.nfc.NfcAdapter
+import dev.huynh.nfc_manager_android.utils.toHexString
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.jetbrains.annotations.VisibleForTesting
@@ -28,7 +29,7 @@ class NfcReader(
             activity,
             { tag ->
                 tag?.let {
-                    val tagId = it.id.toHex()
+                    val tagId = it.id.toHexString()
                     activity.runOnUiThread { eventSink?.success(tagId) }
                 }
             },

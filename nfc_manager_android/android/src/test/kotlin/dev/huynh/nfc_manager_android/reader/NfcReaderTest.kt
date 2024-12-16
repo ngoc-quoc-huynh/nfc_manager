@@ -1,7 +1,9 @@
-package dev.huynh.nfc_manager_android
+package dev.huynh.nfc_manager_android.reader
 
 import android.app.Activity
 import android.nfc.NfcAdapter
+import dev.huynh.nfc_manager_android.NfcNotSupportedException
+import dev.huynh.nfc_manager_android.NfcReader
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test

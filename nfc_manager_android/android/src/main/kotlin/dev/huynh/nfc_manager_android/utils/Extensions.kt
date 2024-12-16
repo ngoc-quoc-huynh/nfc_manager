@@ -1,8 +1,9 @@
-package dev.huynh.nfc_manager_android
+package dev.huynh.nfc_manager_android.utils
 
+import dev.huynh.nfc_manager_android.NfcException
 import io.flutter.plugin.common.MethodChannel.Result
 
-fun ByteArray.toHex(): String =
+fun ByteArray.toHexString(): String =
     joinToString(separator = "") { byte ->
         "%02x".format(byte)
     }.uppercase()

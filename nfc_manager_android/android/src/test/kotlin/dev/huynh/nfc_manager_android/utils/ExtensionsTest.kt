@@ -1,5 +1,8 @@
 package dev.huynh.nfc_manager_android
 
+import dev.huynh.nfc_manager_android.utils.error
+import dev.huynh.nfc_manager_android.utils.toHexString
+import dev.huynh.nfc_manager_android.utils.trySuccess
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -10,31 +13,31 @@ class ExtensionsTest {
     private val mockResult = mock<Result>()
 
     @Test
-    fun `toHex should return an empty string for an empty byte array`() =
+    fun `toHexString should return an empty string for an empty byte array`() =
         assertEquals(
             "",
-            byteArrayOf().toHex(),
+            byteArrayOf().toHexString(),
         )
 
     @Test
-    fun `toHex should convert a single byte to its hex representation`() =
+    fun `toHexString should convert a single byte to its hex representation`() =
         assertEquals(
             "1A",
-            byteArrayOf(0x1A).toHex(),
+            byteArrayOf(0x1A).toHexString(),
         )
 
     @Test
-    fun `toHex should convert multiple bytes to their hex representation`() =
+    fun `toHexString should convert multiple bytes to their hex representation`() =
         assertEquals(
             "1AFF003C",
-            byteArrayOf(0x1A, 0xFF.toByte(), 0x00, 0x3C).toHex(),
+            byteArrayOf(0x1A, 0xFF.toByte(), 0x00, 0x3C).toHexString(),
         )
 
     @Test
-    fun `toHex should handle signed bytes correctly`() =
+    fun `toHexString should handle signed bytes correctly`() =
         assertEquals(
             "80FFC0",
-            byteArrayOf(-128, -1, -64).toHex(),
+            byteArrayOf(-128, -1, -64).toHexString(),
         )
 
     @Test
