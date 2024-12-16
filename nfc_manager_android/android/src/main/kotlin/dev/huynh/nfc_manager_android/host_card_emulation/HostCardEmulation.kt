@@ -6,24 +6,40 @@ import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.NfcException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.ResponseApdu
+import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.EventChannel.EventSink
 
-class HostCardEmulation : HostApduService() {
+class HostCardEmulation :
+    HostApduService(),
+    EventChannel.StreamHandler {
+    private var eventSink: EventSink? = null
+
     fun startEmulation(
         aid: ByteArray,
         pin: ByteArray,
-    ) = HostCardEmulationConfig.configure(
-        aid = aid,
-        pin = pin,
-    )
+    ) {
+        HostCardEmulationConfig.configure(
+            aid = aid,
+            pin = pin,
+        )
+        eventSink?.success(HostCardEmulationStatus.READY)
+    }
 
-    fun stopEmulation() = HostCardEmulationConfig.clear()
+    fun stopEmulation() {
+        HostCardEmulationConfig.clear()
+        eventSink?.success(HostCardEmulationStatus.DEACTIVATED)
+    }
 
     override fun processCommandApdu(
         commandApdu: ByteArray?,
         extras: Bundle?,
     ): ByteArray =
         when {
-            !HostCardEmulationConfig.isConfigured -> ResponseApdu.HCE_NOT_READY()
+            !HostCardEmulationConfig.isConfigured -> {
+                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
+                ResponseApdu.HCE_NOT_READY()
+            }
+
             commandApdu == null -> ResponseApdu.NULL_COMMAND()
             else -> handleCommand(commandApdu)
         }
@@ -39,7 +55,10 @@ class HostCardEmulation : HostApduService() {
                 parsedCommand.ins == 0x20.toByte() && parsedCommand.p1 == 0x00.toByte() ->
                     processVerifyPin(parsedCommand.data!!)
 
-                else -> ResponseApdu.FUNCTION_NOT_SUPPORTED
+                else -> {
+                    eventSink?.success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
+                    ResponseApdu.FUNCTION_NOT_SUPPORTED
+                }
             }()
         } catch (e: InvalidApduCommandException) {
             ResponseApdu.WRONG_LENGTH()
@@ -49,17 +68,52 @@ class HostCardEmulation : HostApduService() {
 
     private fun processSelectAid(data: ByteArray): ResponseApdu =
         when {
-            HostCardEmulationConfig.aid == null -> ResponseApdu.HCE_NOT_READY
-            data.contentEquals(HostCardEmulationConfig.aid) -> ResponseApdu.OK
-            else -> ResponseApdu.INVALID_AID
+            HostCardEmulationConfig.aid == null -> {
+                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
+                ResponseApdu.HCE_NOT_READY
+            }
+
+            data.contentEquals(HostCardEmulationConfig.aid) -> {
+                eventSink?.success(HostCardEmulationStatus.AID_SELECTED)
+                ResponseApdu.OK
+            }
+
+            else -> {
+                eventSink?.success(HostCardEmulationStatus.INVALID_AID)
+                ResponseApdu.INVALID_AID
+            }
         }
 
     private fun processVerifyPin(data: ByteArray): ResponseApdu =
         when {
-            HostCardEmulationConfig.pin == null -> ResponseApdu.HCE_NOT_READY
-            data.contentEquals(HostCardEmulationConfig.pin!!) -> ResponseApdu.OK
-            else -> ResponseApdu.WRONG_PIN
+            HostCardEmulationConfig.pin == null -> {
+                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
+                ResponseApdu.HCE_NOT_READY
+            }
+
+            data.contentEquals(HostCardEmulationConfig.pin!!) -> {
+                eventSink?.success(HostCardEmulationStatus.PIN_VERIFIED)
+                ResponseApdu.OK
+            }
+
+            else -> {
+                eventSink?.success(HostCardEmulationStatus.WRONG_PIN)
+                ResponseApdu.WRONG_PIN
+            }
         }
 
-    override fun onDeactivated(reason: Int) = Unit
+    override fun onDeactivated(reason: Int) {
+        eventSink?.success(HostCardEmulationStatus.TAG_DISCONNECTED)
+    }
+
+    override fun onListen(
+        arguments: Any?,
+        events: EventSink?,
+    ) {
+        eventSink = events
+    }
+
+    override fun onCancel(arguments: Any?) {
+        eventSink = null
+    }
 }

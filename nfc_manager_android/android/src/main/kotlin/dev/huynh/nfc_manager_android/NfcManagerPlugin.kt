@@ -19,15 +19,17 @@ class NfcManagerPlugin :
     FlutterPlugin,
     MethodCallHandler {
     private lateinit var methodChannel: MethodChannel
-    private lateinit var eventChannel: EventChannel
+    private lateinit var discoveryEventChanngel: EventChannel
+    private lateinit var hostCardEmulationEventChanngel: EventChannel
+
     private var nfcAdapter: NfcAdapter? = null
 
     @VisibleForTesting
     lateinit var nfcFeatureChecker: NfcFeatureChecker
-    private val hostCardEmulation = HostCardEmulation()
 
     @VisibleForTesting
     var nfcReader: NfcReader? = null
+    private val hostCardEmulation = HostCardEmulation()
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val context = flutterPluginBinding.applicationContext
@@ -44,16 +46,21 @@ class NfcManagerPlugin :
                 "dev.huynh/nfc_manager_android",
             ).apply { setMethodCallHandler(this@NfcManagerPlugin) }
 
-        eventChannel =
+        discoveryEventChanngel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/discovery",
+            )
+        hostCardEmulationEventChanngel =
+            EventChannel(
+                flutterPluginBinding.binaryMessenger,
+                "dev.huynh/nfc_manager_android/host_card_emulation",
             )
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel.setMethodCallHandler(null)
-        eventChannel.setStreamHandler(null)
+        discoveryEventChanngel.setStreamHandler(null)
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -62,18 +69,17 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 activity = binding.activity,
             )
-        eventChannel.setStreamHandler(nfcReader)
+        discoveryEventChanngel.setStreamHandler(nfcReader)
+        hostCardEmulationEventChanngel.setStreamHandler(hostCardEmulation)
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
 
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) =
-        onAttachedToActivity(
-            binding,
-        )
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
 
     override fun onDetachedFromActivity() {
-        eventChannel.setStreamHandler(null)
+        discoveryEventChanngel.setStreamHandler(null)
+        hostCardEmulationEventChanngel.setStreamHandler(null)
         nfcReader = null
     }
 
