@@ -31,7 +31,7 @@ class HostCardEmulation :
     }
 
     override fun processCommandApdu(
-        commandApdu: ByteArray?,
+        commandByteArray: ByteArray?,
         extras: Bundle?,
     ): ByteArray =
         when {
@@ -40,20 +40,20 @@ class HostCardEmulation :
                 ResponseApdu.HCE_NOT_READY()
             }
 
-            commandApdu == null -> ResponseApdu.NULL_COMMAND()
-            else -> handleCommand(commandApdu)
+            commandByteArray == null -> ResponseApdu.NULL_COMMAND()
+            else -> handleCommand(commandByteArray)
         }
 
-    private fun handleCommand(commandApdu: ByteArray): ByteArray =
+    private fun handleCommand(commandByteArray: ByteArray): ByteArray =
         try {
-            val parsedCommand = CommandApdu.fromByteArray(commandApdu)
+            val command = CommandApdu.fromByteArray(commandByteArray)
 
             when {
-                parsedCommand.ins == 0xA4.toByte() && parsedCommand.p1 == 0x04.toByte() ->
-                    processSelectAid(parsedCommand.data!!)
+                command.ins == 0xA4.toByte() && command.p1 == 0x04.toByte() ->
+                    processSelectAid(command.data!!)
 
-                parsedCommand.ins == 0x20.toByte() && parsedCommand.p1 == 0x00.toByte() ->
-                    processVerifyPin(parsedCommand.data!!)
+                command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() ->
+                    processVerifyPin(command.data!!)
 
                 else -> {
                     eventSink?.success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
