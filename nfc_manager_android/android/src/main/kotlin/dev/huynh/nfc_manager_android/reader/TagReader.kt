@@ -7,7 +7,7 @@ import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.jetbrains.annotations.VisibleForTesting
 
-class NfcReader(
+class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
 ) : StreamHandler {

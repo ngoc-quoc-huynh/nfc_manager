@@ -28,7 +28,7 @@ class NfcManagerPlugin :
     lateinit var nfcFeatureChecker: NfcFeatureChecker
 
     @VisibleForTesting
-    var nfcReader: NfcReader? = null
+    var tagReader: TagReader? = null
     private val hostCardEmulation = HostCardEmulation()
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
@@ -64,12 +64,12 @@ class NfcManagerPlugin :
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        nfcReader =
-            NfcReader(
+        tagReader =
+            TagReader(
                 nfcAdapter = nfcAdapter,
                 activity = binding.activity,
             )
-        discoveryEventChanngel.setStreamHandler(nfcReader)
+        discoveryEventChanngel.setStreamHandler(tagReader)
         hostCardEmulationEventChanngel.setStreamHandler(hostCardEmulation)
     }
 
@@ -80,7 +80,7 @@ class NfcManagerPlugin :
     override fun onDetachedFromActivity() {
         discoveryEventChanngel.setStreamHandler(null)
         hostCardEmulationEventChanngel.setStreamHandler(null)
-        nfcReader = null
+        tagReader = null
     }
 
     override fun onMethodCall(
@@ -92,13 +92,13 @@ class NfcManagerPlugin :
         "isNfcEnabled" -> result.success(nfcFeatureChecker.isNfcEnabled())
         "startDiscovery" ->
             result.trySuccess {
-                nfcReader?.startDiscovery()
+                tagReader?.startDiscovery()
                 null
             }
 
         "stopDiscovery" ->
             result.trySuccess {
-                nfcReader?.stopDiscovery()
+                tagReader?.stopDiscovery()
                 null
             }
 

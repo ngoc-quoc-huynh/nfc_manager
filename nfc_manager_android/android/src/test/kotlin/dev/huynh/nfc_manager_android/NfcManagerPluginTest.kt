@@ -1,5 +1,5 @@
 import dev.huynh.nfc_manager_android.NfcManagerPlugin
-import dev.huynh.nfc_manager_android.NfcReader
+import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
@@ -10,11 +10,11 @@ import org.mockito.kotlin.whenever
 
 class NfcManagerPluginTest {
     private val mockNfcFeatureChecker = mock<NfcFeatureChecker>()
-    private val mockNfcReader = mock<NfcReader>()
+    private val mockTagReader = mock<TagReader>()
     private val plugin =
         NfcManagerPlugin().apply {
             nfcFeatureChecker = mockNfcFeatureChecker
-            nfcReader = mockNfcReader
+            tagReader = mockTagReader
         }
     private val mockResult = mock<Result>()
 

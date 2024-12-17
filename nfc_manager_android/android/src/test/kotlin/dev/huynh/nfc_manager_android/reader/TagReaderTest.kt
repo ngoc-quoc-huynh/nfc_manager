@@ -3,7 +3,7 @@ package dev.huynh.nfc_manager_android.reader
 import android.app.Activity
 import android.nfc.NfcAdapter
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
-import dev.huynh.nfc_manager_android.NfcReader
+import dev.huynh.nfc_manager_android.TagReader
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
@@ -16,27 +16,27 @@ import org.mockito.kotlin.verify
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 
-class NfcReaderTest {
+class TagReaderTest {
     private val mockActivity = mock<Activity>()
     private val mockEventSink = mock<EventSink>()
     private val mockAdapter = mock<NfcAdapter>()
-    private val nfcReader =
-        NfcReader(
+    private val tagReader =
+        TagReader(
             activity = mockActivity,
             nfcAdapter = mockAdapter,
         )
 
     @Test
     fun `startDiscovery should throw NfcNotSupportedException when nfcAdapter is null`() {
-        val nfcReader = NfcReader(activity = mockActivity, nfcAdapter = null)
-        assertThrows<NfcNotSupportedException> { nfcReader.startDiscovery() }
+        val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
+        assertThrows<NfcNotSupportedException> { tagReader.startDiscovery() }
     }
 
     @Test
     fun `startDiscovery should not start a new discovery when discovery is already started`() {
-        nfcReader.eventSink = mockEventSink
-        nfcReader.isDiscoveryStarted = true
-        nfcReader.startDiscovery()
+        tagReader.eventSink = mockEventSink
+        tagReader.isDiscoveryStarted = true
+        tagReader.startDiscovery()
 
         verify(mockAdapter, times(0)).enableReaderMode(
             eq(mockActivity),
@@ -48,8 +48,8 @@ class NfcReaderTest {
 
     @Test
     fun `startDiscovery should start discovery when eventSink is available and discovery is not started`() {
-        nfcReader.eventSink = mockEventSink
-        nfcReader.startDiscovery()
+        tagReader.eventSink = mockEventSink
+        tagReader.startDiscovery()
 
         verify(mockAdapter).enableReaderMode(
             eq(mockActivity),
@@ -61,7 +61,7 @@ class NfcReaderTest {
 
     @Test
     fun `stopDiscovery should not stop discovery when it is already stopped`() {
-        nfcReader.stopDiscovery()
+        tagReader.stopDiscovery()
 
         verify(mockAdapter, times(0))
             .disableReaderMode(any())
@@ -69,32 +69,32 @@ class NfcReaderTest {
 
     @Test
     fun `stopDiscovery should stop discovery when it is started`() {
-        nfcReader.isDiscoveryStarted = true
-        nfcReader.stopDiscovery()
+        tagReader.isDiscoveryStarted = true
+        tagReader.stopDiscovery()
 
         verify(mockAdapter).disableReaderMode(mockActivity)
     }
 
     @Test
     fun `stopDiscovery should throw NfcNotSupportedException when nfcAdapter is null`() {
-        val nfcReader = NfcReader(activity = mockActivity, nfcAdapter = null)
-        assertThrows<NfcNotSupportedException> { nfcReader.stopDiscovery() }
+        val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
+        assertThrows<NfcNotSupportedException> { tagReader.stopDiscovery() }
     }
 
     @Test
     fun `onListen should set eventSink correctly`() {
-        nfcReader.onListen(null, mockEventSink)
+        tagReader.onListen(null, mockEventSink)
 
-        assertEquals(mockEventSink, nfcReader.eventSink)
+        assertEquals(mockEventSink, tagReader.eventSink)
     }
 
     @Test
     fun `onCancel should stop discovery and nullify eventSink`() {
-        nfcReader.eventSink = mockEventSink
-        nfcReader.isDiscoveryStarted = true
-        nfcReader.onCancel(null)
+        tagReader.eventSink = mockEventSink
+        tagReader.isDiscoveryStarted = true
+        tagReader.onCancel(null)
 
-        assertNull(nfcReader.eventSink)
-        assertFalse(nfcReader.isDiscoveryStarted)
+        assertNull(tagReader.eventSink)
+        assertFalse(tagReader.isDiscoveryStarted)
     }
 }
