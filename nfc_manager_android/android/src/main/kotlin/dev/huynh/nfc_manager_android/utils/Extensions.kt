@@ -1,6 +1,7 @@
 package dev.huynh.nfc_manager_android.utils
 
 import dev.huynh.nfc_manager_android.NfcException
+import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel.Result
 
 fun ByteArray.toHexString(): String =
@@ -8,10 +9,17 @@ fun ByteArray.toHexString(): String =
         "%02x".format(byte)
     }.uppercase()
 
-fun Result.error(nfcException: NfcException) =
+fun Result.error(exception: NfcException) =
     error(
-        nfcException.code,
-        nfcException.message,
+        exception.code,
+        exception.message,
+        null,
+    )
+
+fun EventSink.error(exception: NfcException) =
+    error(
+        exception.code,
+        exception.message,
         null,
     )
 

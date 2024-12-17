@@ -17,12 +17,6 @@ class InvalidLcDataLengthException :
         "The LC value does not match the length of the Data field in the APDU command.",
     )
 
-class InvalidHexStringLengthException :
-    NfcException(
-        "INVALID_HEX_STRING_LENGTH",
-        "Hex string must have an even length.",
-    )
-
 class IsoDepNotSupportedException :
     NfcException(
         "ISO_DEP_NOT_SUPPORTED",
@@ -35,8 +29,8 @@ class NfcNotSupportedException :
         "This device does not support NFC.",
     )
 
-class TagLostException :
+class TagConnectionException :
     NfcException(
-        "TAG_LOST",
-        "The NFC tag was lost or is no longer in range.",
+        "TAG_CONNECTION_FAILED",
+        "Failed to establish a connection with the NFC tag or the tag was lost.",
     )

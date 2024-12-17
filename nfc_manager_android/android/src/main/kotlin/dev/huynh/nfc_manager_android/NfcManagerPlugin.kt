@@ -102,6 +102,11 @@ class NfcManagerPlugin :
                 null
             }
 
+        "sendCommand" ->
+            result.trySuccess {
+                tagReader?.sendCommand(call.argument<ByteArray>("command")!!)
+            }
+
         "startEmulation" -> {
             hostCardEmulation.startEmulation(
                 aid = call.argument<ByteArray>("aid")!!,
