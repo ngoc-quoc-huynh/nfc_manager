@@ -5,24 +5,25 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.TagLostException
 import android.nfc.tech.IsoDep
+import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.utils.error
 import dev.huynh.nfc_manager_android.utils.toHexString
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
-import org.jetbrains.annotations.VisibleForTesting
 import java.io.IOException
 
 class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
 ) : StreamHandler {
-    @VisibleForTesting
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     var eventSink: EventSink? = null
 
-    @VisibleForTesting
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     var isDiscoveryStarted = false
 
-    private var isoDep: IsoDep? = null
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    var isoDep: IsoDep? = null
 
     fun startDiscovery() {
         val adapter = getNfcAdapter()
@@ -33,12 +34,13 @@ class TagReader(
         adapter.enableReaderMode(
             activity,
             ::onTagFound,
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B,
             null,
         )
     }
 
-    private fun onTagFound(tag: Tag?) {
+    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    fun onTagFound(tag: Tag?) {
         if (tag == null) return
 
         val isoDep =
