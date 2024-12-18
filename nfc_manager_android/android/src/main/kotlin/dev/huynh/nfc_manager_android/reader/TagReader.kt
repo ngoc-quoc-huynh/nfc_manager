@@ -25,14 +25,12 @@ class TagReader(
     private var isoDep: IsoDep? = null
 
     fun startDiscovery() {
-        if (nfcAdapter == null) throw NfcNotSupportedException()
+        val adapter = getNfcAdapter()
 
-        if (isDiscoveryStarted) {
-            return
-        }
+        if (isDiscoveryStarted) return
 
         isDiscoveryStarted = true
-        nfcAdapter.enableReaderMode(
+        adapter.enableReaderMode(
             activity,
             ::onTagFound,
             NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
@@ -43,36 +41,40 @@ class TagReader(
     private fun onTagFound(tag: Tag?) {
         if (tag == null) return
 
-        val isoDep = IsoDep.get(tag) ?: throw IsoDepNotSupportedException()
+        val isoDep =
+            IsoDep.get(tag) ?: run {
+                return emitError(IsoDepNotSupportedException())
+            }
 
         runCatching {
             isoDep.connect()
+            isoDep.timeout = 3000
             val tagId = tag.id.toHexString()
-            activity.runOnUiThread { eventSink?.success(tagId) }
+            emitSuccess(tagId)
         }.onFailure { exception ->
             if (exception is IOException) {
-                activity.runOnUiThread {
-                    eventSink?.error(TagConnectionException())
-                }
+                emitError(TagConnectionException())
             }
         }
     }
 
     fun stopDiscovery() {
-        if (nfcAdapter == null) throw NfcNotSupportedException()
+        val adapter = getNfcAdapter()
 
         eventSink = null
         if (isDiscoveryStarted) {
-            nfcAdapter.disableReaderMode(activity)
+            adapter.disableReaderMode(activity)
             isDiscoveryStarted = false
+            isoDep?.close()
+            isoDep = null
         }
     }
 
     fun sendCommand(command: ByteArray): ByteArray {
-        if (isoDep == null) throw TagConnectionException()
+        val currentIsoDep = isoDep ?: throw TagConnectionException()
 
-        try {
-            return isoDep!!.transceive(command)
+        return try {
+            currentIsoDep.transceive(command)
         } catch (e: TagLostException) {
             throw TagConnectionException()
         }
@@ -89,4 +91,17 @@ class TagReader(
         eventSink = null
         stopDiscovery()
     }
+
+    private fun getNfcAdapter(): NfcAdapter = nfcAdapter ?: throw NfcNotSupportedException()
+
+    private fun emitSuccess(data: Any) {
+        activity.runOnUiThread {
+            eventSink?.success(data)
+        }
+    }
+
+    private fun emitError(exception: NfcException) =
+        activity.runOnUiThread {
+            eventSink?.error(exception)
+        }
 }
