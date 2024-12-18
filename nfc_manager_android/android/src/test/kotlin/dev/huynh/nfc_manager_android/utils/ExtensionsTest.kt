@@ -2,7 +2,9 @@ package dev.huynh.nfc_manager_android
 
 import dev.huynh.nfc_manager_android.utils.error
 import dev.huynh.nfc_manager_android.utils.toHexString
+import dev.huynh.nfc_manager_android.utils.toUnsignedInt
 import dev.huynh.nfc_manager_android.utils.trySuccess
+import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -41,10 +43,22 @@ class ExtensionsTest {
         )
 
     @Test
-    fun `error should pass NfcException code and message`() {
+    fun `Result error should pass NfcException code and message`() {
         val nfcException = NfcNotSupportedException()
         mockResult.error(nfcException)
         verify(mockResult).error(
+            "NFC_NOT_SUPPORTED",
+            "This device does not support NFC.",
+            null,
+        )
+    }
+
+    @Test
+    fun `EventSink error should pass NfcException code and message`() {
+        val nfcException = NfcNotSupportedException()
+        val mockEventSink = mock<EventSink>()
+        mockEventSink.error(nfcException)
+        verify(mockEventSink).error(
             "NFC_NOT_SUPPORTED",
             "This device does not support NFC.",
             null,
@@ -65,5 +79,40 @@ class ExtensionsTest {
             "This device does not support NFC.",
             null,
         )
+    }
+
+    @Test
+    fun `toUnsignedInt returns positive byte correctly`() {
+        val byte: Byte = 100
+        val unsignedInt = byte.toUnsignedInt()
+        assertEquals(100, unsignedInt)
+    }
+
+    @Test
+    fun `toUnsignedInt returns negative byte correctly`() {
+        val byte: Byte = -100
+        val unsignedInt = byte.toUnsignedInt()
+        assertEquals(156, unsignedInt)
+    }
+
+    @Test
+    fun `toUnsignedInt returns zero byte correctly`() {
+        val byte: Byte = 0
+        val unsignedInt = byte.toUnsignedInt()
+        assertEquals(0, unsignedInt)
+    }
+
+    @Test
+    fun `toUnsignedInt returns max byte correctly`() {
+        val byte: Byte = Byte.MAX_VALUE
+        val unsignedInt = byte.toUnsignedInt()
+        assertEquals(127, unsignedInt)
+    }
+
+    @Test
+    fun `toUnsignedInt returns min byte correctly`() {
+        val byte: Byte = Byte.MIN_VALUE
+        val unsignedInt = byte.toUnsignedInt()
+        assertEquals(128, unsignedInt)
     }
 }
