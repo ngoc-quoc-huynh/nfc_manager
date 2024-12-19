@@ -20,7 +20,7 @@ class InvalidLcDataLengthException :
 class IsoDepNotSupportedException :
     NfcException(
         "ISO_DEP_NOT_SUPPORTED",
-        "The NFC tag does not support  ISO-DEP.",
+        "The NFC tag does not support ISO-DEP.",
     )
 
 class NfcNotSupportedException :

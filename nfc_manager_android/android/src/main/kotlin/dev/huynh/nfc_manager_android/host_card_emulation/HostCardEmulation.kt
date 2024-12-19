@@ -2,8 +2,9 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
+import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
-import dev.huynh.nfc_manager_android.NfcException
+import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel
@@ -12,7 +13,8 @@ import io.flutter.plugin.common.EventChannel.EventSink
 class HostCardEmulation :
     HostApduService(),
     EventChannel.StreamHandler {
-    private var eventSink: EventSink? = null
+    @VisibleForTesting
+    var eventSink: EventSink? = null
 
     fun startEmulation(
         aid: ByteArray,
@@ -61,45 +63,29 @@ class HostCardEmulation :
                 }
             }()
         } catch (e: InvalidApduCommandException) {
+            eventSink?.success(HostCardEmulationStatus.INVALID_COMMAND)
             ResponseApdu.WRONG_LENGTH()
-        } catch (e: NfcException) {
-            ResponseApdu.UNKNOWN()
+        } catch (e: InvalidLcDataLengthException) {
+            eventSink?.success(HostCardEmulationStatus.INVALID_LC_LENGTH)
+            ResponseApdu.WRONG_LC_LENGTH()
         }
 
     private fun processSelectAid(data: ByteArray): ResponseApdu =
-        when {
-            !HostCardEmulationConfig.isConfigured -> {
-                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
-                ResponseApdu.HCE_NOT_READY
-            }
-
-            data.contentEquals(HostCardEmulationConfig.aid) -> {
-                eventSink?.success(HostCardEmulationStatus.AID_SELECTED)
-                ResponseApdu.OK
-            }
-
-            else -> {
-                eventSink?.success(HostCardEmulationStatus.INVALID_AID)
-                ResponseApdu.INVALID_AID
-            }
+        if (data.contentEquals(HostCardEmulationConfig.aid)) {
+            eventSink?.success(HostCardEmulationStatus.AID_SELECTED)
+            ResponseApdu.OK
+        } else {
+            eventSink?.success(HostCardEmulationStatus.INVALID_AID)
+            ResponseApdu.INVALID_AID
         }
 
     private fun processVerifyPin(data: ByteArray): ResponseApdu =
-        when {
-            !HostCardEmulationConfig.isConfigured -> {
-                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
-                ResponseApdu.HCE_NOT_READY
-            }
-
-            data.contentEquals(HostCardEmulationConfig.pin!!) -> {
-                eventSink?.success(HostCardEmulationStatus.PIN_VERIFIED)
-                ResponseApdu.OK
-            }
-
-            else -> {
-                eventSink?.success(HostCardEmulationStatus.WRONG_PIN)
-                ResponseApdu.WRONG_PIN
-            }
+        if (data.contentEquals(HostCardEmulationConfig.pin!!)) {
+            eventSink?.success(HostCardEmulationStatus.PIN_VERIFIED)
+            ResponseApdu.OK
+        } else {
+            eventSink?.success(HostCardEmulationStatus.WRONG_PIN)
+            ResponseApdu.WRONG_PIN
         }
 
     override fun onDeactivated(reason: Int) {

@@ -8,7 +8,7 @@ enum class ResponseApdu(
     INVALID_AID(byteArrayOf(0x6A, 0x82.toByte())),
     NULL_COMMAND(byteArrayOf(0x6A, 0x00)),
     OK(byteArrayOf(0x90.toByte(), 0x00)),
-    UNKNOWN(byteArrayOf(0x67, 0x00)),
+    WRONG_LC_LENGTH(byteArrayOf(0x67, 0x00)),
     WRONG_LENGTH(byteArrayOf(0x6C, 0x00)),
     WRONG_PIN(byteArrayOf(0x63, 0x00)),
     ;
