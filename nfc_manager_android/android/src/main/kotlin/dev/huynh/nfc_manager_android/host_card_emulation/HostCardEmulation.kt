@@ -68,7 +68,7 @@ class HostCardEmulation :
 
     private fun processSelectAid(data: ByteArray): ResponseApdu =
         when {
-            HostCardEmulationConfig.aid == null -> {
+            !HostCardEmulationConfig.isConfigured -> {
                 eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
                 ResponseApdu.HCE_NOT_READY
             }
@@ -86,7 +86,7 @@ class HostCardEmulation :
 
     private fun processVerifyPin(data: ByteArray): ResponseApdu =
         when {
-            HostCardEmulationConfig.pin == null -> {
+            !HostCardEmulationConfig.isConfigured -> {
                 eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
                 ResponseApdu.HCE_NOT_READY
             }
