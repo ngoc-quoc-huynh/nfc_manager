@@ -1,18 +1,26 @@
 import dev.huynh.nfc_manager_android.NfcManagerPlugin
+import dev.huynh.nfc_manager_android.NfcNotSupportedException
+import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
+import dev.huynh.nfc_manager_android.models.ResponseApdu
+import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class NfcManagerPluginTest {
     private val mockNfcFeatureChecker = mock<NfcFeatureChecker>()
+    private val mockHostCardEmulation = mock<HostCardEmulation>()
     private val mockTagReader = mock<TagReader>()
     private val plugin =
         NfcManagerPlugin().apply {
+            hostCardEmulation = mockHostCardEmulation
             nfcFeatureChecker = mockNfcFeatureChecker
             tagReader = mockTagReader
         }
@@ -25,6 +33,7 @@ class NfcManagerPluginTest {
             MethodCall("isHceSupported", null),
             mockResult,
         )
+
         verify(mockResult).success(true)
     }
 
@@ -35,6 +44,7 @@ class NfcManagerPluginTest {
             MethodCall("isNfcSupported", null),
             mockResult,
         )
+
         verify(mockResult).success(true)
     }
 
@@ -45,6 +55,7 @@ class NfcManagerPluginTest {
             MethodCall("isNfcEnabled", null),
             mockResult,
         )
+
         verify(mockResult).success(true)
     }
 
@@ -54,7 +65,21 @@ class NfcManagerPluginTest {
             MethodCall("startDiscovery", null),
             mockResult,
         )
+
         verify(mockResult).success(null)
+    }
+
+    @Test
+    fun `startDiscovery method call returns error if exception is thrown`() {
+        doAnswer { throw NfcNotSupportedException() }
+            .whenever(mockTagReader)
+            .startDiscovery()
+        plugin.onMethodCall(
+            MethodCall("startDiscovery", null),
+            mockResult,
+        )
+
+        verify(mockResult).error(NfcNotSupportedException())
     }
 
     @Test
@@ -63,6 +88,83 @@ class NfcManagerPluginTest {
             MethodCall("stopDiscovery", null),
             mockResult,
         )
+
         verify(mockResult).success(null)
+    }
+
+    @Test
+    fun `stopDiscovery method call returns error if exception is thrown`() {
+        doAnswer { throw NfcNotSupportedException() }
+            .whenever(mockTagReader)
+            .stopDiscovery()
+        plugin.onMethodCall(
+            MethodCall("stopDiscovery", null),
+            mockResult,
+        )
+
+        verify(mockResult).error(NfcNotSupportedException())
+    }
+
+    @Test
+    fun `sendCommand method call returns correctly`() {
+        whenever(mockTagReader.sendCommand(byteArrayOf())).thenReturn(ResponseApdu.OK())
+        plugin.onMethodCall(
+            MethodCall(
+                "sendCommand",
+                mapOf("command" to byteArrayOf()),
+            ),
+            mockResult,
+        )
+
+        verify(mockResult).success(ResponseApdu.OK())
+    }
+
+    @Test
+    fun `sendCommand method call returns error if method throws`() {
+        whenever(mockTagReader.sendCommand(byteArrayOf())).thenAnswer {
+            throw TagConnectionException()
+        }
+        plugin.onMethodCall(
+            MethodCall(
+                "sendCommand",
+                mapOf("command" to byteArrayOf()),
+            ),
+            mockResult,
+        )
+
+        verify(mockResult).error(TagConnectionException())
+    }
+
+    @Test
+    fun `startEmulation method call returns correctly`() {
+        plugin.onMethodCall(
+            MethodCall(
+                "startEmulation",
+                mapOf(
+                    "aid" to byteArrayOf(),
+                    "pin" to byteArrayOf(),
+                ),
+            ),
+            mockResult,
+        )
+        verify(mockResult).success(null)
+    }
+
+    @Test
+    fun `stopEmulation method call returns correctly`() {
+        plugin.onMethodCall(
+            MethodCall("stopEmulation", null),
+            mockResult,
+        )
+        verify(mockResult).success(null)
+    }
+
+    @Test
+    fun `throws not implemented for other method calls`() {
+        plugin.onMethodCall(
+            MethodCall("other", null),
+            mockResult,
+        )
+        verify(mockResult).notImplemented()
     }
 }

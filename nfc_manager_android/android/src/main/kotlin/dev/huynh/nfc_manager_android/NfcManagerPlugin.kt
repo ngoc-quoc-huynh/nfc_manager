@@ -1,6 +1,7 @@
 package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
+import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.utils.trySuccess
@@ -12,24 +13,24 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import org.jetbrains.annotations.VisibleForTesting
 
 class NfcManagerPlugin :
     ActivityAware,
     FlutterPlugin,
     MethodCallHandler {
     private lateinit var methodChannel: MethodChannel
-    private lateinit var discoveryEventChanngel: EventChannel
-    private lateinit var hostCardEmulationEventChanngel: EventChannel
-
+    private lateinit var discoveryEventChannel: EventChannel
+    private lateinit var hostCardEmulationEventChannel: EventChannel
     private var nfcAdapter: NfcAdapter? = null
+
+    @VisibleForTesting
+    var hostCardEmulation: HostCardEmulation = HostCardEmulation()
 
     @VisibleForTesting
     lateinit var nfcFeatureChecker: NfcFeatureChecker
 
     @VisibleForTesting
     var tagReader: TagReader? = null
-    private val hostCardEmulation = HostCardEmulation()
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val context = flutterPluginBinding.applicationContext
@@ -45,13 +46,12 @@ class NfcManagerPlugin :
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android",
             ).apply { setMethodCallHandler(this@NfcManagerPlugin) }
-
-        discoveryEventChanngel =
+        discoveryEventChannel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/discovery",
             )
-        hostCardEmulationEventChanngel =
+        hostCardEmulationEventChannel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/host_card_emulation",
@@ -60,7 +60,8 @@ class NfcManagerPlugin :
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel.setMethodCallHandler(null)
-        discoveryEventChanngel.setStreamHandler(null)
+        discoveryEventChannel.setStreamHandler(null)
+        hostCardEmulationEventChannel.setStreamHandler(null)
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -69,8 +70,8 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 activity = binding.activity,
             )
-        discoveryEventChanngel.setStreamHandler(tagReader)
-        hostCardEmulationEventChanngel.setStreamHandler(hostCardEmulation)
+        discoveryEventChannel.setStreamHandler(tagReader)
+        hostCardEmulationEventChannel.setStreamHandler(hostCardEmulation)
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
@@ -78,8 +79,8 @@ class NfcManagerPlugin :
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
 
     override fun onDetachedFromActivity() {
-        discoveryEventChanngel.setStreamHandler(null)
-        hostCardEmulationEventChanngel.setStreamHandler(null)
+        discoveryEventChannel.setStreamHandler(null)
+        hostCardEmulationEventChannel.setStreamHandler(null)
         tagReader = null
     }
 
