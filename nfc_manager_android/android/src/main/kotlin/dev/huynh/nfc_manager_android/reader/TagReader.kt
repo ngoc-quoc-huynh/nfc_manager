@@ -16,13 +16,13 @@ class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
 ) : StreamHandler {
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @VisibleForTesting
     var eventSink: EventSink? = null
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @VisibleForTesting
     var isDiscoveryStarted = false
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @VisibleForTesting
     var isoDep: IsoDep? = null
 
     fun startDiscovery() {
@@ -39,7 +39,7 @@ class TagReader(
         )
     }
 
-    @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
+    @VisibleForTesting
     fun onTagFound(tag: Tag?) {
         if (tag == null) return
 
