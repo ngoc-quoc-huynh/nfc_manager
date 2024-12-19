@@ -1,5 +1,6 @@
 package dev.huynh.nfc_manager_android.host_card_emulation
 
+import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.Assertions.assertEquals

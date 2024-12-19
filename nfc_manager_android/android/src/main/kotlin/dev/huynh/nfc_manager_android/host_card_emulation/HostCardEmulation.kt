@@ -6,6 +6,7 @@ import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
+import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
