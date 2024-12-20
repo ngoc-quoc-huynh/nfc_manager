@@ -20,57 +20,7 @@ class TagReader(
     var eventSink: EventSink? = null
 
     @VisibleForTesting
-    var isDiscoveryStarted = false
-
-    @VisibleForTesting
     var isoDep: IsoDep? = null
-
-    fun startDiscovery() {
-        val adapter = getNfcAdapter()
-
-        if (isDiscoveryStarted) return
-
-        isDiscoveryStarted = true
-        adapter.enableReaderMode(
-            activity,
-            ::onTagFound,
-            NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B,
-            null,
-        )
-    }
-
-    @VisibleForTesting
-    fun onTagFound(tag: Tag?) {
-        if (tag == null) return
-
-        val isoDep =
-            IsoDep.get(tag) ?: run {
-                return emitError(IsoDepNotSupportedException())
-            }
-
-        runCatching {
-            isoDep.connect()
-            isoDep.timeout = 3000
-            val tagId = tag.id.toHexString()
-            emitSuccess(tagId)
-        }.onFailure { exception ->
-            if (exception is IOException) {
-                emitError(TagConnectionException())
-            }
-        }
-    }
-
-    fun stopDiscovery() {
-        val adapter = getNfcAdapter()
-
-        eventSink = null
-        if (isDiscoveryStarted) {
-            adapter.disableReaderMode(activity)
-            isDiscoveryStarted = false
-            isoDep?.close()
-            isoDep = null
-        }
-    }
 
     fun sendCommand(command: ByteArray): ByteArray {
         val currentIsoDep = isoDep ?: throw TagConnectionException()
@@ -87,14 +37,46 @@ class TagReader(
         events: EventSink?,
     ) {
         eventSink = events
+        if (nfcAdapter == null) {
+            eventSink?.error(NfcNotSupportedException())
+        } else {
+            nfcAdapter.enableReaderMode(
+                activity,
+                ::onTagFound,
+                NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B,
+                null,
+            )
+        }
     }
 
     override fun onCancel(arguments: Any?) {
         eventSink = null
-        stopDiscovery()
+        nfcAdapter?.disableReaderMode(activity)
+        isoDep?.close()
+        isoDep = null
     }
 
-    private fun getNfcAdapter(): NfcAdapter = nfcAdapter ?: throw NfcNotSupportedException()
+    @VisibleForTesting
+    fun onTagFound(tag: Tag?) {
+        if (tag == null) return
+
+        val isoDep =
+            IsoDep.get(tag) ?: run {
+                return emitError(IsoDepNotSupportedException())
+            }
+
+        isoDep
+            .runCatching {
+                connect()
+                timeout = 3000
+                val tagId = tag.id.toHexString()
+                emitSuccess(tagId)
+            }.onFailure { exception ->
+                if (exception is IOException) {
+                    emitError(TagConnectionException())
+                }
+            }
+    }
 
     private fun emitSuccess(data: Any) {
         activity.runOnUiThread {

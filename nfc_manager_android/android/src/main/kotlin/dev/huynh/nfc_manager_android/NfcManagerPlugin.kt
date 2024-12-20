@@ -89,18 +89,6 @@ class NfcManagerPlugin :
         "isHceSupported" -> result.success(featureChecker.isHceSupported())
         "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
         "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
-        "startDiscovery" ->
-            result.trySuccess {
-                tagReader?.startDiscovery()
-                null
-            }
-
-        "stopDiscovery" ->
-            result.trySuccess {
-                tagReader?.stopDiscovery()
-                null
-            }
-
         "sendCommand" ->
             result.trySuccess {
                 tagReader?.sendCommand(call.argument<ByteArray>("command")!!)

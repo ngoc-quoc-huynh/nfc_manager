@@ -11,8 +11,6 @@ import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -45,28 +43,49 @@ class TagReaderTest {
     }
 
     @Test
-    fun `startDiscovery throws NfcNotSupportedException when nfcAdapter is null`() {
-        val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
-        assertThrows<NfcNotSupportedException> { tagReader.startDiscovery() }
-    }
+    fun `sendCommand sends successfully`() {
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.transceive(byteArrayOf())).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
 
-    @Test
-    fun `startDiscovery should not start if already started`() {
-        tagReader.isDiscoveryStarted = true
-        tagReader.startDiscovery()
-
-        verify(mockNfcAdapter, times(0)).enableReaderMode(
-            eq(mockActivity),
-            any(),
-            eq(NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B),
-            eq(null),
+        assertContentEquals(
+            byteArrayOf(0x90.toByte(), 0x00),
+            tagReader.sendCommand(byteArrayOf()),
         )
+        verify(mockIsoDep).transceive(byteArrayOf())
     }
 
     @Test
-    fun `startDiscovery should start if not already started`() {
-        tagReader.isDiscoveryStarted = false
-        tagReader.startDiscovery()
+    fun `sendCommand throws TagConnectionException if isoDep is null`() {
+        tagReader.isoDep = null
+
+        assertThrows<TagConnectionException> {
+            tagReader.sendCommand(byteArrayOf())
+        }
+        verify(mockIsoDep, times(0)).transceive(byteArrayOf())
+    }
+
+    @Test
+    fun `sendCommand throws TagConnectionException if TagLostException is thrown`() {
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.transceive(byteArrayOf())).thenThrow(TagLostException())
+
+        assertThrows<TagConnectionException> {
+            tagReader.sendCommand(byteArrayOf())
+        }
+        verify(mockIsoDep).transceive(byteArrayOf())
+    }
+
+    @Test
+    fun `onListen emits NfcNotSupportedException if NfcAdapter is null`() {
+        val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
+        tagReader.onListen(null, mockEventSink)
+
+        verify(mockEventSink).error(NfcNotSupportedException())
+    }
+
+    @Test
+    fun `onListen stars discovery`() {
+        tagReader.onListen(null, mockEventSink)
 
         verify(mockNfcAdapter).enableReaderMode(
             eq(mockActivity),
@@ -138,80 +157,13 @@ class TagReaderTest {
     }
 
     @Test
-    fun `stopDiscovery throws NfcNotSupportedException when nfcAdapter is null`() {
-        val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
-        assertThrows<NfcNotSupportedException> { tagReader.stopDiscovery() }
-    }
-
-    @Test
-    fun `stopDiscovery should not stop when it is already stopped`() {
-        tagReader.isDiscoveryStarted = false
-        tagReader.stopDiscovery()
-        verify(mockNfcAdapter, times(0)).disableReaderMode(any())
-    }
-
-    @Test
-    fun `stopDiscovery should stop when it is started`() {
-        tagReader.isDiscoveryStarted = true
-        tagReader.isoDep = mockIsoDep
-        tagReader.stopDiscovery()
-
-        assertNull(tagReader.isoDep)
-        assertFalse(tagReader.isDiscoveryStarted)
-        verify(mockNfcAdapter).disableReaderMode(mockActivity)
-        verify(mockIsoDep).close()
-    }
-
-    @Test
-    fun `sendCommand sends successfully`() {
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(byteArrayOf())).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
-
-        assertContentEquals(
-            byteArrayOf(0x90.toByte(), 0x00),
-            tagReader.sendCommand(byteArrayOf()),
-        )
-        verify(mockIsoDep).transceive(byteArrayOf())
-    }
-
-    @Test
-    fun `sendCommand throws TagConnectionException if isoDep is null`() {
-        tagReader.isoDep = null
-
-        assertThrows<TagConnectionException> {
-            tagReader.sendCommand(byteArrayOf())
-        }
-        verify(mockIsoDep, times(0)).transceive(byteArrayOf())
-    }
-
-    @Test
-    fun `sendCommand throws TagConnectionException if TagLostException is thrown`() {
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(byteArrayOf())).thenThrow(TagLostException())
-
-        assertThrows<TagConnectionException> {
-            tagReader.sendCommand(byteArrayOf())
-        }
-        verify(mockIsoDep).transceive(byteArrayOf())
-    }
-
-    @Test
-    fun `onListen should set eventSink correctly`() {
-        tagReader.onListen(null, mockEventSink)
-
-        assertEquals(mockEventSink, tagReader.eventSink)
-    }
-
-    @Test
     fun `onCancel should stop discovery and nullify eventSink`() {
         tagReader.eventSink = mockEventSink
-        tagReader.isDiscoveryStarted = true
         tagReader.isoDep = mockIsoDep
         tagReader.onCancel(null)
 
         assertNull(tagReader.eventSink)
         assertNull(tagReader.isoDep)
-        assertFalse(tagReader.isDiscoveryStarted)
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
         verify(mockIsoDep).close()
     }

@@ -1,5 +1,4 @@
 import dev.huynh.nfc_manager_android.NfcManagerPlugin
-import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
@@ -9,7 +8,6 @@ import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -57,52 +55,6 @@ class NfcManagerPluginTest {
         )
 
         verify(mockResult).success(true)
-    }
-
-    @Test
-    fun `startDiscovery method call returns correctly`() {
-        plugin.onMethodCall(
-            MethodCall("startDiscovery", null),
-            mockResult,
-        )
-
-        verify(mockResult).success(null)
-    }
-
-    @Test
-    fun `startDiscovery method call returns error if exception is thrown`() {
-        doAnswer { throw NfcNotSupportedException() }
-            .whenever(mockTagReader)
-            .startDiscovery()
-        plugin.onMethodCall(
-            MethodCall("startDiscovery", null),
-            mockResult,
-        )
-
-        verify(mockResult).error(NfcNotSupportedException())
-    }
-
-    @Test
-    fun `stopDiscovery method call returns correctly`() {
-        plugin.onMethodCall(
-            MethodCall("stopDiscovery", null),
-            mockResult,
-        )
-
-        verify(mockResult).success(null)
-    }
-
-    @Test
-    fun `stopDiscovery method call returns error if exception is thrown`() {
-        doAnswer { throw NfcNotSupportedException() }
-            .whenever(mockTagReader)
-            .stopDiscovery()
-        plugin.onMethodCall(
-            MethodCall("stopDiscovery", null),
-            mockResult,
-        )
-
-        verify(mockResult).error(NfcNotSupportedException())
     }
 
     @Test
