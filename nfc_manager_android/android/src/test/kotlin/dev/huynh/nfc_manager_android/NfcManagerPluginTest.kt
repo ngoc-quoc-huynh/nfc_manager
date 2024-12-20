@@ -2,7 +2,7 @@ import dev.huynh.nfc_manager_android.NfcManagerPlugin
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.TagReader
-import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
+import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import dev.huynh.nfc_manager_android.utils.error
@@ -15,20 +15,20 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
 class NfcManagerPluginTest {
-    private val mockNfcFeatureChecker = mock<NfcFeatureChecker>()
+    private val mockFeatureChecker = mock<FeatureChecker>()
     private val mockHostCardEmulation = mock<HostCardEmulation>()
     private val mockTagReader = mock<TagReader>()
     private val plugin =
         NfcManagerPlugin().apply {
             hostCardEmulation = mockHostCardEmulation
-            nfcFeatureChecker = mockNfcFeatureChecker
+            featureChecker = mockFeatureChecker
             tagReader = mockTagReader
         }
     private val mockResult = mock<Result>()
 
     @Test
     fun `isHceSupported method call returns correctly`() {
-        whenever(mockNfcFeatureChecker.isHceSupported()).thenReturn(true)
+        whenever(mockFeatureChecker.isHceSupported()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isHceSupported", null),
             mockResult,
@@ -39,7 +39,7 @@ class NfcManagerPluginTest {
 
     @Test
     fun `isNfcSupported method call returns correctly`() {
-        whenever(mockNfcFeatureChecker.isNfcSupported()).thenReturn(true)
+        whenever(mockFeatureChecker.isNfcSupported()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isNfcSupported", null),
             mockResult,
@@ -50,7 +50,7 @@ class NfcManagerPluginTest {
 
     @Test
     fun `isNfcEnabled method call returns correctly`() {
-        whenever(mockNfcFeatureChecker.isNfcEnabled()).thenReturn(true)
+        whenever(mockFeatureChecker.isNfcEnabled()).thenReturn(true)
         plugin.onMethodCall(
             MethodCall("isNfcEnabled", null),
             mockResult,

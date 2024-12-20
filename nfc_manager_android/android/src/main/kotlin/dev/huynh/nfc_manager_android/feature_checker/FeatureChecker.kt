@@ -3,7 +3,7 @@ package dev.huynh.nfc_manager_android.feature_checker
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 
-class NfcFeatureChecker(
+class FeatureChecker(
     private val nfcAdapter: NfcAdapter?,
     private val packageManager: PackageManager,
 ) {

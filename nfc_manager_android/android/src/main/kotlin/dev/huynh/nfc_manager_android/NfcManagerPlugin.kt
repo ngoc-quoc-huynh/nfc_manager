@@ -2,7 +2,7 @@ package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
-import dev.huynh.nfc_manager_android.feature_checker.NfcFeatureChecker
+import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.utils.trySuccess
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -27,7 +27,7 @@ class NfcManagerPlugin :
     var hostCardEmulation: HostCardEmulation = HostCardEmulation()
 
     @VisibleForTesting
-    lateinit var nfcFeatureChecker: NfcFeatureChecker
+    lateinit var featureChecker: FeatureChecker
 
     @VisibleForTesting
     var tagReader: TagReader? = null
@@ -35,8 +35,8 @@ class NfcManagerPlugin :
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val context = flutterPluginBinding.applicationContext
         nfcAdapter = NfcAdapter.getDefaultAdapter(context)
-        nfcFeatureChecker =
-            NfcFeatureChecker(
+        featureChecker =
+            FeatureChecker(
                 nfcAdapter = nfcAdapter,
                 packageManager = context.packageManager,
             )
@@ -55,7 +55,7 @@ class NfcManagerPlugin :
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/host_card_emulation",
-            )
+            ).apply { setStreamHandler(hostCardEmulation) }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -71,7 +71,6 @@ class NfcManagerPlugin :
                 activity = binding.activity,
             )
         discoveryEventChannel.setStreamHandler(tagReader)
-        hostCardEmulationEventChannel.setStreamHandler(hostCardEmulation)
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
@@ -80,7 +79,6 @@ class NfcManagerPlugin :
 
     override fun onDetachedFromActivity() {
         discoveryEventChannel.setStreamHandler(null)
-        hostCardEmulationEventChannel.setStreamHandler(null)
         tagReader = null
     }
 
@@ -88,9 +86,9 @@ class NfcManagerPlugin :
         call: MethodCall,
         result: Result,
     ) = when (call.method) {
-        "isHceSupported" -> result.success(nfcFeatureChecker.isHceSupported())
-        "isNfcSupported" -> result.success(nfcFeatureChecker.isNfcSupported())
-        "isNfcEnabled" -> result.success(nfcFeatureChecker.isNfcEnabled())
+        "isHceSupported" -> result.success(featureChecker.isHceSupported())
+        "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
+        "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
         "startDiscovery" ->
             result.trySuccess {
                 tagReader?.startDiscovery()
