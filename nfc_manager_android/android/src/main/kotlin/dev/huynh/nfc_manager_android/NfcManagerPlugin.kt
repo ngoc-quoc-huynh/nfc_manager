@@ -24,9 +24,6 @@ class NfcManagerPlugin :
     private var nfcAdapter: NfcAdapter? = null
 
     @VisibleForTesting
-    var hostCardEmulation: HostCardEmulation = HostCardEmulation()
-
-    @VisibleForTesting
     lateinit var featureChecker: FeatureChecker
 
     @VisibleForTesting
@@ -55,7 +52,7 @@ class NfcManagerPlugin :
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/host_card_emulation",
-            ).apply { setStreamHandler(hostCardEmulation) }
+            ).apply { setStreamHandler(HostCardEmulation()) }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -93,19 +90,6 @@ class NfcManagerPlugin :
             result.trySuccess {
                 tagReader?.sendCommand(call.argument<ByteArray>("command")!!)
             }
-
-        "startEmulation" -> {
-            hostCardEmulation.startEmulation(
-                aid = call.argument<ByteArray>("aid")!!,
-                pin = call.argument<ByteArray>("pin")!!,
-            )
-            result.success(null)
-        }
-
-        "stopEmulation" -> {
-            hostCardEmulation.stopEmulation()
-            result.success(null)
-        }
 
         else -> result.notImplemented()
     }

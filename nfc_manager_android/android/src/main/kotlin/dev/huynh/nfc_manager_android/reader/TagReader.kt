@@ -60,12 +60,12 @@ class TagReader(
     fun onTagFound(tag: Tag?) {
         if (tag == null) return
 
-        val isoDep =
+        isoDep =
             IsoDep.get(tag) ?: run {
                 return emitError(IsoDepNotSupportedException())
             }
 
-        isoDep
+        isoDep!!
             .runCatching {
                 connect()
                 timeout = 3000

@@ -2,7 +2,6 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
-import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
@@ -14,32 +13,12 @@ import io.flutter.plugin.common.EventChannel.EventSink
 class HostCardEmulation :
     HostApduService(),
     EventChannel.StreamHandler {
-    @VisibleForTesting
-    var eventSink: EventSink? = null
-
-    fun startEmulation(
-        aid: ByteArray,
-        pin: ByteArray,
-    ) {
-        HostCardEmulationConfig.configure(
-            aid = aid,
-            pin = pin,
-        )
-        eventSink?.success(HostCardEmulationStatus.READY)
-    }
-
-    fun stopEmulation() {
-        HostCardEmulationConfig.clear()
-        eventSink?.success(HostCardEmulationStatus.DEACTIVATED)
-    }
-
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
     ): ByteArray =
         when {
             !HostCardEmulationConfig.isConfigured -> {
-                eventSink?.success(HostCardEmulationStatus.NOT_CONFIGURED)
                 ResponseApdu.HCE_NOT_READY()
             }
 
@@ -59,48 +38,59 @@ class HostCardEmulation :
                     processVerifyPin(command.data!!)
 
                 else -> {
-                    eventSink?.success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
+                    emitSuccess(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
                     ResponseApdu.FUNCTION_NOT_SUPPORTED
                 }
             }()
         } catch (e: InvalidApduCommandException) {
-            eventSink?.success(HostCardEmulationStatus.INVALID_COMMAND)
+            emitSuccess(HostCardEmulationStatus.INVALID_COMMAND)
             ResponseApdu.WRONG_LENGTH()
         } catch (e: InvalidLcDataLengthException) {
-            eventSink?.success(HostCardEmulationStatus.INVALID_LC_LENGTH)
+            emitSuccess(HostCardEmulationStatus.INVALID_LC_LENGTH)
             ResponseApdu.WRONG_LC_LENGTH()
         }
 
     private fun processSelectAid(data: ByteArray): ResponseApdu =
         if (data.contentEquals(HostCardEmulationConfig.aid)) {
-            eventSink?.success(HostCardEmulationStatus.AID_SELECTED)
+            emitSuccess(HostCardEmulationStatus.AID_SELECTED)
             ResponseApdu.OK
         } else {
-            eventSink?.success(HostCardEmulationStatus.INVALID_AID)
+            emitSuccess(HostCardEmulationStatus.INVALID_AID)
             ResponseApdu.INVALID_AID
         }
 
     private fun processVerifyPin(data: ByteArray): ResponseApdu =
         if (data.contentEquals(HostCardEmulationConfig.pin!!)) {
-            eventSink?.success(HostCardEmulationStatus.PIN_VERIFIED)
+            emitSuccess(HostCardEmulationStatus.PIN_VERIFIED)
             ResponseApdu.OK
         } else {
-            eventSink?.success(HostCardEmulationStatus.WRONG_PIN)
+            emitSuccess(HostCardEmulationStatus.WRONG_PIN)
             ResponseApdu.WRONG_PIN
         }
 
     override fun onDeactivated(reason: Int) {
-        eventSink?.success(HostCardEmulationStatus.TAG_DISCONNECTED)
+        emitSuccess(HostCardEmulationStatus.TAG_DISCONNECTED)
     }
 
     override fun onListen(
         arguments: Any?,
-        events: EventSink?,
-    ) {
-        eventSink = events
-    }
+        events: EventSink,
+    ): Unit =
+        (arguments as Map<*, *>).run {
+            HostCardEmulationConfig.configure(
+                aid = arguments["aid"] as ByteArray,
+                pin = arguments["pin"] as ByteArray,
+                eventSink = events,
+            )
+            emitSuccess(HostCardEmulationStatus.READY)
+        }
 
     override fun onCancel(arguments: Any?) {
-        eventSink = null
+        emitSuccess(HostCardEmulationStatus.DEACTIVATED)
+        HostCardEmulationConfig.clear()
     }
+
+    private fun emitSuccess(status: HostCardEmulationStatus) =
+        HostCardEmulationConfig.eventSink
+            ?.success(status.name)
 }

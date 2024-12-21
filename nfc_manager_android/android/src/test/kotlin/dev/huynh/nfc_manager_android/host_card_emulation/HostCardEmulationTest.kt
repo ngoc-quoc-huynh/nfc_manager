@@ -3,48 +3,52 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
-import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import kotlin.test.assertContentEquals
-import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class HostCardEmulationTest {
     private val mockEventSink = mock<EventSink>()
-    private val hostCardEmulation = HostCardEmulation().apply { eventSink = mockEventSink }
+    private val hostCardEmulation = HostCardEmulation()
 
     @BeforeEach
     fun setup() {
-        HostCardEmulationConfig.clear()
-    }
-
-    @Test
-    fun `startEmulation emits READY`() {
-        hostCardEmulation.startEmulation(
+        HostCardEmulationConfig.configure(
             aid = byteArrayOf(),
             pin = byteArrayOf(),
+            eventSink = mockEventSink,
         )
-        verify(mockEventSink).success(HostCardEmulationStatus.READY)
     }
 
     @Test
-    fun `stopEmulation emits DEACTIVATED`() {
-        hostCardEmulation.stopEmulation()
+    fun `onListen configures HostCardEmulation correctly`() {
+        hostCardEmulation.onListen(
+            mapOf(
+                "aid" to byteArrayOf(),
+                "pin" to byteArrayOf(),
+            ),
+            mockEventSink,
+        )
 
-        verify(mockEventSink).success(HostCardEmulationStatus.DEACTIVATED)
+        assertTrue(HostCardEmulationConfig.isConfigured)
+        verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
     }
 
     @Test
-    fun `onDeactivated emits TAG_DISCONNECTED`() {
-        hostCardEmulation.onDeactivated(0)
+    fun `onCancel clears HostCardEmulationConfig`() {
+        hostCardEmulation.onCancel(null)
 
-        verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED)
+        assertFalse(HostCardEmulationConfig.isConfigured)
+        verify(mockEventSink).success(HostCardEmulationStatus.DEACTIVATED.name)
     }
 
     @Test
     fun `processCommandApdu emits HCE_NOT_READY when it is not configured`() {
+        HostCardEmulationConfig.clear()
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray = byteArrayOf(),
@@ -52,15 +56,10 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.HCE_NOT_READY(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.NOT_CONFIGURED)
     }
 
     @Test
     fun `processCommandApdu emits NULL_COMMAND when command is null`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray = null,
@@ -75,6 +74,7 @@ class HostCardEmulationTest {
         HostCardEmulationConfig.configure(
             aid = byteArrayOf(0x00),
             pin = byteArrayOf(),
+            eventSink = mockEventSink,
         )
         val response =
             hostCardEmulation.processCommandApdu(
@@ -91,15 +91,11 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.OK(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED)
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
     }
 
     @Test
     fun `processCommandApdu emits INVALID_AID when command is SELECT command with wrong AID`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -115,7 +111,7 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.INVALID_AID(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_AID)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_AID.name)
     }
 
     @Test
@@ -123,6 +119,7 @@ class HostCardEmulationTest {
         HostCardEmulationConfig.configure(
             aid = byteArrayOf(),
             pin = byteArrayOf(0x00),
+            eventSink = mockEventSink,
         )
         val response =
             hostCardEmulation.processCommandApdu(
@@ -139,15 +136,11 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.OK(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED)
+        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
     }
 
     @Test
     fun `processCommandApdu emits WRONG_PIN when command is VERIFY command with wrong PIN`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -163,15 +156,11 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.WRONG_PIN(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN)
+        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
     }
 
     @Test
     fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when is not supported`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -185,15 +174,11 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.FUNCTION_NOT_SUPPORTED(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
+        verify(mockEventSink).success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED.name)
     }
 
     @Test
     fun `processCommandApdu emits INVALID_APDU_COMMAND when InvalidApduCommandException is thrown`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray = byteArrayOf(),
@@ -201,15 +186,11 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.WRONG_LENGTH(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_COMMAND)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_COMMAND.name)
     }
 
     @Test
     fun `processCommandApdu emits UNKNOWN when NfcException is thrown`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-        )
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -225,20 +206,13 @@ class HostCardEmulationTest {
             )
 
         assertContentEquals(ResponseApdu.WRONG_LC_LENGTH(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
     }
 
     @Test
-    fun `onListen should set eventSink correctly`() {
-        hostCardEmulation.onListen(null, mockEventSink)
+    fun `onDeactivated emits TAG_DISCONNECTED`() {
+        hostCardEmulation.onDeactivated(0)
 
-        assertEquals(mockEventSink, hostCardEmulation.eventSink)
-    }
-
-    @Test
-    fun `onCancel should nullify eventSink`() {
-        hostCardEmulation.onCancel(null)
-
-        assertNull(hostCardEmulation.eventSink)
+        verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
     }
 }
