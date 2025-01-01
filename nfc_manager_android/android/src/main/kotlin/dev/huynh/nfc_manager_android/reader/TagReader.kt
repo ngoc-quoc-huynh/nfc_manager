@@ -22,6 +22,9 @@ class TagReader(
     @VisibleForTesting
     var isoDep: IsoDep? = null
 
+    @VisibleForTesting
+    var timeout: Int? = null
+
     fun sendCommand(command: ByteArray): ByteArray {
         val currentIsoDep = isoDep ?: throw TagConnectionException()
 
@@ -40,6 +43,7 @@ class TagReader(
         if (nfcAdapter == null) {
             eventSink?.error(NfcNotSupportedException())
         } else {
+            (arguments as Map<*, *>).run { timeout = arguments["timeout"] as Int? }
             nfcAdapter.enableReaderMode(
                 activity,
                 ::onTagFound,
@@ -54,6 +58,7 @@ class TagReader(
         nfcAdapter?.disableReaderMode(activity)
         isoDep?.close()
         isoDep = null
+        timeout = null
     }
 
     @VisibleForTesting
@@ -68,7 +73,7 @@ class TagReader(
         isoDep!!
             .runCatching {
                 connect()
-                timeout = 3000
+                this@TagReader.timeout?.let { timeout = it }
                 val tagId = tag.id.toHexString()
                 emitSuccess(tagId)
             }.onFailure { exception ->

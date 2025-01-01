@@ -84,8 +84,8 @@ class TagReaderTest {
     }
 
     @Test
-    fun `onListen stars discovery`() {
-        tagReader.onListen(null, mockEventSink)
+    fun `onListen starts discovery`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
         verify(mockNfcAdapter).enableReaderMode(
             eq(mockActivity),
@@ -107,6 +107,27 @@ class TagReaderTest {
             }
 
             tagReader.eventSink = mockEventSink
+            tagReader.onTagFound(mockTag)
+
+            verify(mockIsoDep).connect()
+            verify(mockIsoDep, times(0)).timeout
+            verify(mockEventSink).success("00")
+        }
+    }
+
+    @Test
+    fun `onTagFound emits success with timeout when IsoDep is available`() {
+        Mockito.mockStatic(IsoDep::class.java).use { mockStaticIsoDep ->
+            mockStaticIsoDep.`when`<IsoDep> { IsoDep.get(mockTag) }.thenReturn(mockIsoDep)
+            whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
+            whenever(mockActivity.runOnUiThread(any())).thenAnswer { invocation ->
+                val runnable = invocation.getArgument<Runnable>(0)
+                runnable.run()
+                null
+            }
+
+            tagReader.eventSink = mockEventSink
+            tagReader.timeout = 3000
             tagReader.onTagFound(mockTag)
 
             verify(mockIsoDep).connect()
