@@ -7,12 +7,12 @@ import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
-import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 
 class HostCardEmulation :
     HostApduService(),
-    EventChannel.StreamHandler {
+    StreamHandler {
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
@@ -85,10 +85,7 @@ class HostCardEmulation :
             emitSuccess(HostCardEmulationStatus.READY)
         }
 
-    override fun onCancel(arguments: Any?) {
-        emitSuccess(HostCardEmulationStatus.DEACTIVATED)
-        HostCardEmulationConfig.clear()
-    }
+    override fun onCancel(arguments: Any?) = HostCardEmulationConfig.clear()
 
     private fun emitSuccess(status: HostCardEmulationStatus) =
         HostCardEmulationConfig.eventSink

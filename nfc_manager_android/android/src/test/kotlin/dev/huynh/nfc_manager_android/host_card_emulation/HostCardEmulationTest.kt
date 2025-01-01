@@ -43,7 +43,6 @@ class HostCardEmulationTest {
         hostCardEmulation.onCancel(null)
 
         assertFalse(HostCardEmulationConfig.isConfigured)
-        verify(mockEventSink).success(HostCardEmulationStatus.DEACTIVATED.name)
     }
 
     @Test

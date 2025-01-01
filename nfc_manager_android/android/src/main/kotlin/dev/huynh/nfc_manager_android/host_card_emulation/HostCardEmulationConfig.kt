@@ -11,7 +11,7 @@ object HostCardEmulationConfig {
         private set
 
     val isConfigured: Boolean
-        get() = aid != null && pin != null && eventSink != null
+        get() = listOf(aid, pin, eventSink).all { it != null }
 
     fun configure(
         aid: ByteArray,

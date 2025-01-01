@@ -1,7 +1,6 @@
 package dev.huynh.nfc_manager_android.models
 
 enum class HostCardEmulationStatus {
-    NOT_CONFIGURED,
     READY,
     INVALID_COMMAND,
     INVALID_LC_LENGTH,
@@ -11,5 +10,4 @@ enum class HostCardEmulationStatus {
     WRONG_PIN,
     FUNCTION_NOT_SUPPORTED,
     TAG_DISCONNECTED,
-    DEACTIVATED,
 }
