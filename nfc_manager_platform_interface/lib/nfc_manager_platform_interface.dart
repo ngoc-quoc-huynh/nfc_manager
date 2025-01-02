@@ -1,4 +1,9 @@
 export 'src/exceptions.dart';
+export 'src/extensions.dart';
 export 'src/method_channel.dart';
+export 'src/models/commands/base.dart';
+export 'src/models/commands/select_aid.dart';
+export 'src/models/commands/verify_pin.dart';
+export 'src/models/host_card_emulation_status.dart';
+export 'src/models/response.dart';
 export 'src/platform.dart';
-export 'src/tag.dart';
