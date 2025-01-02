@@ -32,6 +32,8 @@ class TagReader(
             currentIsoDep.transceive(command)
         } catch (e: TagLostException) {
             throw TagConnectionException()
+        } catch (e: SecurityException) {
+            throw TagConnectionException()
         }
     }
 

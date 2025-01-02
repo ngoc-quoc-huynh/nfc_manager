@@ -76,6 +76,17 @@ class TagReaderTest {
     }
 
     @Test
+    fun `sendCommand throws TagConnectionException if SecurityException is thrown`() {
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.transceive(byteArrayOf())).thenThrow(SecurityException())
+
+        assertThrows<TagConnectionException> {
+            tagReader.sendCommand(byteArrayOf())
+        }
+        verify(mockIsoDep).transceive(byteArrayOf())
+    }
+
+    @Test
     fun `onListen emits NfcNotSupportedException if NfcAdapter is null`() {
         val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
         tagReader.onListen(null, mockEventSink)
