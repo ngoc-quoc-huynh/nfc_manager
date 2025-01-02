@@ -14,12 +14,15 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
 
   final String platform;
 
+  @visibleForTesting
   @protected
   final MethodChannel methodChannel;
 
+  @visibleForTesting
   @protected
   final EventChannel discoveryEventChannel;
 
+  @visibleForTesting
   @protected
   final EventChannel hostCardEmulationEventChannel;
 
