@@ -1,9 +1,8 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
-
   test(
     'default instance is MethodChannelNfcManager.',
     () => expect(
@@ -73,18 +72,71 @@ void main() {
     );
   });
 
-  test('stopDiscovery throws UnimplementedError.', () async {
+  test('sendCommand throws UnimplementedError.', () async {
     await expectLater(
-      () => MockNfcManagerPlatform().stopDiscovery(),
+      () =>
+          MockNfcManagerPlatform().sendCommand(SelectAidCommand(Uint8List(0))),
       throwsA(
         isA<UnimplementedError>().having(
           (e) => e.message,
           'message',
-          'stopDiscovery() has not been implemented.',
+          'sendCommand() has not been implemented.',
+        ),
+      ),
+    );
+  });
+
+  test('startEmulation throws UnimplementedError.', () async {
+    await expectLater(
+      () => MockNfcManagerPlatform().startEmulation(
+        aid: Uint8List(0),
+        pin: Uint8List(0),
+      ),
+      throwsA(
+        isA<UnimplementedError>().having(
+          (e) => e.message,
+          'message',
+          'startEmulation() has not been implemented.',
+        ),
+      ),
+    );
+  });
+
+  test('isPlatformException returns correctly.', () {
+    expect(
+      MockNfcManagerPlatform().isPlatformException(
+        PlatformException(code: 'code'),
+      ),
+      isTrue,
+    );
+    expect(
+      MockNfcManagerPlatform().isPlatformException(''),
+      isFalse,
+    );
+  });
+
+  test('onStreamError throws correctly.', () {
+    expect(
+      () => MockNfcManagerPlatform().onStreamError(
+        PlatformException(code: 'code'),
+      ),
+      throwsA(
+        isA<NfcException>(),
+      ),
+    );
+    expect(
+      () => MockNfcManagerPlatform().onStreamError(''),
+      throwsA(
+        isA<NfcUnknownException>().having(
+          (e) => e.message,
+          'message',
+          '',
         ),
       ),
     );
   });
 }
 
-final class MockNfcManagerPlatform extends NfcManagerPlatform {}
+final class MockNfcManagerPlatform extends NfcManagerPlatform {
+  MockNfcManagerPlatform() : super('test');
+}

@@ -1,9 +1,29 @@
-import 'package:nfc_manager_platform_interface/src/method_channel.dart';
-import 'package:nfc_manager_platform_interface/src/tag.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 abstract base class NfcManagerPlatform extends PlatformInterface {
-  NfcManagerPlatform() : super(token: _token);
+  NfcManagerPlatform(this.platform)
+      : methodChannel = MethodChannel('${_baseChannel}_$platform'),
+        discoveryEventChannel =
+            EventChannel('${_baseChannel}_$platform/discovery'),
+        hostCardEmulationEventChannel =
+            EventChannel('${_baseChannel}_$platform/host_card_emulation'),
+        super(token: _token);
+
+  final String platform;
+
+  @protected
+  final MethodChannel methodChannel;
+
+  @protected
+  final EventChannel discoveryEventChannel;
+
+  @protected
+  final EventChannel hostCardEmulationEventChannel;
+
+  static const String _baseChannel = 'dev.huynh/nfc_manager';
 
   // ignore: no-object-declaration, see https://pub.dev/packages/plugin_platform_interface
   static final Object _token = Object();
@@ -26,9 +46,27 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
   Future<bool> isNfcEnabled() =>
       throw UnimplementedError('isNfcEnabled() has not been implemented.');
 
-  Stream<Tag> startDiscovery() =>
+  Stream<String> startDiscovery({int? timeout}) =>
       throw UnimplementedError('startDiscovery() has not been implemented.');
 
-  Future<void> stopDiscovery() =>
-      throw UnimplementedError('stopDiscovery() has not been implemented.');
+  Future<ApduResponse> sendCommand(Command command) =>
+      throw UnimplementedError('sendCommand() has not been implemented.');
+
+  Stream<HostCardEmulationStatus> startEmulation({
+    required Uint8List aid,
+    required Uint8List pin,
+  }) =>
+      throw UnimplementedError('startEmulation() has not been implemented.');
+
+  @visibleForTesting
+  @protected
+  // ignore: avoid-dynamic, error can be any type.
+  bool isPlatformException(dynamic error) => error is PlatformException;
+
+  @visibleForTesting
+  @protected
+  Never onStreamError(Object error) => switch (error) {
+        PlatformException() => throw NfcException.fromPlatformException(error),
+        _ => throw NfcUnknownException(error.toString()),
+      };
 }
