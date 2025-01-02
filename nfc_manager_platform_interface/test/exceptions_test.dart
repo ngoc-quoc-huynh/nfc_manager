@@ -93,12 +93,14 @@ void main() {
       () {
         expect(
           const InvalidLcDataLengthException().message,
-          'The LC value does not match the length of the Data field in the APDU command.',
+          'The LC value does not match the length of the Data field in the APDU'
+          ' command.',
         );
         expect(
           // ignore: prefer_const_constructors, for coverage.
           InvalidLcDataLengthException().message,
-          'The LC value does not match the length of the Data field in the APDU command.',
+          'The LC value does not match the length of the Data field in the APDU'
+          ' command.',
         );
       },
     );
@@ -193,12 +195,14 @@ void main() {
       () {
         expect(
           const TagConnectionException().message,
-          'Failed to establish a connection with the NFC tag or the tag was lost.',
+          'Failed to establish a connection with the NFC tag or the tag was '
+          'lost.',
         );
         expect(
           // ignore: prefer_const_constructors, for coverage.
           TagConnectionException().message,
-          'Failed to establish a connection with the NFC tag or the tag was lost.',
+          'Failed to establish a connection with the NFC tag or the tag was '
+          'lost.',
         );
       },
     );

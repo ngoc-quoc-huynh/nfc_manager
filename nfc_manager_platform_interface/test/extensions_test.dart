@@ -3,8 +3,6 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-// Assuming the extension StringExtensions is defined in this or another imported file
-
 void main() {
   group('toHexString', () {
     test('returns correctly', () {
