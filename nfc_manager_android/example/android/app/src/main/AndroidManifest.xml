@@ -30,6 +30,7 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Host Card Emulation -->
         <service
             android:name="dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation"
             android:exported="true"
