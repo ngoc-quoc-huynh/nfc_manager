@@ -1,33 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 base class NfcManagerAndroidPlatform extends NfcManagerPlatform {
-  factory NfcManagerAndroidPlatform() => _instance;
-
-  @visibleForTesting
-  factory NfcManagerAndroidPlatform.test() => NfcManagerAndroidPlatform._();
-
-  NfcManagerAndroidPlatform._();
-
-  static final _instance = NfcManagerAndroidPlatform._();
-
-  @visibleForTesting
-  static const methodChannel = MethodChannel('dev.huynh/nfc_manager_android');
-
-  @visibleForTesting
-  static const discoveryEventChannel =
-      EventChannel('dev.huynh/nfc_manager_android/discovery');
-
-  @visibleForTesting
-  bool isDiscoveryStarted = false;
-
-  final Stream<Tag> _discoveryStream = discoveryEventChannel
-      .receiveBroadcastStream()
-      .cast<Tag>()
-      .asBroadcastStream();
+  NfcManagerAndroidPlatform() : super('android');
 
   static void registerWith() =>
       NfcManagerPlatform.instance = NfcManagerAndroidPlatform();
@@ -45,32 +22,42 @@ base class NfcManagerAndroidPlatform extends NfcManagerPlatform {
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
   @override
-  Stream<Tag> startDiscovery() async* {
-    if (!isDiscoveryStarted) {
-      try {
-        await methodChannel.invokeMethod<void>('startDiscovery');
-      } on PlatformException catch (e) {
-        throw NfcException.fromCode(
-          code: e.code,
-          message: e.message,
-        );
-      }
-      isDiscoveryStarted = true;
-    }
+  Stream<String> startDiscovery({int? timeout}) => discoveryEventChannel
+      .receiveBroadcastStream({'timeout': timeout})
+      .cast<String>()
+      .handleError(
+        onStreamError,
+        test: isPlatformException,
+      );
 
-    yield* _discoveryStream;
+  @override
+  Future<ApduResponse> sendCommand(Command command) async {
+    try {
+      final response = await methodChannel.invokeListMethod<int>(
+        'sendCommand',
+        {'command': command.toUint8List()},
+      );
+
+      return ApduResponse.fromUint8List(Uint8List.fromList(response!));
+    } on PlatformException catch (e) {
+      throw NfcException.fromPlatformException(e);
+    }
   }
 
   @override
-  Future<void> stopDiscovery() async {
-    try {
-      await methodChannel.invokeMethod<void>('stopDiscovery');
-    } on PlatformException catch (e) {
-      throw NfcException.fromCode(
-        code: e.code,
-        message: e.message,
-      );
-    }
-    isDiscoveryStarted = false;
-  }
+  Stream<HostCardEmulationStatus> startEmulation({
+    required Uint8List aid,
+    required Uint8List pin,
+  }) =>
+      hostCardEmulationEventChannel
+          .receiveBroadcastStream({
+            'aid': aid,
+            'pin': pin,
+          })
+          .cast<String>()
+          .map(HostCardEmulationStatus.fromString)
+          .handleError(
+            onStreamError,
+            test: isPlatformException,
+          );
 }

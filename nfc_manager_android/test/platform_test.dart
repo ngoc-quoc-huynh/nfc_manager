@@ -1,18 +1,14 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_android/nfc_manager_android.dart';
-import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 import 'utils.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const methodChannel = NfcManagerAndroidPlatform.methodChannel;
-  const discoveryEventChannel = NfcManagerAndroidPlatform.discoveryEventChannel;
-  final logs = <MethodCall>[];
-
-  tearDown(logs.clear);
+  final nfcManager = NfcManagerAndroidPlatform();
+  final methodChannel = nfcManager.methodChannel;
 
   test('registers instance correctly.', () {
     NfcManagerAndroidPlatform.registerWith();
@@ -21,159 +17,113 @@ void main() {
 
   group('isHceSupported', () {
     test('returns true if method channel returns true.', () async {
-      methodChannel.setMockResponse(logs, true);
-      expect(await NfcManagerAndroidPlatform.test().isHceSupported(), isTrue);
-      expect(
-        logs,
-        [isMethodCall('isHceSupported', arguments: null)],
-      );
+      methodChannel.setMockResponse(true);
+
+      expect(await nfcManager.isHceSupported(), isTrue);
     });
 
-    test('returns true if method channel returns false.', () async {
-      methodChannel.setMockResponse(logs, false);
+    test('returns false if method channel returns false.', () async {
+      methodChannel.setMockResponse(false);
 
-      expect(await NfcManagerAndroidPlatform.test().isHceSupported(), isFalse);
-      expect(
-        logs,
-        [isMethodCall('isHceSupported', arguments: null)],
-      );
+      expect(await nfcManager.isHceSupported(), isFalse);
     });
   });
 
   group('isNfcSupported', () {
     test('returns true if method channel returns true.', () async {
-      methodChannel.setMockResponse(logs, true);
+      methodChannel.setMockResponse(true);
 
-      expect(await NfcManagerAndroidPlatform.test().isNfcSupported(), isTrue);
-      expect(
-        logs,
-        [isMethodCall('isNfcSupported', arguments: null)],
-      );
+      expect(await nfcManager.isNfcSupported(), isTrue);
     });
 
-    test('returns true if method channel returns false.', () async {
-      methodChannel.setMockResponse(logs, false);
+    test('returns false if method channel returns false.', () async {
+      methodChannel.setMockResponse(false);
 
-      expect(await NfcManagerAndroidPlatform.test().isNfcSupported(), isFalse);
-      expect(
-        logs,
-        [isMethodCall('isNfcSupported', arguments: null)],
-      );
+      expect(await nfcManager.isNfcSupported(), isFalse);
     });
   });
 
   group('isNfcEnabled', () {
     test('returns true if method channel returns true.', () async {
-      methodChannel.setMockResponse(logs, true);
+      methodChannel.setMockResponse(true);
 
-      expect(await NfcManagerAndroidPlatform.test().isNfcEnabled(), isTrue);
-      expect(
-        logs,
-        [isMethodCall('isNfcEnabled', arguments: null)],
-      );
+      expect(await nfcManager.isNfcEnabled(), isTrue);
     });
 
-    test('returns true if method channel returns false.', () async {
-      methodChannel.setMockResponse(logs, false);
+    test('returns false if method channel returns false.', () async {
+      methodChannel.setMockResponse(false);
 
-      expect(await NfcManagerAndroidPlatform.test().isNfcEnabled(), isFalse);
-      expect(
-        logs,
-        [isMethodCall('isNfcEnabled', arguments: null)],
-      );
+      expect(await nfcManager.isNfcEnabled(), isFalse);
     });
   });
 
   group('startDiscovery', () {
-    test('returns stream correctly.', () async {
-      methodChannel.setMockResponse(logs, null);
-      discoveryEventChannel.setMockStream((sink) => sink.success('1'));
-
-      await expectLater(
-        NfcManagerAndroidPlatform.test().startDiscovery(),
-        emitsInOrder(['1', emitsDone]),
+    test('emits correctly.', () async {
+      nfcManager.discoveryEventChannel.setMockStream(
+        (events) => events
+          ..success('1')
+          ..error(code: 'code')
+          ..endOfStream(),
       );
-      expect(
-        logs,
-        [isMethodCall('startDiscovery', arguments: null)],
+
+      final stream = nfcManager.startDiscovery();
+      await expectLater(
+        stream,
+        emitsInOrder(
+          [
+            '1',
+            emitsError(isA<NfcUnknownException>()),
+            emitsDone,
+          ],
+        ),
       );
     });
-
-    test(
-      'returns correctly when called multiple times.',
-      () async {
-        final platform = NfcManagerAndroidPlatform.test()
-          ..isDiscoveryStarted = true;
-        discoveryEventChannel.setMockStream((sink) => sink.success('1'));
-
-        await expectLater(
-          platform.startDiscovery(),
-          emitsInOrder(['1', emitsDone]),
-        );
-        expect(logs, <MethodCall>[]);
-      },
-    );
-
-    test(
-      'throws NfcNotSupportedException if error code is NFC_NOT_SUPPORTED,',
-      () {
-        methodChannel.setMockResponse(
-          logs,
-          PlatformException(
-            code: 'NFC_NOT_SUPPORTED',
-            message: 'message',
-          ),
-        );
-
-        discoveryEventChannel.setMockStream((sink) => sink.success('1'));
-
-        expect(
-          // ignore: discarded_futures, this have to be unawaited.
-          () => NfcManagerAndroidPlatform.test().startDiscovery().toList(),
-          throwsA(isA<NfcNotSupportedException>()),
-        );
-        expect(logs, <MethodCall>[]);
-      },
-    );
   });
 
-  group('stopDiscovery', () {
-    test('returns correctly.', () async {
-      methodChannel.setMockResponse(logs, null);
-      await expectLater(
-        NfcManagerAndroidPlatform.test().stopDiscovery(),
-        completes,
-      );
+  group('sendCommand', () {
+    test('returns correctly', () async {
+      methodChannel.setMockResponse([0x90, 0x00]);
 
       expect(
-        logs,
-        [isMethodCall('stopDiscovery', arguments: null)],
+        await nfcManager.sendCommand(SelectAidCommand(Uint8List(0))),
+        ApduResponse.ok,
       );
     });
 
-    test(
-      'throws NfcNotSupportedException if error code is NFC_NOT_SUPPORTED,',
-      () {
-        methodChannel.setMockResponse(
-          logs,
-          PlatformException(
-            code: 'NFC_NOT_SUPPORTED',
-            message: 'message',
-          ),
-        );
+    test('throws NfcException if PlatformException is thrown.', () async {
+      methodChannel
+          .setMockResponse(() => throw PlatformException(code: 'code'));
 
-        discoveryEventChannel.setMockStream((sink) => sink.success('1'));
+      await expectLater(
+        nfcManager.sendCommand(SelectAidCommand(Uint8List(0))),
+        throwsA(isA<NfcException>()),
+      );
+    });
+  });
 
-        expect(
-          // ignore: discarded_futures, this have to have unawaited.
-          () => NfcManagerAndroidPlatform.test().stopDiscovery(),
-          throwsA(isA<NfcNotSupportedException>()),
-        );
-        expect(
-          logs,
-          [isMethodCall('stopDiscovery', arguments: null)],
-        );
-      },
-    );
+  group('startEmulation', () {
+    test('emits correctly.', () async {
+      nfcManager.hostCardEmulationEventChannel.setMockStream(
+        (events) => events
+          ..success('READY')
+          ..error(code: 'code')
+          ..endOfStream(),
+      );
+
+      final stream = nfcManager.startEmulation(
+        aid: Uint8List(0),
+        pin: Uint8List(0),
+      );
+      await expectLater(
+        stream,
+        emitsInOrder(
+          [
+            HostCardEmulationStatus.ready,
+            emitsError(isA<NfcUnknownException>()),
+            emitsDone,
+          ],
+        ),
+      );
+    });
   });
 }
