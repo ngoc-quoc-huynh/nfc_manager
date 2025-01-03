@@ -11,6 +11,8 @@ dependencies:
     sdk: flutter
   nfc_manager_platform_interface:
     path: ../nfc_manager_platform_interface
+  nfc_manager_android:
+    path: ../nfc_manager_android
 
 dev_dependencies:
   flutter_test:
@@ -20,3 +22,9 @@ dev_dependencies:
   # Linter
   cosee_lints: ^0.7.0
   dart_code_linter: ^1.2.1
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        default_package: nfc_manager_android

@@ -1,7 +1,3 @@
-class NfcManager {
-  factory NfcManager() => _instance;
+export 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-  const NfcManager._();
-
-  static const _instance = NfcManager._();
-}
+export 'src/nfc_manager.dart';
