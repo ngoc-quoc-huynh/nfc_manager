@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+@visibleForTesting
+base mixin MockNfcManagerPlatformMixin implements NfcManagerPlatform {}
+
 abstract base class NfcManagerPlatform extends PlatformInterface {
   NfcManagerPlatform(this.platform)
       : methodChannel = MethodChannel('${_baseChannel}_$platform'),

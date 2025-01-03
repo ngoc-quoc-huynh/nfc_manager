@@ -1,3 +1,9 @@
+import 'package:flutter/foundation.dart';
+
+@visibleForTesting
+export 'package:plugin_platform_interface/plugin_platform_interface.dart'
+    show MockPlatformInterfaceMixin;
+
 export 'src/exceptions.dart';
 export 'src/extensions.dart';
 export 'src/method_channel.dart';
