@@ -1,7 +1,9 @@
 import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
+/// Implementation of [NfcManagerPlatform] using method channel.
 final class MethodChannelNfcManager extends NfcManagerPlatform {
+  /// Constructs a new [MethodChannelNfcManager].
   MethodChannelNfcManager() : super('platform');
 
   @override
@@ -17,8 +19,8 @@ final class MethodChannelNfcManager extends NfcManagerPlatform {
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
   @override
-  Stream<String> startDiscovery({int? timeout}) => discoveryEventChannel
-      .receiveBroadcastStream({'timeout': timeout})
+  Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
+      .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .cast<String>()
       .handleError(
         onStreamError,

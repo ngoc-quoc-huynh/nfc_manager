@@ -12,7 +12,7 @@ void main() {
       );
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x69, 0x82])),
-        ApduResponse.hceNotReader,
+        ApduResponse.hceNotReady,
       );
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x6A, 0x82])),

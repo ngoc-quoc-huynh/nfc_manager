@@ -1,4 +1,4 @@
-# native_image_cropper_platform_interface
+# nfc_manager_platform_interface
 
 A common platform interface for the [`nfc_manager`](../nfc_manager) plugin.
 
