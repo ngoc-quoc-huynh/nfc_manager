@@ -10,6 +10,18 @@ import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 
+/**
+ * The HostCardEmulation is responsible for handling APDU (Application Protocol Data Unit) commands
+ * received from NFC terminals.
+ *
+ * It manages the NFC Host Card Emulation (HCE) configuration and processes commands based on the
+ * current configuration.
+ * 
+ * The class also interfaces with a Flutter application via EventChannel, allowing it to send
+ * status updates and responses back to the Flutter side.
+ *
+ * This integration facilitates the dynamic handling of NFC operations and event-driven communication.
+ */
 class HostCardEmulation :
     HostApduService(),
     StreamHandler {
@@ -26,6 +38,12 @@ class HostCardEmulation :
             else -> handleCommand(commandByteArray)
         }
 
+    /**
+     * Handles the APDU command received from the NFC terminal.
+     * 
+     * @param commandByteArray The APDU command.
+     * @return The response APDU.
+     */
     private fun handleCommand(commandByteArray: ByteArray): ByteArray =
         try {
             val command = CommandApdu.fromByteArray(commandByteArray)
@@ -50,6 +68,12 @@ class HostCardEmulation :
             ResponseApdu.WRONG_LC_LENGTH()
         }
 
+    /**
+     * Processes the SELECT AID command.
+     * 
+     * @param data The data of the SELECT AID command.
+     * @return The response APDU.
+     */
     private fun processSelectAid(data: ByteArray): ResponseApdu =
         if (data.contentEquals(HostCardEmulationConfig.aid)) {
             emitSuccess(HostCardEmulationStatus.AID_SELECTED)
@@ -59,6 +83,12 @@ class HostCardEmulation :
             ResponseApdu.INVALID_AID
         }
 
+    /**
+     * Processes the VERIFY PIN command.
+     * 
+     * @param data The data of the VERIFY PIN command.
+     * @return The response APDU.
+     */
     private fun processVerifyPin(data: ByteArray): ResponseApdu =
         if (data.contentEquals(HostCardEmulationConfig.pin!!)) {
             emitSuccess(HostCardEmulationStatus.PIN_VERIFIED)
@@ -87,6 +117,11 @@ class HostCardEmulation :
 
     override fun onCancel(arguments: Any?) = HostCardEmulationConfig.clear()
 
+    /**
+     * Emits a success status to the Flutter side.
+     * 
+     * @param status The status to emit.
+     */
     private fun emitSuccess(status: HostCardEmulationStatus) =
         HostCardEmulationConfig.eventSink
             ?.success(status.name)

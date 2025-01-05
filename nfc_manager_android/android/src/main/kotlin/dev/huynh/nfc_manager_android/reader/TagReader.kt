@@ -12,19 +12,37 @@ import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.io.IOException
 
+/**
+ * The TagReader handles the processing of NFC tags and manages the configuration for NFC Host Card Emulation (HCE).
+ */
 class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
 ) : StreamHandler {
+    /**
+     * The event sink for communication with Flutter.
+     */
     @VisibleForTesting
     var eventSink: EventSink? = null
 
+    /**
+     * The IsoDep for the NFC tag for handling command-response pairs such as SELECT and VERIFY.
+     */
     @VisibleForTesting
     var isoDep: IsoDep? = null
 
+    /**
+     * The timeout for the NFC tag.
+     */
     @VisibleForTesting
     var timeout: Int? = null
 
+    /**
+     * Sends a command to the NFC tag.
+     * 
+     * @param command The command to send.
+     * @return The response from the NFC tag.
+     */
     fun sendCommand(command: ByteArray): ByteArray {
         val currentIsoDep = isoDep ?: throw TagConnectionException()
 
@@ -63,6 +81,11 @@ class TagReader(
         timeout = null
     }
 
+    /**
+     * Handles the NFC tag found event.
+     * 
+     * @param tag The NFC tag found.
+     */
     @VisibleForTesting
     fun onTagFound(tag: Tag?) {
         if (tag == null) return
@@ -85,12 +108,22 @@ class TagReader(
             }
     }
 
+    /**
+     * Emits a success status to the Flutter side.
+     * 
+     * @param data The data to emit.
+     */
     private fun emitSuccess(data: Any) {
         activity.runOnUiThread {
             eventSink?.success(data)
         }
     }
 
+    /**
+     * Emits an error status to the Flutter side.
+     * 
+     * @param exception The NfcException to emit.
+     */
     private fun emitError(exception: NfcException) =
         activity.runOnUiThread {
             eventSink?.error(exception)

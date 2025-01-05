@@ -14,18 +14,44 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 
+/**
+ * The main plugin class for the NFC Manager Android plugin.
+ * 
+ * This class handles the initialization, configuration, and management of the NFC functionality.
+ */
 class NfcManagerPlugin :
     ActivityAware,
     FlutterPlugin,
     MethodCallHandler {
+    /**
+     * The method channel for communicating with the Flutter side.
+     */
     private lateinit var methodChannel: MethodChannel
+
+    /**
+     * The event channel for handling NFC tag discovery events.
+     */
     private lateinit var discoveryEventChannel: EventChannel
+
+    /**
+     * The event channel for handling NFC Host Card Emulation (HCE) events.
+     */
     private lateinit var hostCardEmulationEventChannel: EventChannel
+
+    /**
+     * The NFC adapter for handling NFC operations.
+     */
     private var nfcAdapter: NfcAdapter? = null
 
+    /**
+     * The feature checker for checking the NFC capabilities of the device.
+     */
     @VisibleForTesting
     lateinit var featureChecker: FeatureChecker
 
+    /**
+     * The tag reader for handling NFC tag operations.
+     */
     @VisibleForTesting
     var tagReader: TagReader? = null
 
@@ -37,7 +63,6 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 packageManager = context.packageManager,
             )
-
         methodChannel =
             MethodChannel(
                 flutterPluginBinding.binaryMessenger,

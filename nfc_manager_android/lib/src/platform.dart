@@ -3,9 +3,14 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-base class NfcManagerAndroidPlatform extends NfcManagerPlatform {
+/// Provides the Android-specific implementation of [NfcManagerPlatform],
+/// facilitating NFC operations on Android devices.
+final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
+  /// Constructs a new [NfcManagerAndroidPlatform].
   NfcManagerAndroidPlatform() : super('android');
 
+  /// Sets [NfcManagerAndroidPlatform] as the default platform implementation
+  /// for NFC operations on Android devices.
   static void registerWith() =>
       NfcManagerPlatform.instance = NfcManagerAndroidPlatform();
 
@@ -22,8 +27,8 @@ base class NfcManagerAndroidPlatform extends NfcManagerPlatform {
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
   @override
-  Stream<String> startDiscovery({int? timeout}) => discoveryEventChannel
-      .receiveBroadcastStream({'timeout': timeout})
+  Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
+      .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .cast<String>()
       .handleError(
         onStreamError,
