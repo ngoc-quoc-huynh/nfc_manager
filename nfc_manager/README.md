@@ -1,18 +1,75 @@
 # nfc_manager
 
-A new Flutter plugin project.
+The `nfc_manager` is a comprehensive Flutter plugin designed to facilitate easy and efficient
+interaction with a device's NFC capabilities. It provides a streamlined, high-level API for NFC
+operations, ensuring seamless integration into your Flutter applications.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+- **NFC Discovery**: Enables the detection of NFC tags and devices in proximity.
+- **Host Card Emulation (HCE)**: Supports emulating NFC cards, allowing devices to act like an NFC
+  card.
+- **APDU Commands**: Facilitates sending and receiving APDU commands, essential for advanced NFC
+  operations.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Usage
 
-The plugin project was generated without specifying the `--platforms` flag, no platforms are currently supported.
-To add platforms, run `flutter create -t plugin --platforms <platforms> .` in this directory.
-You can also find a detailed instruction on how to add platforms in the `pubspec.yaml` at https://flutter.dev/to/pubspec-plugin-platforms.
+To use the `nfc_manager` plugin, add it to your `pubspec.yaml` file:
+
+```yaml
+dependencies:
+  nfc_manager:
+    git:
+      url: https://github.com/ngoc-quoc-huynh/nfc_manager
+```
+
+### Android HCE setup
+
+To use the `nfc_manager` plugin on Android, you need to configure your `AndroidManifest.xml` and
+create an `apduservice.xml` file in the `xml` directory under `res`.
+
+#### Update `AndroidManifest.xml`
+
+Locate your `AndroidManifest.xml` file typically found in `src/main/`. Add the following service
+declaration inside the `<application>` tag:
+
+```xml
+<service android:name="dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation"
+    android:exported="true" android:permission="android.permission.BIND_NFC_SERVICE">
+    <intent-filter>
+        <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+    </intent-filter>
+    <meta-data android:name="android.nfc.cardemulation.host_apdu_service"
+        android:resource="@xml/apduservice" />
+</service>
+```
+
+#### Create `apduservice.xml`
+
+Navigate to the `res/xml` directory in your project. If the `xml` directory does not exist, create
+it. Then, add the following content to a new file named `apduservice.xml`:
+
+```xml
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:apduServiceBanner="@drawable/launch_background"
+    android:description="@string/service_description" android:requireDeviceUnlock="true">
+    <aid-group android:category="other" android:description="@string/aid_group_description">
+        <!-- This AID can be customized as needed -->
+        <aid-filter android:name="F000000001" />
+    </aid-group>
+</host-apdu-service>
+```
+
+#### Define Resource Strings
+
+Ensure these strings are defined in your `strings.xml` file located in `res/values/`:
+
+```xml
+<resources>
+    <string name="service_description">Custom NFC Manager Android Service</string>
+    <string name="aid_group_description">Custom AID group for NFC Manager Android</string>
+</resources>
+```
+
+This setup ensures that your Android application is prepared to handle NFC card emulation via the
+`nfc_manager` plugin. 
