@@ -1,0 +1,35 @@
+name: Administration only
+description: Issue template for NFC Manager administrators only.
+body:
+  - type: markdown
+    attributes:
+      value: '# NFC Manager administrators only'
+
+  - type: markdown
+    attributes:
+      value: |
+        **Attention!** This form is for NFC Manager administrators only.
+        If you're a user, please create a [GitHub Discussion](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/new/choose) instead.
+
+  - type: textarea
+    attributes:
+      label: Describe proposed changes
+      description: Provide a detailed description of the proposed changes.
+      placeholder: Describe the change …
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Related discussions
+      description: Link to any relevant discussions that relate to this proposal (if applicable).
+      placeholder: Enter links to related discussions …
+
+  - type: checkboxes
+    id: confirm-admin
+    attributes:
+      label: Admin confirmation
+      description: You must confirm that you are a TFT Guide administrator to proceed.
+      options:
+        - label: I confirm that I am an admin of TFT Guide.
+          required: true
