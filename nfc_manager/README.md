@@ -116,6 +116,6 @@ This setup ensures that your Android application is prepared to handle NFC card 
   const pin = '1234';
   final stream = NfcManager().startEmulation(
     aid: aid.toUint8List(isHex: true),
-    pin: pin.toUint8List(isHex: true),
+    pin: pin.toUint8List(),
   );
   ```
