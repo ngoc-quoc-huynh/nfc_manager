@@ -1,0 +1,15 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filling out the discussion fields, please consider the following:
+        - Search for any [existing ideas](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/categories/suggest-an-idea).
+        - Review the [guidelines for suggesting ideas](https://github.com/ngoc-quoc-huynh/nfc_manager/blob/main/CONTRIBUTING.md#suggest-an-idea) to ensure your suggestion is clear and helpful.
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: Describe your idea in detail. Explain its purpose, benefits, and how it could improve the plugin.
+      placeholder: Tell us about your idea …
+    validations:
+      required: true

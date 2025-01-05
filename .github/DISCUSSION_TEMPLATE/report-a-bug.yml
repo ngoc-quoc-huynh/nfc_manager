@@ -1,0 +1,54 @@
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filling out the discussion fields, please consider the following:
+        - Search for any [existing bugs](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/categories/report-a-bug).
+        - Review the [guidelines for reporting bugs](https://github.com/ngoc-quoc-huynh/nfc_manager/blob/main/CONTRIBUTING.md#report-a-bug) to ensure your report is clear and helpful.
+
+  - type: input
+    attributes:
+      label: Plugin version
+      description: Specify the plugin version you are using (e.g., 1.0.0).
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Description
+      description: Provide a detailed description of the bug you encountered.
+      placeholder: Describe the issue you're facing …
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Describe the steps you took to encounter the bug.
+      placeholder: |
+        1. …
+        2. …
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Expected behavior
+      description: Describe what you expected to happen.
+      placeholder: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    attributes:
+      label: Screenshots
+      description: Provide links to screenshots or images that can help illustrate the issue (if applicable).
+      placeholder: Link to screenshots or images …
+
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Provide any other information that could be useful in diagnosing the issue.
+      placeholder: Any other relevant details?
