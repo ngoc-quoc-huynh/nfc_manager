@@ -1,5 +1,9 @@
 # nfc_manager
 
+[![build status](https://github.com/ngoc-quoc-huynh/nfc_manager/actions/workflows/nfc_manager.yaml/badge.svg?branch=main)](https://github.com/ngoc-quoc-huynh/nfc_manager/actions/workflows/nfc_manager.yaml?query=branch%3Amain)
+[![style](https://img.shields.io/badge/style-cosee__lints-brightgreen)](https://pub.dev/packages/cosee_lints)
+[![license](https://img.shields.io/github/license/ngoc-quoc-huynh/nfc_manager)](https://raw.githubusercontent.com/ngoc-quoc-huynh/nfc_manager/refs/heads/main/LICENSE)
+
 The `nfc_manager` is a comprehensive Flutter plugin designed to facilitate easy and efficient
 interaction with a device's NFC capabilities. It provides a streamlined, high-level API for NFC
 operations, ensuring seamless integration into your Flutter applications.
