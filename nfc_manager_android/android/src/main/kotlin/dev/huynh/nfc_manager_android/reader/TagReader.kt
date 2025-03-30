@@ -39,7 +39,7 @@ class TagReader(
 
     /**
      * Sends a command to the NFC tag.
-     * 
+     *
      * @param command The command to send.
      * @return The response from the NFC tag.
      */
@@ -76,14 +76,18 @@ class TagReader(
     override fun onCancel(arguments: Any?) {
         eventSink = null
         nfcAdapter?.disableReaderMode(activity)
-        isoDep?.close()
+        try {
+            isoDep?.close()
+        } catch (_: SecurityException) {
+            // Failed to close IsoDep, tag may be already lost.
+        }
         isoDep = null
         timeout = null
     }
 
     /**
      * Handles the NFC tag found event.
-     * 
+     *
      * @param tag The NFC tag found.
      */
     @VisibleForTesting
@@ -110,7 +114,7 @@ class TagReader(
 
     /**
      * Emits a success status to the Flutter side.
-     * 
+     *
      * @param data The data to emit.
      */
     private fun emitSuccess(data: Any) {
@@ -121,7 +125,7 @@ class TagReader(
 
     /**
      * Emits an error status to the Flutter side.
-     * 
+     *
      * @param exception The NfcException to emit.
      */
     private fun emitError(exception: NfcException) =

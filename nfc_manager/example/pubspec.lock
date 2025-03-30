@@ -216,7 +216,7 @@ packages:
       path: "../../nfc_manager_android"
       relative: true
     source: path
-    version: "1.0.0+1"
+    version: "1.0.1+2"
   nfc_manager_platform_interface:
     dependency: transitive
     description:
