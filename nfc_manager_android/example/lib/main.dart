@@ -21,44 +21,47 @@ class NfcManagerAndroidExample extends StatelessWidget {
         'tag-reader': (_) => const TagReaderPage(),
       },
       home: Scaffold(
-        appBar: AppBar(
-          title: const Text('NFC Manager Android Example'),
-        ),
+        appBar: AppBar(title: const Text('NFC Manager Android Example')),
         body: Center(
           child: Builder(
-            builder: (context) => Column(
-              spacing: 10,
-              children: [
-                _FeatureStatusView(
-                  title: 'NFC support:',
-                  // ignore: discarded_futures, future has to be unawaited.
-                  statusFuture: NfcManagerAndroidPlatform().isNfcSupported(),
+            builder:
+                (context) => Column(
+                  spacing: 10,
+                  children: [
+                    _FeatureStatusView(
+                      title: 'NFC support:',
+                      // ignore: discarded_futures, future has to be unawaited.
+                      statusFuture:
+                          NfcManagerAndroidPlatform().isNfcSupported(),
+                    ),
+                    _FeatureStatusView(
+                      title: 'NFC enabled:',
+                      // ignore: discarded_futures, future has to be unawaited.
+                      statusFuture: NfcManagerAndroidPlatform().isNfcEnabled(),
+                    ),
+                    _FeatureStatusView(
+                      title: 'HCE support:',
+                      // ignore: discarded_futures, future has to be unawaited.
+                      statusFuture:
+                          NfcManagerAndroidPlatform().isHceSupported(),
+                    ),
+                    const Divider(),
+                    FilledButton(
+                      onPressed:
+                          () => unawaited(
+                            Navigator.pushNamed(context, 'host-card-emulation'),
+                          ),
+                      child: const Text('Host Card Emulation'),
+                    ),
+                    FilledButton(
+                      onPressed:
+                          () => unawaited(
+                            Navigator.pushNamed(context, 'tag-reader'),
+                          ),
+                      child: const Text('Tag Reader'),
+                    ),
+                  ],
                 ),
-                _FeatureStatusView(
-                  title: 'NFC enabled:',
-                  // ignore: discarded_futures, future has to be unawaited.
-                  statusFuture: NfcManagerAndroidPlatform().isNfcEnabled(),
-                ),
-                _FeatureStatusView(
-                  title: 'HCE support:',
-                  // ignore: discarded_futures, future has to be unawaited.
-                  statusFuture: NfcManagerAndroidPlatform().isHceSupported(),
-                ),
-                const Divider(),
-                FilledButton(
-                  onPressed: () => unawaited(
-                    Navigator.pushNamed(context, 'host-card-emulation'),
-                  ),
-                  child: const Text('Host Card Emulation'),
-                ),
-                FilledButton(
-                  onPressed: () => unawaited(
-                    Navigator.pushNamed(context, 'tag-reader'),
-                  ),
-                  child: const Text('Tag Reader'),
-                ),
-              ],
-            ),
           ),
         ),
       ),
@@ -67,10 +70,7 @@ class NfcManagerAndroidExample extends StatelessWidget {
 }
 
 class _FeatureStatusView extends StatelessWidget {
-  const _FeatureStatusView({
-    required this.title,
-    required this.statusFuture,
-  });
+  const _FeatureStatusView({required this.title, required this.statusFuture});
 
   final String title;
   final Future<bool> statusFuture;
@@ -83,19 +83,17 @@ class _FeatureStatusView extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       spacing: 5,
       children: [
-        Text(
-          title,
-          style: textTheme.titleMedium,
-        ),
+        Text(title, style: textTheme.titleMedium),
         FutureBuilder<bool>(
           future: statusFuture,
-          builder: (context, snapshot) => switch (snapshot.hasData) {
-            false => const CircularProgressIndicator(),
-            true => Text(
-                snapshot.requireData.toString(),
-                style: textTheme.bodyLarge,
-              ),
-          },
+          builder:
+              (context, snapshot) => switch (snapshot.hasData) {
+                false => const CircularProgressIndicator(),
+                true => Text(
+                  snapshot.requireData.toString(),
+                  style: textTheme.bodyLarge,
+                ),
+              },
         ),
       ],
     );

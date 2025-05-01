@@ -19,53 +19,54 @@ class _TagReaderPageState extends State<TagReaderPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tag Reader'),
-      ),
+      appBar: AppBar(title: const Text('Tag Reader')),
       body: Column(
         children: [
           switch (_stream) {
             null => FilledButton(
-                onPressed: () => setState(
-                  () => _stream = NfcManagerAndroidPlatform().startDiscovery(),
-                ),
-                child: const Text('Start discovery'),
-              ),
+              onPressed:
+                  () => setState(
+                    () =>
+                        _stream = NfcManagerAndroidPlatform().startDiscovery(),
+                  ),
+              child: const Text('Start discovery'),
+            ),
             Stream<String>() => FilledButton(
-                onPressed: () => setState(
-                  () => _stream = null,
-                ),
-                child: const Text('Stop discovery'),
-              ),
+              onPressed: () => setState(() => _stream = null),
+              child: const Text('Stop discovery'),
+            ),
           },
           const SizedBox(height: 10),
           const Divider(),
           const SizedBox(height: 10),
           StreamBuilder<String>(
             stream: _stream,
-            builder: (context, snapshot) => switch (snapshot.connectionState) {
-              ConnectionState.none =>
-                const Text('Start the discovery to look out for NFC tags.'),
-              ConnectionState.waiting => const CircularProgressIndicator(),
-              ConnectionState.active when snapshot.hasError =>
-                Text('Received error: ${snapshot.error}'),
-              ConnectionState.active => Column(
-                  children: [
-                    Text('Found tag: ${snapshot.requireData}'),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: () => unawaited(_onSelectAid(context)),
-                      child: const Text('Select aid'),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: () => unawaited(_onVerifyPin(context)),
-                      child: const Text('Verify pin'),
-                    ),
-                  ],
-                ),
-              ConnectionState.done => const Text('Done'),
-            },
+            builder:
+                (context, snapshot) => switch (snapshot.connectionState) {
+                  ConnectionState.none => const Text(
+                    'Start the discovery to look out for NFC tags.',
+                  ),
+                  ConnectionState.waiting => const CircularProgressIndicator(),
+                  ConnectionState.active when snapshot.hasError => Text(
+                    'Received error: ${snapshot.error}',
+                  ),
+                  ConnectionState.active => Column(
+                    children: [
+                      Text('Found tag: ${snapshot.requireData}'),
+                      const SizedBox(height: 10),
+                      FilledButton(
+                        onPressed: () => unawaited(_onSelectAid(context)),
+                        child: const Text('Select aid'),
+                      ),
+                      const SizedBox(height: 10),
+                      FilledButton(
+                        onPressed: () => unawaited(_onVerifyPin(context)),
+                        child: const Text('Verify pin'),
+                      ),
+                    ],
+                  ),
+                  ConnectionState.done => const Text('Done'),
+                },
           ),
         ],
       ),
@@ -85,11 +86,9 @@ class _TagReaderPageState extends State<TagReaderPage> {
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -105,11 +104,9 @@ class _TagReaderPageState extends State<TagReaderPage> {
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     }
   }
 }

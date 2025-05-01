@@ -20,13 +20,16 @@ void main() {
     test('returns correctly.', () {
       final pin = Uint8List.fromList([0x00]);
       final command = VerifyPinCommand(pin);
-      final expected =
-          Uint8List.fromList([0x00, 0x20, 0x00, 0x00, pin.length, ...pin]);
+      final expected = Uint8List.fromList([
+        0x00,
+        0x20,
+        0x00,
+        0x00,
+        pin.length,
+        ...pin,
+      ]);
 
-      expect(
-        command.toUint8List(),
-        expected,
-      );
+      expect(command.toUint8List(), expected);
     });
   });
 }

@@ -54,17 +54,15 @@ base class Command {
 
   /// Serializes the command into a [Uint8List] format suitable for NFC
   /// communication.
-  Uint8List toUint8List() => Uint8List.fromList(
-        [
-          cla,
-          ins,
-          p1,
-          p2,
-          if (lc case final lc?) lc,
-          if (data case final data?) ...data,
-          if (le case final le?) le,
-        ],
-      );
+  Uint8List toUint8List() => Uint8List.fromList([
+    cla,
+    ins,
+    p1,
+    p2,
+    if (lc case final lc?) lc,
+    if (data case final data?) ...data,
+    if (le case final le?) le,
+  ]);
 
   @override
   bool operator ==(Object other) =>
@@ -80,13 +78,6 @@ base class Command {
           le == other.le;
 
   @override
-  int get hashCode => Object.hash(
-        cla,
-        ins,
-        p1,
-        p2,
-        lc,
-        _listEquality.hash(data),
-        le,
-      );
+  int get hashCode =>
+      Object.hash(cla, ins, p1, p2, lc, _listEquality.hash(data), le);
 }
