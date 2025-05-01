@@ -55,22 +55,17 @@ void main() {
   group('startDiscovery', () {
     test('emits correctly.', () async {
       nfcManager.discoveryEventChannel.setMockStream(
-        (events) => events
-          ..success('1')
-          ..error(code: 'code')
-          ..endOfStream(),
+        (events) =>
+            events
+              ..success('1')
+              ..error(code: 'code')
+              ..endOfStream(),
       );
 
       final stream = nfcManager.startDiscovery();
       await expectLater(
         stream,
-        emitsInOrder(
-          [
-            '1',
-            emitsError(isA<NfcUnknownException>()),
-            emitsDone,
-          ],
-        ),
+        emitsInOrder(['1', emitsError(isA<NfcUnknownException>()), emitsDone]),
       );
     });
   });
@@ -86,8 +81,9 @@ void main() {
     });
 
     test('throws NfcException if PlatformException is thrown.', () async {
-      methodChannel
-          .setMockResponse(() => throw PlatformException(code: 'code'));
+      methodChannel.setMockResponse(
+        () => throw PlatformException(code: 'code'),
+      );
 
       await expectLater(
         nfcManager.sendCommand(SelectAidCommand(Uint8List(0))),
@@ -99,10 +95,11 @@ void main() {
   group('startEmulation', () {
     test('emits correctly.', () async {
       nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) => events
-          ..success('READY')
-          ..error(code: 'code')
-          ..endOfStream(),
+        (events) =>
+            events
+              ..success('READY')
+              ..error(code: 'code')
+              ..endOfStream(),
       );
 
       final stream = nfcManager.startEmulation(
@@ -111,13 +108,11 @@ void main() {
       );
       await expectLater(
         stream,
-        emitsInOrder(
-          [
-            HostCardEmulationStatus.ready,
-            emitsError(isA<NfcUnknownException>()),
-            emitsDone,
-          ],
-        ),
+        emitsInOrder([
+          HostCardEmulationStatus.ready,
+          emitsError(isA<NfcUnknownException>()),
+          emitsDone,
+        ]),
       );
     });
   });
