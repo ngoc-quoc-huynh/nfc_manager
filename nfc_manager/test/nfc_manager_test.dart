@@ -10,27 +10,19 @@ void main() {
   final nfcManager = NfcManager();
   final mockPlatform = MockNfcManagerPlatform();
 
-  setUpAll(
-    () => NfcManagerPlatform.instance = mockPlatform,
-  );
+  setUpAll(() => NfcManagerPlatform.instance = mockPlatform);
 
-  tearDownAll(
-    () => NfcManagerPlatform.instance = MethodChannelNfcManager(),
-  );
+  tearDownAll(() => NfcManagerPlatform.instance = MethodChannelNfcManager());
 
   group('isHceSupported', () {
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isHceSupported).thenAnswer(
-        (_) async => true,
-      );
+      when(mockPlatform.isHceSupported).thenAnswer((_) async => true);
 
       expect(await nfcManager.isHceSupported(), isTrue);
     });
 
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isHceSupported).thenAnswer(
-        (_) async => false,
-      );
+      when(mockPlatform.isHceSupported).thenAnswer((_) async => false);
 
       expect(await nfcManager.isHceSupported(), isFalse);
     });
@@ -38,17 +30,13 @@ void main() {
 
   group('isNfcSupported', () {
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isNfcSupported).thenAnswer(
-        (_) async => true,
-      );
+      when(mockPlatform.isNfcSupported).thenAnswer((_) async => true);
 
       expect(await nfcManager.isNfcSupported(), isTrue);
     });
 
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isNfcSupported).thenAnswer(
-        (_) async => false,
-      );
+      when(mockPlatform.isNfcSupported).thenAnswer((_) async => false);
 
       expect(await nfcManager.isNfcSupported(), isFalse);
     });
@@ -56,17 +44,13 @@ void main() {
 
   group('isNfcEnabled', () {
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isNfcEnabled).thenAnswer(
-        (_) async => true,
-      );
+      when(mockPlatform.isNfcEnabled).thenAnswer((_) async => true);
 
       expect(await nfcManager.isNfcEnabled(), isTrue);
     });
 
     test('returns true if platform returns true.', () async {
-      when(mockPlatform.isNfcEnabled).thenAnswer(
-        (_) async => false,
-      );
+      when(mockPlatform.isNfcEnabled).thenAnswer((_) async => false);
 
       expect(await nfcManager.isNfcEnabled(), isFalse);
     });
@@ -74,34 +58,22 @@ void main() {
 
   group('startDiscovery', () {
     test('emits success correctly', () async {
-      when(mockPlatform.startDiscovery).thenAnswer(
-        (_) => Stream.value('1'),
-      );
+      when(mockPlatform.startDiscovery).thenAnswer((_) => Stream.value('1'));
 
       await expectLater(
         nfcManager.startDiscovery(),
-        emitsInOrder(
-          [
-            '1',
-            emitsDone,
-          ],
-        ),
+        emitsInOrder(['1', emitsDone]),
       );
     });
 
     test('emits error correctly.', () async {
-      when(mockPlatform.startDiscovery).thenAnswer(
-        (_) => Stream.error(const NfcUnknownException(null)),
-      );
+      when(
+        mockPlatform.startDiscovery,
+      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
 
       await expectLater(
         nfcManager.startDiscovery(),
-        emitsInOrder(
-          [
-            emitsError(isA<NfcUnknownException>()),
-            emitsDone,
-          ],
-        ),
+        emitsInOrder([emitsError(isA<NfcUnknownException>()), emitsDone]),
       );
     });
   });
@@ -110,9 +82,7 @@ void main() {
     test('returns correctly.', () async {
       when(
         () => mockPlatform.sendCommand(SelectAidCommand(Uint8List(0))),
-      ).thenAnswer(
-        (_) async => ApduResponse.ok,
-      );
+      ).thenAnswer((_) async => ApduResponse.ok);
 
       expect(
         await nfcManager.sendCommand(SelectAidCommand(Uint8List(0))),
@@ -138,36 +108,22 @@ void main() {
     test('emits success correctly', () async {
       when(
         () => mockPlatform.startEmulation(aid: aid, pin: pin),
-      ).thenAnswer(
-        (_) => Stream.value(HostCardEmulationStatus.ready),
-      );
+      ).thenAnswer((_) => Stream.value(HostCardEmulationStatus.ready));
 
       await expectLater(
         nfcManager.startEmulation(aid: aid, pin: pin),
-        emitsInOrder(
-          [
-            HostCardEmulationStatus.ready,
-            emitsDone,
-          ],
-        ),
+        emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
       );
     });
 
     test('emits error correctly.', () async {
       when(
         () => mockPlatform.startEmulation(aid: aid, pin: pin),
-      ).thenAnswer(
-        (_) => Stream.error(const NfcUnknownException(null)),
-      );
+      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
 
       await expectLater(
         nfcManager.startEmulation(aid: aid, pin: pin),
-        emitsInOrder(
-          [
-            emitsError(isA<NfcUnknownException>()),
-            emitsDone,
-          ],
-        ),
+        emitsInOrder([emitsError(isA<NfcUnknownException>()), emitsDone]),
       );
     });
   });

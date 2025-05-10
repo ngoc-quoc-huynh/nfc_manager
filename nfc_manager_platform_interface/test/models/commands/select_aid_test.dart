@@ -20,13 +20,16 @@ void main() {
     test('returns correctly.', () {
       final aid = Uint8List.fromList([0x00]);
       final command = SelectAidCommand(aid);
-      final expected =
-          Uint8List.fromList([0x00, 0xA4, 0x04, 0x00, aid.length, ...aid]);
+      final expected = Uint8List.fromList([
+        0x00,
+        0xA4,
+        0x04,
+        0x00,
+        aid.length,
+        ...aid,
+      ]);
 
-      expect(
-        command.toUint8List(),
-        expected,
-      );
+      expect(command.toUint8List(), expected);
     });
   });
 }

@@ -22,10 +22,7 @@ final class MethodChannelNfcManager extends NfcManagerPlatform {
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .cast<String>()
-      .handleError(
-        onStreamError,
-        test: isPlatformException,
-      );
+      .handleError(onStreamError, test: isPlatformException);
 
   @override
   Future<ApduResponse> sendCommand(Command command) async {
@@ -36,8 +33,11 @@ final class MethodChannelNfcManager extends NfcManagerPlatform {
       );
 
       return ApduResponse.fromUint8List(Uint8List.fromList(response!));
-    } on PlatformException catch (e) {
-      throw NfcException.fromPlatformException(e);
+    } on PlatformException catch (e, stackTrace) {
+      Error.throwWithStackTrace(
+        NfcException.fromPlatformException(e),
+        stackTrace,
+      );
     }
   }
 
@@ -45,16 +45,9 @@ final class MethodChannelNfcManager extends NfcManagerPlatform {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) =>
-      hostCardEmulationEventChannel
-          .receiveBroadcastStream({
-            'aid': aid,
-            'pin': pin,
-          })
-          .cast<String>()
-          .map(HostCardEmulationStatus.fromString)
-          .handleError(
-            onStreamError,
-            test: isPlatformException,
-          );
+  }) => hostCardEmulationEventChannel
+      .receiveBroadcastStream({'aid': aid, 'pin': pin})
+      .cast<String>()
+      .map(HostCardEmulationStatus.fromString)
+      .handleError(onStreamError, test: isPlatformException);
 }

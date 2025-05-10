@@ -39,9 +39,7 @@ void main() {
 
     test('fromCode returns NfcUnknownException for unknown code.', () {
       expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: ''),
-        ),
+        NfcException.fromPlatformException(PlatformException(code: '')),
         const NfcUnknownException(null),
       );
       expect(
@@ -54,20 +52,17 @@ void main() {
   });
 
   group('InvalidApduCommandException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const InvalidApduCommandException().message,
-          'APDU command must be at least 4 bytes long.',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          InvalidApduCommandException().message,
-          'APDU command must be at least 4 bytes long.',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(
+        const InvalidApduCommandException().message,
+        'APDU command must be at least 4 bytes long.',
+      );
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        InvalidApduCommandException().message,
+        'APDU command must be at least 4 bytes long.',
+      );
+    });
 
     test(
       'toString returns correctly.',
@@ -80,30 +75,24 @@ void main() {
 
     test(
       'hashCode returns correctly.',
-      () => expect(
-        const InvalidApduCommandException().hashCode,
-        233482670,
-      ),
+      () => expect(const InvalidApduCommandException().hashCode, 233482670),
     );
   });
 
   group('InvalidLcDataLengthException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const InvalidLcDataLengthException().message,
-          'The LC value does not match the length of the Data field in the APDU'
-          ' command.',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          InvalidLcDataLengthException().message,
-          'The LC value does not match the length of the Data field in the APDU'
-          ' command.',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(
+        const InvalidLcDataLengthException().message,
+        'The LC value does not match the length of the Data field in the APDU'
+        ' command.',
+      );
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        InvalidLcDataLengthException().message,
+        'The LC value does not match the length of the Data field in the APDU'
+        ' command.',
+      );
+    });
 
     test(
       'toString returns correctly.',
@@ -116,28 +105,22 @@ void main() {
 
     test(
       'hashCode returns correctly.',
-      () => expect(
-        const InvalidLcDataLengthException().hashCode,
-        566604090,
-      ),
+      () => expect(const InvalidLcDataLengthException().hashCode, 566604090),
     );
   });
 
   group('IsoDepNotSupportedException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const IsoDepNotSupportedException().message,
-          'The NFC tag does not support ISO-DEP.',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          IsoDepNotSupportedException().message,
-          'The NFC tag does not support ISO-DEP.',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(
+        const IsoDepNotSupportedException().message,
+        'The NFC tag does not support ISO-DEP.',
+      );
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        IsoDepNotSupportedException().message,
+        'The NFC tag does not support ISO-DEP.',
+      );
+    });
 
     test(
       'toString returns correctly.',
@@ -149,28 +132,22 @@ void main() {
 
     test(
       'hashCode returns correctly.',
-      () => expect(
-        const IsoDepNotSupportedException().hashCode,
-        169376260,
-      ),
+      () => expect(const IsoDepNotSupportedException().hashCode, 169376260),
     );
   });
 
   group('NfcNotSupportedException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const NfcNotSupportedException().message,
-          'This device does not support NFC.',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          NfcNotSupportedException().message,
-          'This device does not support NFC.',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(
+        const NfcNotSupportedException().message,
+        'This device does not support NFC.',
+      );
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        NfcNotSupportedException().message,
+        'This device does not support NFC.',
+      );
+    });
 
     test(
       'toString returns correctly.',
@@ -182,30 +159,24 @@ void main() {
 
     test(
       'hashCode returns correctly.',
-      () => expect(
-        const NfcNotSupportedException().hashCode,
-        283601179,
-      ),
+      () => expect(const NfcNotSupportedException().hashCode, 283601179),
     );
   });
 
   group('TagConnectionException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const TagConnectionException().message,
-          'Failed to establish a connection with the NFC tag or the tag was '
-          'lost.',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          TagConnectionException().message,
-          'Failed to establish a connection with the NFC tag or the tag was '
-          'lost.',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(
+        const TagConnectionException().message,
+        'Failed to establish a connection with the NFC tag or the tag was '
+        'lost.',
+      );
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        TagConnectionException().message,
+        'Failed to establish a connection with the NFC tag or the tag was '
+        'lost.',
+      );
+    });
     test(
       'toString returns correctly.',
       () => expect(
@@ -217,28 +188,19 @@ void main() {
 
     test(
       'hashCode returns correctly.',
-      () => expect(
-        const TagConnectionException().hashCode,
-        330770710,
-      ),
+      () => expect(const TagConnectionException().hashCode, 330770710),
     );
   });
 
   group('NfcUnknownException', () {
-    test(
-      'message returns correctly.',
-      () {
-        expect(
-          const NfcUnknownException('message').message,
-          'message',
-        );
-        expect(
-          // ignore: prefer_const_constructors, for coverage.
-          NfcUnknownException('message').message,
-          'message',
-        );
-      },
-    );
+    test('message returns correctly.', () {
+      expect(const NfcUnknownException('message').message, 'message');
+      expect(
+        // ignore: prefer_const_constructors, for coverage.
+        NfcUnknownException('message').message,
+        'message',
+      );
+    });
     test(
       'toString returns correctly.',
       () => expect(

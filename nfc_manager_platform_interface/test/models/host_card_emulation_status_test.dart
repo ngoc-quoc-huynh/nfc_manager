@@ -48,11 +48,7 @@ void main() {
         () => HostCardEmulationStatus.fromString('TEST'),
         throwsA(
           isA<ArgumentError>()
-              .having(
-                (e) => e.invalidValue,
-                'invalidValue',
-                'TEST',
-              )
+              .having((e) => e.invalidValue, 'invalidValue', 'TEST')
               .having(
                 (e) => e.message,
                 'message',
