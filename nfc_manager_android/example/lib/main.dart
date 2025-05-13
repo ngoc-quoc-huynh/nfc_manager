@@ -30,8 +30,8 @@ class NfcManagerAndroidExample extends StatelessWidget {
                   children: [
                     _FeatureStatusView(
                       title: 'NFC support:',
-                      // ignore: discarded_futures, future has to be unawaited.
                       statusFuture:
+                          // ignore: discarded_futures, future has to be unawaited.
                           NfcManagerAndroidPlatform().isNfcSupported(),
                     ),
                     _FeatureStatusView(
@@ -41,8 +41,8 @@ class NfcManagerAndroidExample extends StatelessWidget {
                     ),
                     _FeatureStatusView(
                       title: 'HCE support:',
-                      // ignore: discarded_futures, future has to be unawaited.
                       statusFuture:
+                          // ignore: discarded_futures, future has to be unawaited.
                           NfcManagerAndroidPlatform().isHceSupported(),
                     ),
                     const Divider(),
