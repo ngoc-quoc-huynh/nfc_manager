@@ -31,14 +31,14 @@ enum ApduResponse {
 
   /// Constructs an [ApduResponse] from a [Uint8List].
   factory ApduResponse.fromUint8List(Uint8List bytes) => switch (bytes) {
-        [0x6A, 0x81] => functionNotSupported,
-        [0x69, 0x82] => hceNotReady,
-        [0x6A, 0x82] => invalidAid,
-        [0x6A, 0x00] => nullCommand,
-        [0x90, 0x00] => ok,
-        [0x67, 0x00] => wrongLength,
-        [0x6C, 0x00] => wrongLength,
-        [0x63, 0x00] => wrongPin,
-        _ => unknown,
-      };
+    [0x6A, 0x81] => functionNotSupported,
+    [0x69, 0x82] => hceNotReady,
+    [0x6A, 0x82] => invalidAid,
+    [0x6A, 0x00] => nullCommand,
+    [0x90, 0x00] => ok,
+    [0x67, 0x00] => wrongLength,
+    [0x6C, 0x00] => wrongLength,
+    [0x63, 0x00] => wrongPin,
+    _ => unknown,
+  };
 }

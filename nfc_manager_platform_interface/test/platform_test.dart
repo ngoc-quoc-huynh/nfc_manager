@@ -5,10 +5,7 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 void main() {
   test(
     'default instance is MethodChannelNfcManager.',
-    () => expect(
-      NfcManagerPlatform.instance,
-      isA<MethodChannelNfcManager>(),
-    ),
+    () => expect(NfcManagerPlatform.instance, isA<MethodChannelNfcManager>()),
   );
 
   test('instance can be overridden and token is verified', () {
@@ -109,10 +106,7 @@ void main() {
       ),
       isTrue,
     );
-    expect(
-      MockNfcManagerPlatform().isPlatformException(''),
-      isFalse,
-    );
+    expect(MockNfcManagerPlatform().isPlatformException(''), isFalse);
   });
 
   test('onStreamError throws correctly.', () {
@@ -120,18 +114,12 @@ void main() {
       () => MockNfcManagerPlatform().onStreamError(
         PlatformException(code: 'code'),
       ),
-      throwsA(
-        isA<NfcException>(),
-      ),
+      throwsA(isA<NfcException>()),
     );
     expect(
       () => MockNfcManagerPlatform().onStreamError(''),
       throwsA(
-        isA<NfcUnknownException>().having(
-          (e) => e.message,
-          'message',
-          '',
-        ),
+        isA<NfcUnknownException>().having((e) => e.message, 'message', ''),
       ),
     );
   });
