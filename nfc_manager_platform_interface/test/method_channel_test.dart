@@ -55,11 +55,10 @@ void main() {
   group('startDiscovery', () {
     test('emits correctly.', () async {
       nfcManager.discoveryEventChannel.setMockStream(
-        (events) =>
-            events
-              ..success('1')
-              ..error(code: 'code')
-              ..endOfStream(),
+        (events) => events
+          ..success('1')
+          ..error(code: 'code')
+          ..endOfStream(),
       );
 
       final stream = nfcManager.startDiscovery();
@@ -95,11 +94,10 @@ void main() {
   group('startEmulation', () {
     test('emits correctly.', () async {
       nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) =>
-            events
-              ..success('READY')
-              ..error(code: 'code')
-              ..endOfStream(),
+        (events) => events
+          ..success('READY')
+          ..error(code: 'code')
+          ..endOfStream(),
       );
 
       final stream = nfcManager.startEmulation(

@@ -39,11 +39,10 @@ enum HostCardEmulationStatus {
     'WRONG_PIN' => HostCardEmulationStatus.wrongPin,
     'FUNCTION_NOT_SUPPORTED' => HostCardEmulationStatus.functionNotSupported,
     'TAG_DISCONNECTED' => HostCardEmulationStatus.tagDisconnected,
-    _ =>
-      throw ArgumentError.value(
-        status,
-        'status',
-        'No enum value with that status.',
-      ),
+    _ => throw ArgumentError.value(
+      status,
+      'status',
+      'No enum value with that status.',
+    ),
   };
 }

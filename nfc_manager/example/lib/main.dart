@@ -24,42 +24,39 @@ class NfcManagerExample extends StatelessWidget {
         appBar: AppBar(title: const Text('NFC Manager Example')),
         body: Center(
           child: Builder(
-            builder:
-                (context) => Column(
-                  spacing: 10,
-                  children: [
-                    _FeatureStatusView(
-                      title: 'NFC support:',
-                      // ignore: discarded_futures, future has to be unawaited.
-                      statusFuture: NfcManager().isNfcSupported(),
-                    ),
-                    _FeatureStatusView(
-                      title: 'NFC enabled:',
-                      // ignore: discarded_futures, future has to be unawaited.
-                      statusFuture: NfcManager().isNfcEnabled(),
-                    ),
-                    _FeatureStatusView(
-                      title: 'HCE support:',
-                      // ignore: discarded_futures, future has to be unawaited.
-                      statusFuture: NfcManager().isHceSupported(),
-                    ),
-                    const Divider(),
-                    FilledButton(
-                      onPressed:
-                          () => unawaited(
-                            Navigator.pushNamed(context, 'host-card-emulation'),
-                          ),
-                      child: const Text('Host Card Emulation'),
-                    ),
-                    FilledButton(
-                      onPressed:
-                          () => unawaited(
-                            Navigator.pushNamed(context, 'tag-reader'),
-                          ),
-                      child: const Text('Tag Reader'),
-                    ),
-                  ],
+            builder: (context) => Column(
+              spacing: 10,
+              children: [
+                _FeatureStatusView(
+                  title: 'NFC support:',
+                  // ignore: discarded_futures, future has to be unawaited.
+                  statusFuture: NfcManager().isNfcSupported(),
                 ),
+                _FeatureStatusView(
+                  title: 'NFC enabled:',
+                  // ignore: discarded_futures, future has to be unawaited.
+                  statusFuture: NfcManager().isNfcEnabled(),
+                ),
+                _FeatureStatusView(
+                  title: 'HCE support:',
+                  // ignore: discarded_futures, future has to be unawaited.
+                  statusFuture: NfcManager().isHceSupported(),
+                ),
+                const Divider(),
+                FilledButton(
+                  onPressed: () => unawaited(
+                    Navigator.pushNamed(context, 'host-card-emulation'),
+                  ),
+                  child: const Text('Host Card Emulation'),
+                ),
+                FilledButton(
+                  onPressed: () => unawaited(
+                    Navigator.pushNamed(context, 'tag-reader'),
+                  ),
+                  child: const Text('Tag Reader'),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -84,14 +81,13 @@ class _FeatureStatusView extends StatelessWidget {
         Text(title, style: textTheme.titleMedium),
         FutureBuilder<bool>(
           future: statusFuture,
-          builder:
-              (context, snapshot) => switch (snapshot.hasData) {
-                false => const CircularProgressIndicator(),
-                true => Text(
-                  snapshot.requireData.toString(),
-                  style: textTheme.bodyLarge,
-                ),
-              },
+          builder: (context, snapshot) => switch (snapshot.hasData) {
+            false => const CircularProgressIndicator(),
+            true => Text(
+              snapshot.requireData.toString(),
+              style: textTheme.bodyLarge,
+            ),
+          },
         ),
       ],
     );
