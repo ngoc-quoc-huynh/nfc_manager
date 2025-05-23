@@ -59,9 +59,9 @@ base class Command {
     ins,
     p1,
     p2,
-    if (lc case final lc?) lc,
-    if (data case final data?) ...data,
-    if (le case final le?) le,
+    ?lc,
+    ...?data,
+    ?le,
   ]);
 
   @override

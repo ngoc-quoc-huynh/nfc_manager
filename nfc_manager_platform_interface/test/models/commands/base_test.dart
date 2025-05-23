@@ -54,13 +54,16 @@ void main() {
       expect(command1.hashCode, command2.hashCode);
     });
 
-    test('returns true when parameters are identical and lc, data and le are '
-        'null.', () {
-      const command1 = Command(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00);
-      const command2 = Command(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00);
-      expect(command1, command2);
-      expect(command1.hashCode, command2.hashCode);
-    });
+    test(
+      'returns true when parameters are identical and lc, data and le are '
+      'null.',
+      () {
+        const command1 = Command(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00);
+        const command2 = Command(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00);
+        expect(command1, command2);
+        expect(command1.hashCode, command2.hashCode);
+      },
+    );
 
     test('returns false when parameters are different.', () {
       const command1 = Command(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00);
