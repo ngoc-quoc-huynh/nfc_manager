@@ -6,6 +6,10 @@ on:
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_platform_interface.yaml'
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: macos-latest
