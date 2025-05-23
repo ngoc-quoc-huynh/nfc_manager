@@ -4,7 +4,7 @@ publish_to: none
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.7.0
+  sdk: ^3.8.0
 
 dependencies:
   flutter:
@@ -23,7 +23,7 @@ dev_dependencies:
     sdk: flutter
 
   # Linter
-  cosee_lints: ^0.10.0
+  cosee_lints: ^0.10.1
   dart_code_linter: ^2.0.0
 
 flutter:
