@@ -1,7 +1,7 @@
 name: nfc_manager_android
 description: The Android implementation of nfc_manager.
 publish_to: none
-version: 1.0.1+2
+version: 1.1.0
 
 environment:
   sdk: ^3.8.0

@@ -209,21 +209,21 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.0"
+    version: "1.1.0"
   nfc_manager_android:
     dependency: transitive
     description:
       path: "../../nfc_manager_android"
       relative: true
     source: path
-    version: "1.0.1+2"
+    version: "1.1.0"
   nfc_manager_platform_interface:
     dependency: transitive
     description:
       path: "../../nfc_manager_platform_interface"
       relative: true
     source: path
-    version: "1.0.0"
+    version: "1.1.0"
   package_config:
     dependency: transitive
     description:
