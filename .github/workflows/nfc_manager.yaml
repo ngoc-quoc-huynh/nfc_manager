@@ -19,7 +19,7 @@ jobs:
         working-directory: ./nfc_manager
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Setup asdf
         uses: asdf-vm/actions/setup@v4
