@@ -46,9 +46,10 @@ final class NfcManagerExamplePlatform extends NfcManagerPlatform {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) => hostCardEmulationEventChannel
-      .receiveBroadcastStream({'aid': aid, 'pin': pin})
-      .cast<String>()
-      .map(HostCardEmulationStatus.fromString)
-      .handleError(onStreamError, test: isPlatformException);
+  }) =>
+      hostCardEmulationEventChannel
+          .receiveBroadcastStream({'aid': aid, 'pin': pin})
+          .cast<String>()
+          .map(HostCardEmulationStatus.fromString)
+          .handleError(onStreamError, test: isPlatformException);
 }

@@ -84,9 +84,9 @@ class _FeatureStatusView extends StatelessWidget {
           builder: (context, snapshot) => switch (snapshot.hasData) {
             false => const CircularProgressIndicator(),
             true => Text(
-              snapshot.requireData.toString(),
-              style: textTheme.bodyLarge,
-            ),
+                snapshot.requireData.toString(),
+                style: textTheme.bodyLarge,
+              ),
           },
         ),
       ],

@@ -24,14 +24,14 @@ class _TagReaderPageState extends State<TagReaderPage> {
         children: [
           switch (_stream) {
             null => FilledButton(
-              onPressed: () =>
-                  setState(() => _stream = NfcManager().startDiscovery()),
-              child: const Text('Start discovery'),
-            ),
+                onPressed: () =>
+                    setState(() => _stream = NfcManager().startDiscovery()),
+                child: const Text('Start discovery'),
+              ),
             Stream<String>() => FilledButton(
-              onPressed: () => setState(() => _stream = null),
-              child: const Text('Stop discovery'),
-            ),
+                onPressed: () => setState(() => _stream = null),
+                child: const Text('Stop discovery'),
+              ),
           },
           const SizedBox(height: 10),
           const Divider(),
@@ -40,27 +40,27 @@ class _TagReaderPageState extends State<TagReaderPage> {
             stream: _stream,
             builder: (context, snapshot) => switch (snapshot.connectionState) {
               ConnectionState.none => const Text(
-                'Start the discovery to look out for NFC tags.',
-              ),
+                  'Start the discovery to look out for NFC tags.',
+                ),
               ConnectionState.waiting => const CircularProgressIndicator(),
               ConnectionState.active when snapshot.hasError => Text(
-                'Received error: ${snapshot.error}',
-              ),
+                  'Received error: ${snapshot.error}',
+                ),
               ConnectionState.active => Column(
-                children: [
-                  Text('Found tag: ${snapshot.requireData}'),
-                  const SizedBox(height: 10),
-                  FilledButton(
-                    onPressed: () => unawaited(_onSelectAid(context)),
-                    child: const Text('Select aid'),
-                  ),
-                  const SizedBox(height: 10),
-                  FilledButton(
-                    onPressed: () => unawaited(_onVerifyPin(context)),
-                    child: const Text('Verify pin'),
-                  ),
-                ],
-              ),
+                  children: [
+                    Text('Found tag: ${snapshot.requireData}'),
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: () => unawaited(_onSelectAid(context)),
+                      child: const Text('Select aid'),
+                    ),
+                    const SizedBox(height: 10),
+                    FilledButton(
+                      onPressed: () => unawaited(_onVerifyPin(context)),
+                      child: const Text('Verify pin'),
+                    ),
+                  ],
+                ),
               ConnectionState.done => const Text('Done'),
             },
           ),

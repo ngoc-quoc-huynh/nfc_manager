@@ -21,14 +21,14 @@ base mixin MockNfcManagerPlatformMixin implements NfcManagerPlatform {}
 abstract base class NfcManagerPlatform extends PlatformInterface {
   /// Constructs a new [NfcManagerPlatform].
   NfcManagerPlatform(this.platform)
-    : methodChannel = MethodChannel('${_baseChannel}_$platform'),
-      discoveryEventChannel = EventChannel(
-        '${_baseChannel}_$platform/discovery',
-      ),
-      hostCardEmulationEventChannel = EventChannel(
-        '${_baseChannel}_$platform/host_card_emulation',
-      ),
-      super(token: _token);
+      : methodChannel = MethodChannel('${_baseChannel}_$platform'),
+        discoveryEventChannel = EventChannel(
+          '${_baseChannel}_$platform/discovery',
+        ),
+        hostCardEmulationEventChannel = EventChannel(
+          '${_baseChannel}_$platform/host_card_emulation',
+        ),
+        super(token: _token);
 
   /// A string identifier for the specific platform implementation.
   final String platform;
@@ -129,7 +129,8 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) => throw UnimplementedError('startEmulation() has not been implemented.');
+  }) =>
+      throw UnimplementedError('startEmulation() has not been implemented.');
 
   /// Checks if the provided error object is an instance of [PlatformException].
   @visibleForTesting
@@ -141,7 +142,7 @@ abstract base class NfcManagerPlatform extends PlatformInterface {
   @visibleForTesting
   @protected
   Never onStreamError(Object error) => switch (error) {
-    PlatformException() => throw NfcException.fromPlatformException(error),
-    _ => throw NfcUnknownException(error.toString()),
-  };
+        PlatformException() => throw NfcException.fromPlatformException(error),
+        _ => throw NfcUnknownException(error.toString()),
+      };
 }

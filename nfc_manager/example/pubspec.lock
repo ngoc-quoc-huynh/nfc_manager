@@ -5,26 +5,34 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: c209688d9f5a5f26b2fb47a188131a6fb9e876ae9e47af3737c0b4f58a93470d
+      sha256: cd6add6f846f35fb79f3c315296703c1a24f3cfd7f4739d91a74961c1c7e9f1b
       url: "https://pub.dev"
     source: hosted
-    version: "91.0.0"
+    version: "100.0.0"
+  analysis_server_plugin:
+    dependency: transitive
+    description:
+      name: analysis_server_plugin
+      sha256: c4021359e7a673ecd9c6db5f11fea12fabb55e0ba96fa08c78920ae81936f1d1
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.3.15"
   analyzer:
     dependency: transitive
     description:
       name: analyzer
-      sha256: f51c8499b35f9b26820cfe914828a6a98a94efd5cc78b37bb7d03debae3a1d08
+      sha256: "6ba98576948803398b69e3a444df24eacdbe12ed699c7014e120ea38552debbf"
       url: "https://pub.dev"
     source: hosted
-    version: "8.4.1"
+    version: "13.0.0"
   analyzer_plugin:
     dependency: transitive
     description:
       name: analyzer_plugin
-      sha256: "825071d553c4aef2252196d46a665fbd8e0cb06de07725f25d1b29bd18d65fff"
+      sha256: "9a81dc36f7f71890d7cf83960a3a7df1e6c9a24035f98eb848e91ad48b1d21c6"
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.6"
+    version: "0.14.9"
   ansicolor:
     dependency: transitive
     description:
@@ -77,10 +85,10 @@ packages:
     dependency: "direct dev"
     description:
       name: cosee_lints
-      sha256: "3f80f7584233c88464f15b00b23c552e952d7d3c6a7696290c46d06abb236f94"
+      sha256: "4369ad0964e217729530356f4323ca936ed08b89180d29fd59391cd91bbafe7d"
       url: "https://pub.dev"
     source: hosted
-    version: "0.11.0"
+    version: "0.13.0"
   crypto:
     dependency: transitive
     description:
@@ -101,18 +109,18 @@ packages:
     dependency: "direct dev"
     description:
       name: dart_code_linter
-      sha256: "1b53722d9933a5f5d4580acc29c7f16b1fde66d21d1ecf7bb2a811caf3a42b42"
+      sha256: "5079aaacdf9e3c0c3a539143966ab0ad549aa58d1bf31fe73c18b8cf8f1db19e"
       url: "https://pub.dev"
     source: hosted
-    version: "3.2.1"
+    version: "4.1.8"
   dart_style:
     dependency: transitive
     description:
       name: dart_style
-      sha256: a9c30492da18ff84efe2422ba2d319a89942d93e58eb0b73d32abe822ef54b7b
+      sha256: "59d53ef8eaed9d288ed9767618e2b31c4fa0383a127db59d5eb2e737a7638a60"
       url: "https://pub.dev"
     source: hosted
-    version: "3.1.3"
+    version: "3.1.9"
   file:
     dependency: transitive
     description:
@@ -196,21 +204,21 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.1.0"
+    version: "1.2.0"
   nfc_manager_android:
     dependency: transitive
     description:
       path: "../../nfc_manager_android"
       relative: true
     source: path
-    version: "1.1.0"
+    version: "1.2.0"
   nfc_manager_platform_interface:
     dependency: transitive
     description:
       path: "../../nfc_manager_platform_interface"
       relative: true
     source: path
-    version: "1.1.0"
+    version: "1.2.0"
   package_config:
     dependency: transitive
     description:
@@ -360,5 +368,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.3"
+  yaml_edit:
+    dependency: transitive
+    description:
+      name: yaml_edit
+      sha256: "07c9e63ba42519745182b88ca12264a7ba2484d8239958778dfe4d44fe760488"
+      url: "https://pub.dev"
+    source: hosted
+    version: "2.2.4"
 sdks:
-  dart: ">=3.10.0-0 <4.0.0"
+  dart: ">=3.11.0 <4.0.0"
+  flutter: ">=3.41.0"
