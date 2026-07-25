@@ -21,33 +21,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup asdf
-        uses: asdf-vm/actions/setup@v4
-      - name: Cache asdf
-        uses: actions/cache@v6
+      - name: Setup mise
+        uses: jdx/mise-action@v3
         with:
-          path: |
-            ~/.asdf/installs
-            ~/.asdf/plugins
-            ~/.asdf/shims
-          key: ${{ runner.os }}-asdf-${{ hashFiles('.tool-versions') }}
-          restore-keys: ${{ runner.os }}-asdf-
-      - name: Install asdf
-        uses: asdf-vm/actions/install@v4
-        # See https://github.com/asdf-vm/actions/issues/445
-        if: steps.cache-asdf.outputs.cache-hit != 'true'
-      - name: Reshim asdf
-        run: asdf reshim
+          install_args: "flutter"
+          cache: true
 
       - name: Cache flutter dependencies
         uses: actions/cache@v6
         with:
-          path: |
-            ~/.pub-cache
-            ./nfc_manager_platform_interface/.dart_tool
-            ./nfc_manager_platform_interface/example/.dart_tool
-          key: ${{ runner.os }}-flutter-platform-interface${{ hashFiles('./nfc_manager_platform_interface/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-flutter-platform-interface
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('./nfc_manager_platform_interface/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-flutter-
       - name: Install dependencies
         run: flutter pub get
 

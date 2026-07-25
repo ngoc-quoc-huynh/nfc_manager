@@ -21,40 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      - name: Setup asdf
-        uses: asdf-vm/actions/setup@v4
-      - name: Cache asdf
-        uses: actions/cache@v6
+      - name: Setup mise
+        uses: jdx/mise-action@v3
         with:
-          path: |
-            ~/.asdf/installs
-            ~/.asdf/plugins
-            ~/.asdf/shims
-          key: ${{ runner.os }}-asdf-${{ hashFiles('.tool-versions') }}
-          restore-keys: ${{ runner.os }}-asdf-
-      - name: Install asdf
-        uses: asdf-vm/actions/install@v4
-        # See https://github.com/asdf-vm/actions/issues/445
-        if: steps.cache-asdf.outputs.cache-hit != 'true'
-      - name: Reshim asdf
-        run: asdf reshim
+          install_args: "flutter java"
+          cache: true
 
       - name: Cache flutter dependencies
         uses: actions/cache@v6
         with:
-          path: |
-            ~/.pub-cache
-            ./nfc_manager_android/.dart_tool
-            ./nfc_manager_android/example/.dart_tool
-          key: ${{ runner.os }}-flutter-android-${{ hashFiles('./nfc_manager_android/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-flutter-android-
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('./nfc_manager_android/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-flutter-
       - name: Install dependencies
         run: flutter pub get
 
       - name: Create local.properties
         working-directory: ./nfc_manager_android/example/android
         run: |
-          FLUTTER_PATH=$(asdf where flutter)
+          FLUTTER_PATH=$(mise where flutter)
           echo "flutter.sdk=$FLUTTER_PATH" > ./local.properties
       - name: Run android tests
         working-directory: ./nfc_manager_android/example/android
