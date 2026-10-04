@@ -2,6 +2,7 @@
   "extends": [
     "config:recommended"
   ],
+  "semanticCommits": "enabled",
   "patch": {
     "automerge": true
   },

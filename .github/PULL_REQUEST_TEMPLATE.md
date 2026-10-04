@@ -1,7 +1,11 @@
 <!--
   Thank you for contributing to our plugin!
 
-  Please provide a concise title for your pull request and describe your changes in detail below.
+  Use a Conventional Commit PR title, e.g.:
+  fix(android): handle tag disconnection
+
+  See CONTRIBUTING.md for commit-message guidelines.
+  Describe your changes in detail below.
 -->
 
 ## Related issues

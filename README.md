@@ -14,3 +14,7 @@ Since this package is
 [endorsed]((https://docs.flutter.dev/packages-and-plugins/developing-packages#endorsed-federated-plugin)),
 we can simply use [nfc_manager](nfc_manager) normally and these plugins will be automatically
 included in your app when you do.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
