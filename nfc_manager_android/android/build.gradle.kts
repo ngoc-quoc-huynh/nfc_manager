@@ -1,3 +1,5 @@
+import org.gradle.process.CommandLineArgumentProvider
+
 group = "dev.huynh.nfc_manager_android"
 version = "1.0"
 
@@ -24,6 +26,15 @@ allprojects {
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+}
+
+abstract class MockitoAgentArgumentProvider : CommandLineArgumentProvider {
+    @get:InputFiles
+    @get:PathSensitive(PathSensitivity.RELATIVE)
+    abstract val agentJar: ConfigurableFileCollection
+
+    override fun asArguments(): Iterable<String> =
+        listOf("-javaagent:${agentJar.singleFile.absolutePath}")
 }
 
 android {
@@ -61,5 +72,13 @@ kotlin {
 
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test")
-    testImplementation("org.mockito.kotlin:mockito-kotlin:6.3.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
+}
+
+tasks.withType<Test>().configureEach {
+    val mockitoAgent = objects.newInstance<MockitoAgentArgumentProvider>()
+    mockitoAgent.agentJar.from(providers.provider {
+        classpath.filter { it.name.startsWith("mockito-core-") && it.extension == "jar" }
+    })
+    jvmArgumentProviders.add(mockitoAgent)
 }
