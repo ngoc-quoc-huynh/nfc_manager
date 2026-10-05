@@ -47,14 +47,12 @@ jobs:
         working-directory: ./nfc_manager_android/example
         run: flutter pub get --enforce-lockfile
 
-      - name: Create local.properties
-        working-directory: ./nfc_manager_android/example/android
-        run: |
-          FLUTTER_PATH=$(mise where flutter)
-          echo "flutter.sdk=$FLUTTER_PATH" > ./local.properties
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+
       - name: Run android tests
         working-directory: ./nfc_manager_android/example/android
-        run: ./gradlew testDebugUnitTest --no-daemon
+        run: ./gradlew nfc_manager_android:testDebugUnitTest --build-cache
 
       - name: Format code
         run: dart format --set-exit-if-changed .
