@@ -2,9 +2,13 @@ name: nfc_manager_platform_interface
 
 on:
   push:
-    paths:
+    branches: [main]
+    paths: &ci_paths
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_platform_interface.yaml'
+      - 'mise.toml'
+  pull_request:
+    paths: *ci_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}

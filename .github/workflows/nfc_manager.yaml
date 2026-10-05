@@ -2,9 +2,15 @@ name: nfc_manager
 
 on:
   push:
-    paths:
+    branches: [main]
+    paths: &ci_paths
       - 'nfc_manager/**'
+      - 'nfc_manager_android/**'
+      - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager.yaml'
+      - 'mise.toml'
+  pull_request:
+    paths: *ci_paths
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
@@ -30,7 +36,7 @@ jobs:
       - name: Cache flutter dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
-          path:  ~/.pub-cache
+          path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-${{ hashFiles('./nfc_manager/pubspec.lock') }}
           restore-keys: ${{ runner.os }}-flutter-
       - name: Install dependencies
