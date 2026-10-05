@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:nfc_manager_android/nfc_manager_android.dart';
 import 'package:nfc_manager_android_example/host_card_emulation.dart';
@@ -9,9 +7,7 @@ void main() {
   runApp(const NfcManagerAndroidExample());
 }
 
-class NfcManagerAndroidExample extends StatelessWidget {
-  const NfcManagerAndroidExample({super.key});
-
+class const NfcManagerAndroidExample({super.key}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -29,32 +25,24 @@ class NfcManagerAndroidExample extends StatelessWidget {
               children: [
                 _FeatureStatusView(
                   title: 'NFC support:',
-                  statusFuture:
-                      // ignore: discarded_futures, future has to be unawaited.
-                      NfcManagerAndroidPlatform().isNfcSupported(),
+                  statusFuture: NfcManagerAndroidPlatform().isNfcSupported(),
                 ),
                 _FeatureStatusView(
                   title: 'NFC enabled:',
-                  // ignore: discarded_futures, future has to be unawaited.
                   statusFuture: NfcManagerAndroidPlatform().isNfcEnabled(),
                 ),
                 _FeatureStatusView(
                   title: 'HCE support:',
-                  statusFuture:
-                      // ignore: discarded_futures, future has to be unawaited.
-                      NfcManagerAndroidPlatform().isHceSupported(),
+                  statusFuture: NfcManagerAndroidPlatform().isHceSupported(),
                 ),
                 const Divider(),
                 FilledButton(
-                  onPressed: () => unawaited(
-                    Navigator.pushNamed(context, 'host-card-emulation'),
-                  ),
+                  onPressed: () =>
+                      Navigator.pushNamed(context, 'host-card-emulation'),
                   child: const Text('Host Card Emulation'),
                 ),
                 FilledButton(
-                  onPressed: () => unawaited(
-                    Navigator.pushNamed(context, 'tag-reader'),
-                  ),
+                  onPressed: () => Navigator.pushNamed(context, 'tag-reader'),
                   child: const Text('Tag Reader'),
                 ),
               ],
@@ -66,18 +54,16 @@ class NfcManagerAndroidExample extends StatelessWidget {
   }
 }
 
-class _FeatureStatusView extends StatelessWidget {
-  const _FeatureStatusView({required this.title, required this.statusFuture});
-
-  final String title;
-  final Future<bool> statusFuture;
-
+class const _FeatureStatusView({
+  required final String title,
+  required final Future<bool> statusFuture,
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: .center,
       spacing: 5,
       children: [
         Text(title, style: textTheme.titleMedium),
@@ -86,9 +72,9 @@ class _FeatureStatusView extends StatelessWidget {
           builder: (context, snapshot) => switch (snapshot.hasData) {
             false => const CircularProgressIndicator(),
             true => Text(
-                snapshot.requireData.toString(),
-                style: textTheme.bodyLarge,
-              ),
+              snapshot.requireData.toString(),
+              style: textTheme.bodyLarge,
+            ),
           },
         ),
       ],

@@ -1,7 +1,6 @@
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // AGP 9+ has built-in Kotlin; no separate Kotlin Android plugin needed.
     id("dev.flutter.flutter-gradle-plugin")
 }
 

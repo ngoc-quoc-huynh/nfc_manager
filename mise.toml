@@ -1,7 +1,7 @@
 min_version = "2026.9.16"
 
 [tools]
-flutter = "3.44.9"
+flutter = "3.47.6"
 java = "temurin-21.0.12+8.0.LTS"
 
 [settings]

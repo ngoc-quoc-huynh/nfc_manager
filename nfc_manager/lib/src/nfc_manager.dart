@@ -72,6 +72,5 @@ class NfcManager {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) =>
-      _platform.startEmulation(aid: aid, pin: pin);
+  }) => _platform.startEmulation(aid: aid, pin: pin);
 }
