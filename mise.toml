@@ -1,3 +1,8 @@
+min_version = "2026.9.16"
+
 [tools]
 flutter = "3.44.9"
 java = "temurin-21.0.12+8.0.LTS"
+
+[settings]
+lockfile = true

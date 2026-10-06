@@ -8,6 +8,7 @@ on:
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_android.yaml'
       - 'mise.toml'
+      - 'mise.lock'
   pull_request:
     paths: *ci_paths
 
