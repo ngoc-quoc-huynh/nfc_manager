@@ -55,6 +55,12 @@ jobs:
         working-directory: ./nfc_manager_android/example/android
         run: ./gradlew nfc_manager_android:testDebugUnitTest --build-cache
 
+      - name: Build example APKs
+        working-directory: ./nfc_manager_android/example
+        run: |
+          flutter build apk --debug --no-pub
+          flutter build apk --release --no-pub
+
       - name: Format code
         run: dart format --set-exit-if-changed .
       - name: Analyze code

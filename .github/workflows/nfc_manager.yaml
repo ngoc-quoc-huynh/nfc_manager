@@ -35,7 +35,7 @@ jobs:
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5
         with:
           version: "2026.10.2"
-          install_args: "flutter"
+          install_args: "flutter java"
 
       - name: Cache flutter dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
@@ -48,6 +48,15 @@ jobs:
       - name: Install example dependencies
         working-directory: ./nfc_manager/example
         run: flutter pub get --enforce-lockfile
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+
+      - name: Build example APKs
+        working-directory: ./nfc_manager/example
+        run: |
+          flutter build apk --debug --no-pub
+          flutter build apk --release --no-pub
 
       - name: Format code
         run: dart format --set-exit-if-changed .
