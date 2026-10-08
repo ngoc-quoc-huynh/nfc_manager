@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:nfc_manager_android/nfc_manager_android.dart';
 
-class HostCardEmulationPage extends StatefulWidget {
-  const HostCardEmulationPage({super.key});
-
+class const HostCardEmulationPage({super.key}) extends StatefulWidget {
   @override
   State<HostCardEmulationPage> createState() => _HostCardEmulationPageState();
 }
@@ -22,18 +20,18 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
         children: [
           switch (_stream) {
             null => FilledButton(
-                onPressed: () => setState(
-                  () => _stream = NfcManagerAndroidPlatform().startEmulation(
-                    aid: _aid.toUint8List(isHex: true),
-                    pin: _pin.toHexString().toUint8List(),
-                  ),
+              onPressed: () => setState(
+                () => _stream = NfcManagerAndroidPlatform().startEmulation(
+                  aid: _aid.toUint8List(isHex: true),
+                  pin: _pin.toHexString().toUint8List(),
                 ),
-                child: const Text('Start emulation'),
               ),
+              child: const Text('Start emulation'),
+            ),
             Stream<HostCardEmulationStatus>() => FilledButton(
-                onPressed: () => setState(() => _stream = null),
-                child: const Text('Stop emulation'),
-              ),
+              onPressed: () => setState(() => _stream = null),
+              child: const Text('Stop emulation'),
+            ),
           },
           const SizedBox(height: 10),
           const Divider(),
@@ -41,17 +39,17 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
           StreamBuilder(
             stream: _stream,
             builder: (context, snapshot) => switch (snapshot.connectionState) {
-              ConnectionState.none => const Text(
-                  'Start the emulation to check the HCE status.',
-                ),
-              ConnectionState.waiting => const CircularProgressIndicator(),
-              ConnectionState.active when snapshot.hasError => Text(
-                  'Received error: ${snapshot.error}',
-                ),
-              ConnectionState.active => Text(
-                  snapshot.requireData.toString(),
-                ),
-              ConnectionState.done => const Text('Done'),
+              .none => const Text(
+                'Start the emulation to check the HCE status.',
+              ),
+              .waiting => const CircularProgressIndicator(),
+              .active when snapshot.hasError => Text(
+                'Received error: ${snapshot.error}',
+              ),
+              .active => Text(
+                snapshot.requireData.toString(),
+              ),
+              .done => const Text('Done'),
             },
           ),
         ],

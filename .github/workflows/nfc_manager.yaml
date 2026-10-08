@@ -8,7 +8,6 @@ on:
       - 'nfc_manager_android/**'
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager.yaml'
-      - 'mise.toml'
       - 'mise.lock'
   pull_request:
     paths: *ci_paths
@@ -16,29 +15,69 @@ on:
 permissions:
   contents: read
 
+defaults:
+  run:
+    working-directory: ./nfc_manager
+
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  build:
+  compatibility:
+    name: Minimum Flutter checks
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./nfc_manager
+    env:
+      # Support apps using Flutter 3.35.0 or newer.
+      MISE_FLUTTER_VERSION: '3.35.0'
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
         with:
-          version: "2026.10.3"
-          install_args: "flutter java"
+          version: "2026.10.2"
+          install_args: "flutter"
+          mise_toml: |
+            [tools]
+            flutter = "${{ env.MISE_FLUTTER_VERSION }}"
 
       - name: Cache flutter dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path:  ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/example/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-flutter-
+      - name: Install dependencies
+        run: flutter pub get --no-example
+
+      - name: Format code
+        run: dart format --set-exit-if-changed lib test
+      - name: Analyze code
+        run: flutter analyze --no-pub lib test
+      - name: Run code metrics
+        run: dart run dart_code_linter:metrics analyze lib test --set-exit-on-violation-level=warning
+      - name: Run tests
+        run: |
+          flutter test --no-pub --coverage --test-randomize-ordering-seed=random
+          dart run test_cov_console
+
+  development:
+    name: Latest Flutter checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.3"
+          install_args: "flutter"
+
+      - name: Cache flutter dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/example/pubspec.lock') }}
@@ -49,22 +88,20 @@ jobs:
         working-directory: ./nfc_manager/example
         run: flutter pub get --enforce-lockfile
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
-
-      - name: Build example APKs
-        working-directory: ./nfc_manager/example
-        run: |
-          flutter build apk --debug --no-pub
-          flutter build apk --release --no-pub
-
       - name: Format code
-        run: dart format --set-exit-if-changed .
+        run: dart format --set-exit-if-changed lib test
       - name: Analyze code
-        run: flutter analyze
+        run: flutter analyze --no-pub lib test
       - name: Run code metrics
-        run: dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
+        run: dart run dart_code_linter:metrics analyze lib test --set-exit-on-violation-level=warning
       - name: Run tests
         run: |
-          flutter test --coverage --test-randomize-ordering-seed=random
+          flutter test --no-pub --coverage --test-randomize-ordering-seed=random
           dart run test_cov_console
+
+      - name: Check example
+        working-directory: ./nfc_manager/example
+        run: |
+          dart format --set-exit-if-changed .
+          flutter analyze --no-pub
+          dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning

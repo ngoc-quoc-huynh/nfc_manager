@@ -4,14 +4,17 @@ group = "dev.huynh.nfc_manager_android"
 version = "1.0"
 
 buildscript {
-    val kotlinVersion = "2.4.20"
+    // Flutter 3.35 fallbacks support older hosts; host versions take precedence.
+    // Update only for a higher Flutter minimum or a required tooling fix.
+    val kotlinVersion = "2.1.0"
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        classpath("com.android.tools.build:gradle:9.4.1")
+        // Keep AGP 8.9.1 for Flutter 3.35 compatibility; host apps can use newer AGP.
+        classpath("com.android.tools.build:gradle:8.9.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
@@ -25,7 +28,15 @@ allprojects {
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
+}
+
+// Use AGP 9+ built-in Kotlin unless disabled; otherwise apply the Kotlin Android plugin.
+val agpMajor = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.substringBefore('.').toInt()
+val builtInKotlinEnabled = agpMajor >= 9 &&
+    (providers.gradleProperty("android.builtInKotlin").orNull?.toBoolean() ?: true)
+
+if (!builtInKotlinEnabled) {
+    apply(plugin = "org.jetbrains.kotlin.android")
 }
 
 abstract class MockitoAgentArgumentProvider : CommandLineArgumentProvider {
@@ -43,8 +54,9 @@ android {
     compileSdk = 34
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
+        // Target Java 17 so consuming apps do not need JDK 21.
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     defaultConfig {
@@ -64,14 +76,14 @@ android {
     }
 }
 
-kotlin {
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
     compilerOptions {
-        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_21
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
 dependencies {
-    testImplementation("org.jetbrains.kotlin:kotlin-test")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
 }
 

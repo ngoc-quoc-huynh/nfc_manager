@@ -8,6 +8,18 @@
   "patch": {
     "automerge": true
   },
+  "packageRules": [
+    {
+      "description": "Preserve Android build fallbacks for Flutter 3.35 compatibility",
+      "matchManagers": ["gradle"],
+      "matchFileNames": ["nfc_manager_android/android/build.gradle.kts"],
+      "matchPackageNames": [
+        "com.android.tools.build:gradle",
+        "org.jetbrains.kotlin:kotlin-gradle-plugin"
+      ],
+      "enabled": false
+    }
+  ],
   "schedule": [
     "before 5am on monday"
   ],

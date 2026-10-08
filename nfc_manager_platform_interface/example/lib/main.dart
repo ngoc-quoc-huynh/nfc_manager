@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-final class NfcManagerExamplePlatform extends NfcManagerPlatform {
-  NfcManagerExamplePlatform() : super('example');
+final class NfcManagerExamplePlatform() extends NfcManagerPlatform {
+  this : super('example');
 
   static void registerWith() =>
       NfcManagerPlatform.instance = NfcManagerExamplePlatform();
@@ -33,7 +33,7 @@ final class NfcManagerExamplePlatform extends NfcManagerPlatform {
         {'command': command.toUint8List()},
       );
 
-      return ApduResponse.fromUint8List(Uint8List.fromList(response!));
+      return .fromUint8List(.fromList(response!));
     } on PlatformException catch (e, stackTrace) {
       Error.throwWithStackTrace(
         NfcException.fromPlatformException(e),
@@ -46,10 +46,9 @@ final class NfcManagerExamplePlatform extends NfcManagerPlatform {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) =>
-      hostCardEmulationEventChannel
-          .receiveBroadcastStream({'aid': aid, 'pin': pin})
-          .cast<String>()
-          .map(HostCardEmulationStatus.fromString)
-          .handleError(onStreamError, test: isPlatformException);
+  }) => hostCardEmulationEventChannel
+      .receiveBroadcastStream({'aid': aid, 'pin': pin})
+      .cast<String>()
+      .map(HostCardEmulationStatus.fromString)
+      .handleError(onStreamError, test: isPlatformException);
 }

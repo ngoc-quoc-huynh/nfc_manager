@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
-class TagReaderPage extends StatefulWidget {
-  const TagReaderPage({super.key});
-
+class const TagReaderPage({super.key}) extends StatefulWidget {
   @override
   State<TagReaderPage> createState() => _TagReaderPageState();
 }
@@ -24,14 +22,14 @@ class _TagReaderPageState extends State<TagReaderPage> {
         children: [
           switch (_stream) {
             null => FilledButton(
-                onPressed: () =>
-                    setState(() => _stream = NfcManager().startDiscovery()),
-                child: const Text('Start discovery'),
-              ),
+              onPressed: () =>
+                  setState(() => _stream = NfcManager().startDiscovery()),
+              child: const Text('Start discovery'),
+            ),
             Stream<String>() => FilledButton(
-                onPressed: () => setState(() => _stream = null),
-                child: const Text('Stop discovery'),
-              ),
+              onPressed: () => setState(() => _stream = null),
+              child: const Text('Stop discovery'),
+            ),
           },
           const SizedBox(height: 10),
           const Divider(),
@@ -39,29 +37,29 @@ class _TagReaderPageState extends State<TagReaderPage> {
           StreamBuilder<String>(
             stream: _stream,
             builder: (context, snapshot) => switch (snapshot.connectionState) {
-              ConnectionState.none => const Text(
-                  'Start the discovery to look out for NFC tags.',
-                ),
-              ConnectionState.waiting => const CircularProgressIndicator(),
-              ConnectionState.active when snapshot.hasError => Text(
-                  'Received error: ${snapshot.error}',
-                ),
-              ConnectionState.active => Column(
-                  children: [
-                    Text('Found tag: ${snapshot.requireData}'),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: () => unawaited(_onSelectAid(context)),
-                      child: const Text('Select aid'),
-                    ),
-                    const SizedBox(height: 10),
-                    FilledButton(
-                      onPressed: () => unawaited(_onVerifyPin(context)),
-                      child: const Text('Verify pin'),
-                    ),
-                  ],
-                ),
-              ConnectionState.done => const Text('Done'),
+              .none => const Text(
+                'Start the discovery to look out for NFC tags.',
+              ),
+              .waiting => const CircularProgressIndicator(),
+              .active when snapshot.hasError => Text(
+                'Received error: ${snapshot.error}',
+              ),
+              .active => Column(
+                children: [
+                  Text('Found tag: ${snapshot.requireData}'),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: () => unawaited(_onSelectAid(context)),
+                    child: const Text('Select aid'),
+                  ),
+                  const SizedBox(height: 10),
+                  FilledButton(
+                    onPressed: () => unawaited(_onVerifyPin(context)),
+                    child: const Text('Verify pin'),
+                  ),
+                ],
+              ),
+              .done => const Text('Done'),
             },
           ),
         ],
@@ -84,7 +82,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     if (context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message)));
+      ).showSnackBar(.new(content: Text(message)));
     }
   }
 
@@ -102,7 +100,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     if (context.mounted) {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text(message)));
+        ..showSnackBar(.new(content: Text(message)));
     }
   }
 }

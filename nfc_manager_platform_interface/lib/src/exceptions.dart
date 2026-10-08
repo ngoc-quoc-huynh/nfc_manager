@@ -36,7 +36,7 @@ sealed class NfcException implements Exception {
 final class InvalidApduCommandException extends NfcException {
   /// Constructs an [InvalidApduCommandException].
   const InvalidApduCommandException()
-      : super('APDU command must be at least 4 bytes long.');
+    : super('APDU command must be at least 4 bytes long.');
 
   @override
   String toString() => 'InvalidApduCommandException: $message';
@@ -47,10 +47,10 @@ final class InvalidApduCommandException extends NfcException {
 final class InvalidLcDataLengthException extends NfcException {
   /// Constructs an [InvalidLcDataLengthException].
   const InvalidLcDataLengthException()
-      : super(
-          'The LC value does not match the length of the Data field in the '
-          'APDU command.',
-        );
+    : super(
+        'The LC value does not match the length of the Data field in the '
+        'APDU command.',
+      );
 
   @override
   String toString() => 'InvalidLcDataLengthException: $message';
@@ -60,7 +60,7 @@ final class InvalidLcDataLengthException extends NfcException {
 final class IsoDepNotSupportedException extends NfcException {
   /// Constructs an [IsoDepNotSupportedException].
   const IsoDepNotSupportedException()
-      : super('The NFC tag does not support ISO-DEP.');
+    : super('The NFC tag does not support ISO-DEP.');
 
   @override
   String toString() => 'IsoDepNotSupportedException: $message';
@@ -80,10 +80,10 @@ final class NfcNotSupportedException extends NfcException {
 final class TagConnectionException extends NfcException {
   /// Constructs a [TagConnectionException].
   const TagConnectionException()
-      : super(
-          'Failed to establish a connection with the NFC tag or the tag was '
-          'lost.',
-        );
+    : super(
+        'Failed to establish a connection with the NFC tag or the tag was '
+        'lost.',
+      );
 
   @override
   String toString() => 'TagConnectionException: $message';

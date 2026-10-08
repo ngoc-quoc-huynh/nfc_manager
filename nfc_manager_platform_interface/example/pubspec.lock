@@ -85,10 +85,10 @@ packages:
     dependency: "direct dev"
     description:
       name: cosee_lints
-      sha256: "4369ad0964e217729530356f4323ca936ed08b89180d29fd59391cd91bbafe7d"
+      sha256: c368a5f2e20aea8f5cfbe1ffccb70dc302c94b4ed5e00f1118e1f36f1a856d27
       url: "https://pub.dev"
     source: hosted
-    version: "0.13.0"
+    version: "0.16.0"
   crypto:
     dependency: transitive
     description:
@@ -194,10 +194,10 @@ packages:
     dependency: transitive
     description:
       name: meta
-      sha256: "1741988757a65eb6b36abe716829688cf01910bbf91c34354ff7ec1c3de2b349"
+      sha256: "307249ce4ff29d58a18e97f6345f539382eb9c9c29ecda628900f31de0443dd9"
       url: "https://pub.dev"
     source: hosted
-    version: "1.18.0"
+    version: "1.19.0"
   nfc_manager_platform_interface:
     dependency: "direct main"
     description:
@@ -318,10 +318,10 @@ packages:
     dependency: transitive
     description:
       name: vector_math
-      sha256: d530bd74fea330e6e364cda7a85019c434070188383e1cd8d9777ee586914c5b
+      sha256: "92b9910f66ed1057fd4da7b040ae7c74cafacf885bdc81be496928d5049b032d"
       url: "https://pub.dev"
     source: hosted
-    version: "2.2.0"
+    version: "2.4.3"
   watcher:
     dependency: transitive
     description:
@@ -363,5 +363,5 @@ packages:
     source: hosted
     version: "2.2.4"
 sdks:
-  dart: ">=3.12.0 <4.0.0"
-  flutter: ">=3.41.0"
+  dart: ">=3.13.5 <4.0.0"
+  flutter: ">=3.47.6 <4.0.0"
