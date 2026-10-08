@@ -63,7 +63,7 @@ jobs:
           flutter test --no-pub --coverage --test-randomize-ordering-seed=random
           dart run test_cov_console
 
-  I:
+  development:
     name: Latest Flutter checks
     runs-on: ubuntu-latest
 
