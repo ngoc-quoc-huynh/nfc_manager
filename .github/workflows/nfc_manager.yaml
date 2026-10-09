@@ -37,7 +37,7 @@ jobs:
       - name: Setup mise
         uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
         with:
-          version: "2026.10.2"
+          version: "2026.10.5"
           install_args: "flutter"
           mise_toml: |
             [tools]
@@ -73,7 +73,7 @@ jobs:
       - name: Setup mise
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
         with:
-          version: "2026.10.3"
+          version: "2026.10.5"
           install_args: "flutter"
 
       - name: Cache flutter dependencies
