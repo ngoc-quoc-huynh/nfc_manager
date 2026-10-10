@@ -32,8 +32,9 @@
 - Keep reviews and diagnoses read-only unless changes are requested.
 - Preserve unrelated user changes and keep dependency changes within
   the requested scope.
-- Avoid creating temporary files or directories. Ask the user first
-  if temporary scripts, logs, backups, or test copies are needed.
+- Do not create temporary files or directories. Use inline commands
+  (pipes, heredocs, `python -c`) instead. If a temporary file or directory
+  is unavoidable, ask first and remove it when finished.
 - Ask before adding dependencies, making incompatible public API or
   cross-package/platform contract changes, raising SDK or platform
   minimums, or taking destructive actions unless explicitly authorized.
