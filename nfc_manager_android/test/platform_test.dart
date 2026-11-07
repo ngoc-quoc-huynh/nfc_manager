@@ -164,18 +164,49 @@ void main() {
   });
 
   group('startEmulation', () {
-    test('preserves errors for unknown HCE event names.', () async {
+    test('continues after an unknown HCE event name.', () async {
       nfcManager.hostCardEmulationEventChannel.setMockStream(
         (events) => events
           ..success('UNKNOWN_EVENT')
+          ..success('READY')
           ..endOfStream(),
       );
 
       await expectLater(
         nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
-        emitsInOrder([emitsError(isA<ArgumentError>()), emitsDone]),
+        emitsInOrder([
+          emitsError(
+            isA<ArgumentError>().having(
+              (error) => error.invalidValue,
+              'invalidValue',
+              'UNKNOWN_EVENT',
+            ),
+          ),
+          HostCardEmulationStatus.ready,
+          emitsDone,
+        ]),
       );
     });
+
+    for (final payload in <Object?>[null, 42, <String, Object>{}]) {
+      test('continues after a non-string HCE event: $payload.', () async {
+        nfcManager.hostCardEmulationEventChannel.setMockStream(
+          (events) => events
+            ..success(payload)
+            ..success('READY')
+            ..endOfStream(),
+        );
+
+        await expectLater(
+          nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+          emitsInOrder([
+            emitsError(isA<TypeError>()),
+            HostCardEmulationStatus.ready,
+            emitsDone,
+          ]),
+        );
+      });
+    }
 
     test(
       'passes configuration on subscription and cancels the native stream.',

@@ -16,7 +16,8 @@ enum class HostCardEmulationStatus {
     INVALID_COMMAND,
 
     /**
-     * Indicates that the length of the command data is invalid.
+     * The declared Lc does not match the command data length, or a SELECT/VERIFY
+     * command is missing required data.
      */
     INVALID_LC_LENGTH,
 
@@ -26,7 +27,7 @@ enum class HostCardEmulationStatus {
     AID_SELECTED,
 
     /**
-     * Indicates that the AID is invalid.
+     * The received AID did not match the configured AID.
      */
     INVALID_AID,
 

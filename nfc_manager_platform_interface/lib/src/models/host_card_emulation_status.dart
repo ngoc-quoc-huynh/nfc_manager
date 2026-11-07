@@ -1,22 +1,26 @@
-/// Represents the status of the host card emulation (HCE) operation.
+/// HCE readiness and command outcomes reported by this plugin.
+///
+/// These events do not describe persistent authentication state.
 enum HostCardEmulationStatus {
-  /// Indicates that the HCE is ready for operations.
+  /// The HCE configuration is stored.
+  ///
+  /// This does not confirm that NFC is enabled or the AID is routed correctly.
   ready,
 
-  /// Indicates that the command is invalid because it must be at least 4 bytes
-  /// long.
+  /// The command header contains fewer than four bytes.
   invalidCommand,
 
-  /// Indicates that the length of the command data is invalid.
+  /// The declared Lc does not match the command data length, or a SELECT/VERIFY
+  /// command is missing required data.
   invalidLcLength,
 
   /// Indicates that the AID (Application Identifier) has been selected.
   aidSelected,
 
-  /// Indicates that the AID is invalid.
+  /// The received AID did not match the configured AID.
   invalidAid,
 
-  /// Indicates that the PIN has been verified.
+  /// The received PIN matched the configured PIN for this command.
   pinVerified,
 
   /// Indicates that the PIN is incorrect.
@@ -25,10 +29,12 @@ enum HostCardEmulationStatus {
   /// Indicates that the function is not supported.
   functionNotSupported,
 
-  /// Indicates that the tag is disconnected.
+  /// The NFC link ended or the reader switched to another service.
   tagDisconnected;
 
-  /// Constructs a [HostCardEmulationStatus] from a string representation.
+  /// Decodes a native event name.
+  ///
+  /// Throws [ArgumentError] for an unrecognized event name.
   factory HostCardEmulationStatus.fromString(String status) => switch (status) {
     'READY' => HostCardEmulationStatus.ready,
     'INVALID_COMMAND' => HostCardEmulationStatus.invalidCommand,

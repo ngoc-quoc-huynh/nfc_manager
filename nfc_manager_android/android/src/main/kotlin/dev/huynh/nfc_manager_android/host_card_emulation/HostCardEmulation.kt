@@ -50,10 +50,10 @@ class HostCardEmulation :
 
             when {
                 command.ins == 0xA4.toByte() && command.p1 == 0x04.toByte() ->
-                    processSelectAid(command.data!!)
+                    processSelectAid(command.data ?: throw InvalidLcDataLengthException())
 
                 command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() ->
-                    processVerifyPin(command.data!!)
+                    processVerifyPin(command.data ?: throw InvalidLcDataLengthException())
 
                 else -> {
                     emitSuccess(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)

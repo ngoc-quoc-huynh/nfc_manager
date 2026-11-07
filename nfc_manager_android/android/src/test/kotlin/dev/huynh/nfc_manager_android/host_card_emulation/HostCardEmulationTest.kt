@@ -7,7 +7,9 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
 import kotlin.test.assertContentEquals
 import kotlin.test.assertTrue
 
@@ -156,6 +158,38 @@ class HostCardEmulationTest {
 
         assertContentEquals(ResponseApdu.WRONG_PIN(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
+    }
+
+    @Test
+    fun `processCommandApdu rejects SELECT and VERIFY commands without data`() {
+        val headers =
+            listOf(
+                byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00),
+                byteArrayOf(0x00, 0x20, 0x00, 0x00),
+            )
+        val suffixes =
+            listOf(
+                byteArrayOf(),
+                byteArrayOf(0x00),
+                byteArrayOf(0x00, 0x00),
+            )
+
+        for (header in headers) {
+            for (suffix in suffixes) {
+                val command = header + suffix
+                val response = hostCardEmulation.processCommandApdu(command, null)
+
+                assertContentEquals(
+                    byteArrayOf(0x67, 0x00),
+                    response,
+                    "Command: ${command.contentToString()}",
+                )
+            }
+        }
+
+        verify(mockEventSink, times(headers.size * suffixes.size))
+            .success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
+        verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test

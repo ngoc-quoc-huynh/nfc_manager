@@ -3,7 +3,7 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 void main() {
   group('fromString', () {
-    test('returns correctly.', () {
+    test('maps each native event name to its HCE status.', () {
       expect(
         HostCardEmulationStatus.fromString('READY'),
         HostCardEmulationStatus.ready,
@@ -43,7 +43,7 @@ void main() {
     });
 
     test(
-      'throws ArgumentError if status does not exist.',
+      'throws ArgumentError for an unknown event name.',
       () => expect(
         () => HostCardEmulationStatus.fromString('TEST'),
         throwsA(
