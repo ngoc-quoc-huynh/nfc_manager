@@ -108,13 +108,13 @@ void main() {
     test('forwards the command and returns the platform response.', () async {
       when(
         () => mockPlatform.sendCommand(
-          SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
         ),
       ).thenAnswer((_) async => ApduResponse.ok);
 
       expect(
         await nfcManager.sendCommand(
-          SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
         ),
         ApduResponse.ok,
       );
@@ -123,13 +123,13 @@ void main() {
     test('forwards platform command errors.', () async {
       when(
         () => mockPlatform.sendCommand(
-          SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
         ),
       ).thenAnswer((_) async => throw const NfcUnknownException(null));
 
       await expectLater(
         nfcManager.sendCommand(
-          SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
         ),
         throwsA(isA<NfcUnknownException>()),
       );

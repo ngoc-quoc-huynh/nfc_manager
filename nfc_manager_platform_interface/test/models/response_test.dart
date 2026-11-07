@@ -5,7 +5,7 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 void main() {
   group('fromUint8List', () {
-    test('returns correctly.', () {
+    test('maps each supported status word to its response.', () {
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x6A, 0x81])),
         ApduResponse.functionNotSupported,
@@ -28,7 +28,7 @@ void main() {
       );
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x67, 0x00])),
-        ApduResponse.wrongLength,
+        ApduResponse.wrongLcLength,
       );
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x6C, 0x00])),
@@ -40,7 +40,7 @@ void main() {
       );
     });
 
-    test('returns unknown for invalid bytes', () {
+    test('returns unknown for unsupported status words.', () {
       expect(
         ApduResponse.fromUint8List(Uint8List.fromList([0x00, 0x00])),
         ApduResponse.unknown,
@@ -53,6 +53,19 @@ void main() {
         ApduResponse.fromUint8List(Uint8List.fromList([0x03, 0x04])),
         ApduResponse.unknown,
       );
+    });
+
+    test('returns unknown for incomplete and payload-bearing responses.', () {
+      for (final bytes in <List<int>>[
+        [],
+        [0x90],
+        [0x01, 0x90, 0x00],
+      ]) {
+        expect(
+          ApduResponse.fromUint8List(Uint8List.fromList(bytes)),
+          ApduResponse.unknown,
+        );
+      }
     });
   });
 }

@@ -126,7 +126,7 @@ void main() {
 
         expect(
           await nfcManager.sendCommand(
-            SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+            Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
           ),
           ApduResponse.ok,
         );
@@ -155,7 +155,7 @@ void main() {
 
         await expectLater(
           nfcManager.sendCommand(
-            SelectAidCommand(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+            Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
           ),
           throwsA(isA<TagConnectionException>()),
         );
