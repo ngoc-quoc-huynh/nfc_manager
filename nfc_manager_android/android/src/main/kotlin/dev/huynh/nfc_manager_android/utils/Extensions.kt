@@ -39,20 +39,6 @@ fun EventSink.error(exception: NfcException) =
     )
 
 /**
- * Tries to execute an action and emits a success status if successful, or an error status if an exception occurs.
- * 
- * @param action The action to execute.
- */
-fun <T> Result.trySuccess(action: () -> T) {
-    try {
-        val result = action()
-        success(result)
-    } catch (e: NfcException) {
-        error(e)
-    }
-}
-
-/**
  * Converts a Byte to an unsigned integer.
  * 
  * @return The unsigned integer representation of the Byte.

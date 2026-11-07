@@ -56,3 +56,12 @@ class TagConnectionException :
         "TAG_CONNECTION_FAILED",
         "Failed to establish a connection with the NFC tag or the tag was lost.",
     )
+
+/**
+ * Exception thrown when an unexpected error occurs while reading NFC tags.
+ */
+class UnexpectedNfcException :
+    NfcException(
+        "NFC_ERROR",
+        "Unexpected NFC reader error.",
+    )

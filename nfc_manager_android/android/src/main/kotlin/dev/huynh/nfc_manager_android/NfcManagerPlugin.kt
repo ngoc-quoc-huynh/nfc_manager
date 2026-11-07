@@ -4,7 +4,7 @@ import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
-import dev.huynh.nfc_manager_android.utils.trySuccess
+import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -84,6 +84,8 @@ class NfcManagerPlugin :
         methodChannel.setMethodCallHandler(null)
         discoveryEventChannel.setStreamHandler(null)
         hostCardEmulationEventChannel.setStreamHandler(null)
+        tagReader?.dispose()
+        tagReader = null
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
@@ -101,21 +103,47 @@ class NfcManagerPlugin :
 
     override fun onDetachedFromActivity() {
         discoveryEventChannel.setStreamHandler(null)
+        tagReader?.dispose()
         tagReader = null
     }
 
     override fun onMethodCall(
         call: MethodCall,
         result: Result,
-    ) = when (call.method) {
-        "isHceSupported" -> result.success(featureChecker.isHceSupported())
-        "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
-        "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
-        "sendCommand" ->
-            result.trySuccess {
-                tagReader?.sendCommand(call.argument<ByteArray>("command")!!)
-            }
+    ) {
+        when (call.method) {
+            "isHceSupported" -> result.success(featureChecker.isHceSupported())
+            "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
+            "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
+            "sendCommand" -> sendCommand(call, result)
+            else -> result.notImplemented()
+        }
+    }
 
-        else -> result.notImplemented()
+    private fun sendCommand(
+        call: MethodCall,
+        result: Result,
+    ) {
+        val command = (call.arguments as? Map<*, *>)?.get("command") as? ByteArray
+        if (command == null) {
+            result.error(InvalidApduCommandException())
+            return
+        }
+
+        val currentTagReader = tagReader
+        if (currentTagReader == null) {
+            result.error(TagConnectionException())
+            return
+        }
+
+        try {
+            currentTagReader.sendCommand(
+                command,
+                onSuccess = result::success,
+                onError = { result.error(it as? NfcException ?: UnexpectedNfcException()) },
+            )
+        } catch (exception: NfcException) {
+            result.error(exception)
+        }
     }
 }

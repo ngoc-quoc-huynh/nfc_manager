@@ -3,7 +3,6 @@ package dev.huynh.nfc_manager_android
 import dev.huynh.nfc_manager_android.utils.error
 import dev.huynh.nfc_manager_android.utils.toHexString
 import dev.huynh.nfc_manager_android.utils.toUnsignedInt
-import dev.huynh.nfc_manager_android.utils.trySuccess
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
@@ -59,22 +58,6 @@ class ExtensionsTest {
         val mockEventSink = mock<EventSink>()
         mockEventSink.error(nfcException)
         verify(mockEventSink).error(
-            "NFC_NOT_SUPPORTED",
-            "This device does not support NFC.",
-            null,
-        )
-    }
-
-    @Test
-    fun `trySuccess should call success when action succeeds`() {
-        mockResult.trySuccess({ "Success" })
-        verify(mockResult).success("Success")
-    }
-
-    @Test
-    fun `trySuccess should call error when action throws`() {
-        mockResult.trySuccess({ throw NfcNotSupportedException() })
-        verify(mockResult).error(
             "NFC_NOT_SUPPORTED",
             "This device does not support NFC.",
             null,

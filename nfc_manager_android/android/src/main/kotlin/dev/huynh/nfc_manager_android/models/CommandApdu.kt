@@ -121,22 +121,6 @@ data class CommandApdu(
         }
     }
 
-    /**
-     * Converts the [CommandApdu] to a byte array.
-     *
-     * @return the byte array representing the APDU command.
-     */
-    fun toByteArray(): ByteArray =
-        buildList {
-            add(cla)
-            add(ins)
-            add(p1)
-            add(p2)
-            lc?.let { add(it) }
-            data?.let { addAll(it.toList()) }
-            le?.let { add(it) }
-        }.toByteArray()
-
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || javaClass != other.javaClass) return false
