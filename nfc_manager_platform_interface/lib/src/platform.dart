@@ -1,147 +1,80 @@
-import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
-import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
+import 'dart:typed_data';
+
+import 'package:nfc_manager_platform_interface/src/exceptions.dart';
+import 'package:nfc_manager_platform_interface/src/models/commands/base.dart';
+import 'package:nfc_manager_platform_interface/src/models/host_card_emulation_status.dart';
+import 'package:nfc_manager_platform_interface/src/models/response.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
-/// Mixin for creating mock implementations of [NfcManagerPlatform].
+/// The interface for platform-specific NFC implementations.
 ///
-/// This mixin is designed for testing purposes, allowing developers to create
-/// mock implementations of the [NfcManagerPlatform]. It can be used to
-/// simulate NFC platform behavior in a controlled test environment without
-/// interacting with actual NFC hardware.
-@visibleForTesting
-base mixin MockNfcManagerPlatformMixin implements NfcManagerPlatform {}
+/// Platform implementations must extend this class and set [instance] when
+/// they register. Methods that are not overridden throw [UnimplementedError].
+abstract class NfcManagerPlatform extends PlatformInterface {
+  /// Constructs a [NfcManagerPlatform].
+  NfcManagerPlatform() : super(token: _token);
 
-/// Abstract base class for all NFC manager platforms.
-///
-/// This class provides a unified interface and essential functionality for all
-/// NFC platform implementations. It standardizes the API across various
-/// platform-specific implementations, enabling seamless integration of NFC
-/// capabilities in a platform-independent way.
-abstract base class NfcManagerPlatform extends PlatformInterface {
-  /// Constructs a new [NfcManagerPlatform].
-  NfcManagerPlatform(this.platform)
-    : methodChannel = MethodChannel('${_baseChannel}_$platform'),
-      discoveryEventChannel = EventChannel(
-        '${_baseChannel}_$platform/discovery',
-      ),
-      hostCardEmulationEventChannel = EventChannel(
-        '${_baseChannel}_$platform/host_card_emulation',
-      ),
-      super(token: _token);
-
-  /// A string identifier for the specific platform implementation.
-  final String platform;
-
-  /// A [MethodChannel] used for sending messages from the Dart side to the
-  /// native side of the platform.
-  @visibleForTesting
-  @protected
-  final MethodChannel methodChannel;
-
-  /// An [EventChannel] used to receive NFC discovery events from the native
-  /// platform layer.
-  @visibleForTesting
-  @protected
-  final EventChannel discoveryEventChannel;
-
-  /// An [EventChannel] used to receive host card emulation events from the
-  /// native platform layer.
-  @visibleForTesting
-  @protected
-  final EventChannel hostCardEmulationEventChannel;
-
-  /// Defines the base channel name used for communication between the Dart and
-  /// native sides of the platform.
-  static const String _baseChannel = 'dev.huynh/nfc_manager';
-
-  /// A unique token used to verify the authenticity of the platform instance.
-  // ignore: no-object-declaration, see https://pub.dev/packages/plugin_platform_interface
+  // Used to verify that registered implementations extend this class.
   static final Object _token = Object();
 
-  /// A singleton instance representing the specific platform implementation of
-  /// [NfcManagerPlatform].
-  static NfcManagerPlatform _instance = MethodChannelNfcManager();
+  static NfcManagerPlatform _instance = _UnimplementedNfcManagerPlatform();
 
-  /// Provides the current instance of the platform-specific implementation of
-  /// [NfcManagerPlatform].
+  /// The NFC platform implementation to use.
+  ///
+  /// Until an implementation registers, all methods throw [UnimplementedError].
   static NfcManagerPlatform get instance => _instance;
 
-  /// Assigns a new default instance for the [NfcManagerPlatform] to be used
-  /// across the platform.
+  /// Registers an implementation that extends [NfcManagerPlatform].
+  ///
+  /// Test mocks can implement this interface with `MockPlatformInterfaceMixin`.
   static set instance(NfcManagerPlatform instance) {
-    PlatformInterface.verifyToken(instance, _token);
+    PlatformInterface.verify(instance, _token);
     _instance = instance;
   }
 
-  /// Checks if the device supports Host Card Emulation (HCE).
-  ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
+  /// Whether the device supports Host Card Emulation (HCE).
   Future<bool> isHceSupported() =>
       throw UnimplementedError('isHceSupported() has not been implemented.');
 
-  /// Checks if the device supports NFC.
-  ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
+  /// Whether the device supports NFC.
   Future<bool> isNfcSupported() =>
       throw UnimplementedError('isNfcSupported() has not been implemented.');
 
-  /// Checks if NFC is enabled.
-  ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
+  /// Whether NFC is currently enabled.
   Future<bool> isNfcEnabled() =>
       throw UnimplementedError('isNfcEnabled() has not been implemented.');
 
-  /// Starts NFC discovery.
+  /// Discovers ISO-DEP tags and returns a stream of their identifiers.
   ///
-  /// If a [timeout] is specified and exceeded, a [TagConnectionException] is
-  /// thrown.
+  /// Discovery starts when the stream is listened to. Cancel the subscription
+  /// to stop discovery. [timeout] limits communication with a discovered tag,
+  /// not the time spent waiting for a tag.
   ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
-  ///
-  /// Throws [IsoDepNotSupportedException] if the device does not support
-  /// ISO-DEP.
-  ///
-  /// Throws [TagConnectionException] when the application fails to establish a
-  /// connection with the NFC tag or the tag is lost during the discovery
-  /// process.
+  /// The stream reports [IsoDepNotSupportedException] when a tag lacks ISO-DEP,
+  /// and [TagConnectionException] when connecting to a tag fails.
   Stream<String> startDiscovery({Duration? timeout}) =>
       throw UnimplementedError('startDiscovery() has not been implemented.');
 
-  /// Sends an APDU command to an NFC tag.
+  /// Sends an APDU command to the connected tag and returns its response.
   ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
-  ///
-  /// Throws [TagConnectionException] when the application fails to establish a
-  /// connection with the NFC tag or the tag was lost.
+  /// See [ApduResponse] for the supported response format. Reports
+  /// [TagConnectionException] if there is no connection or the tag is lost.
   Future<ApduResponse> sendCommand(Command command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 
-  /// Starts NFC HCE with the provided AID and PIN.
+  /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.
   ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
+  /// Emulation starts when the stream is listened to. Cancel the subscription
+  /// to stop emulation. Use one active emulation subscription at a time.
+  ///
+  /// On Android, [aid] must also be registered for the HCE service. A ready
+  /// event confirms that the configuration is stored. It does not confirm that
+  /// NFC is enabled or that the device routes commands to the service.
+  /// Choose the byte encoding of [pin] before calling this method.
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
   }) => throw UnimplementedError('startEmulation() has not been implemented.');
-
-  /// Checks if the provided error object is an instance of [PlatformException].
-  @visibleForTesting
-  @protected
-  // ignore: avoid-dynamic, error can be any type.
-  bool isPlatformException(dynamic error) => error is PlatformException;
-
-  /// Manages error handling for stream operations.
-  @visibleForTesting
-  @protected
-  Never onStreamError(Object error) => switch (error) {
-    PlatformException() => throw NfcException.fromPlatformException(error),
-    _ => throw NfcUnknownException(error.toString()),
-  };
 }
+
+final class _UnimplementedNfcManagerPlatform extends NfcManagerPlatform {}

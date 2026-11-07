@@ -3,7 +3,6 @@ export 'package:plugin_platform_interface/plugin_platform_interface.dart'
 
 export 'src/exceptions.dart';
 export 'src/extensions.dart';
-export 'src/method_channel.dart';
 export 'src/models/commands/base.dart';
 export 'src/models/commands/select_aid.dart';
 export 'src/models/commands/verify_pin.dart';

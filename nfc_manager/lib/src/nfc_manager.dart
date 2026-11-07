@@ -2,23 +2,16 @@ import 'dart:typed_data';
 
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-/// Provides a high-level interface for interacting with the device's NFC
-/// hardware. Implemented as a singleton to centralize NFC interactions within
-/// the application.
-///
-/// This class facilitates checking NFC support and status, initiating NFC data
-/// discovery, transmitting commands, and managing host card emulation. Utilize
-/// this class to effortlessly incorporate NFC functionalities into your
-/// application.
+/// Provides access to the registered NFC platform implementation.
 class NfcManager {
-  /// Constructs an instance of [NfcManager].
+  /// Returns the shared [NfcManager] instance.
   factory NfcManager() => _instance;
 
   const NfcManager._();
 
   static const NfcManager _instance = NfcManager._();
 
-  static final _platform = NfcManagerPlatform.instance;
+  static NfcManagerPlatform get _platform => NfcManagerPlatform.instance;
 
   /// Checks if the device supports Host Card Emulation (HCE).
   ///
@@ -38,37 +31,31 @@ class NfcManager {
   /// platform.
   Future<bool> isNfcEnabled() => _platform.isNfcEnabled();
 
-  /// Starts NFC discovery.
+  /// Discovers ISO-DEP tags and returns a stream of their identifiers.
   ///
-  /// If a [timeout] is specified and exceeded, a [TagConnectionException] is
-  /// thrown.
-  ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
-  ///
-  /// Throws [IsoDepNotSupportedException] if the device does not support
-  /// ISO-DEP.
-  ///
-  /// Throws [TagConnectionException] when the application fails to establish a
-  /// connection with the NFC tag or the tag is lost during the discovery
-  /// process.
+  /// Discovery starts when the stream is listened to. Cancel the subscription
+  /// to stop discovery. [timeout] limits communication with a discovered tag,
+  /// not the time spent waiting for a tag.
+  /// See [NfcManagerPlatform.startDiscovery] for stream errors.
   Stream<String> startDiscovery({Duration? timeout}) =>
       _platform.startDiscovery(timeout: timeout);
 
-  /// Sends an APDU command to an NFC tag.
+  /// Sends an APDU command to the connected tag and returns its response.
   ///
   /// Throws [UnimplementedError] if the method is not implemented for the
   /// platform.
   ///
-  /// Throws [TagConnectionException] when the application fails to establish a
-  /// connection with the NFC tag or the tag was lost.
+  /// Throws [TagConnectionException] if there is no connection or the tag is
+  /// lost.
   Future<ApduResponse> sendCommand(Command command) =>
       _platform.sendCommand(command);
 
-  /// Starts NFC HCE with the provided AID and PIN.
+  /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.
   ///
-  /// Throws [UnimplementedError] if the method is not implemented for the
-  /// platform.
+  /// Emulation starts when the stream is listened to. Cancel the subscription
+  /// to stop emulation. On Android, [aid] must also be registered for the HCE
+  /// service. See [NfcManagerPlatform.startEmulation]
+  /// for configuration and subscription requirements.
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,

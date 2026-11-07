@@ -2,33 +2,39 @@ import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 final class NfcManagerExamplePlatform() extends NfcManagerPlatform {
-  this : super('example');
+  final _methodChannel = const MethodChannel('dev.huynh/nfc_manager_example');
+  final _discoveryEventChannel = const EventChannel(
+    'dev.huynh/nfc_manager_example/discovery',
+  );
+  final _hostCardEmulationEventChannel = const EventChannel(
+    'dev.huynh/nfc_manager_example/host_card_emulation',
+  );
 
   static void registerWith() =>
       NfcManagerPlatform.instance = NfcManagerExamplePlatform();
 
   @override
   Future<bool> isHceSupported() async =>
-      (await methodChannel.invokeMethod<bool>('isHceSupported'))!;
+      (await _methodChannel.invokeMethod<bool>('isHceSupported'))!;
 
   @override
   Future<bool> isNfcSupported() async =>
-      (await methodChannel.invokeMethod<bool>('isNfcSupported'))!;
+      (await _methodChannel.invokeMethod<bool>('isNfcSupported'))!;
 
   @override
   Future<bool> isNfcEnabled() async =>
-      (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
+      (await _methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
   @override
-  Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
+  Stream<String> startDiscovery({Duration? timeout}) => _discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .cast<String>()
-      .handleError(onStreamError, test: isPlatformException);
+      .handleError(_onStreamError, test: _isPlatformException);
 
   @override
   Future<ApduResponse> sendCommand(Command command) async {
     try {
-      final response = await methodChannel.invokeListMethod<int>(
+      final response = await _methodChannel.invokeListMethod<int>(
         'sendCommand',
         {'command': command.toUint8List()},
       );
@@ -46,9 +52,14 @@ final class NfcManagerExamplePlatform() extends NfcManagerPlatform {
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) => hostCardEmulationEventChannel
+  }) => _hostCardEmulationEventChannel
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
       .cast<String>()
       .map(HostCardEmulationStatus.fromString)
-      .handleError(onStreamError, test: isPlatformException);
+      .handleError(_onStreamError, test: _isPlatformException);
+
+  bool _isPlatformException(Object? error) => error is PlatformException;
+
+  Never _onStreamError(Object error) =>
+      throw NfcException.fromPlatformException(error as PlatformException);
 }

@@ -1,130 +1,65 @@
-import 'package:flutter/services.dart';
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 void main() {
-  test(
-    'default instance is MethodChannelNfcManager.',
-    () => expect(NfcManagerPlatform.instance, isA<MethodChannelNfcManager>()),
-  );
+  final defaultPlatform = NfcManagerPlatform.instance;
 
-  test('instance can be overridden and token is verified', () {
-    final defaultInstance = NfcManagerPlatform.instance;
-    addTearDown(() => NfcManagerPlatform.instance = defaultInstance);
+  tearDown(() => NfcManagerPlatform.instance = defaultPlatform);
 
-    final mockInstance = MockNfcManagerPlatform();
-    NfcManagerPlatform.instance = mockInstance;
-    expect(NfcManagerPlatform.instance, mockInstance);
-  });
-
-  test('isHceSupported throws UnimplementedError.', () async {
-    await expectLater(
-      () => MockNfcManagerPlatform().isHceSupported(),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'isHceSupported() has not been implemented.',
-        ),
+  test('throws UnimplementedError when no platform is registered.', () {
+    expect(defaultPlatform.isHceSupported, throwsUnimplementedError);
+    expect(defaultPlatform.isNfcSupported, throwsUnimplementedError);
+    expect(defaultPlatform.isNfcEnabled, throwsUnimplementedError);
+    expect(defaultPlatform.startDiscovery, throwsUnimplementedError);
+    expect(
+      () => defaultPlatform.sendCommand(
+        Command(cla: 0, ins: 0, p1: 0, p2: 0),
       ),
+      throwsUnimplementedError,
     );
-  });
-
-  test('isNfcSupported throws UnimplementedError.', () async {
-    await expectLater(
-      () => MockNfcManagerPlatform().isNfcSupported(),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'isNfcSupported() has not been implemented.',
-        ),
-      ),
-    );
-  });
-
-  test('isNfcEnabled throws UnimplementedError.', () async {
-    await expectLater(
-      () => MockNfcManagerPlatform().isNfcEnabled(),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'isNfcEnabled() has not been implemented.',
-        ),
-      ),
-    );
-  });
-
-  test('startDiscovery throws UnimplementedError.', () async {
-    await expectLater(
-      () => MockNfcManagerPlatform().startDiscovery(),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'startDiscovery() has not been implemented.',
-        ),
-      ),
-    );
-  });
-
-  test('sendCommand throws UnimplementedError.', () async {
-    await expectLater(
+    expect(
       () =>
-          MockNfcManagerPlatform().sendCommand(SelectAidCommand(Uint8List(0))),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'sendCommand() has not been implemented.',
-        ),
-      ),
+          defaultPlatform.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+      throwsUnimplementedError,
     );
   });
 
-  test('startEmulation throws UnimplementedError.', () async {
-    await expectLater(
-      () => MockNfcManagerPlatform().startEmulation(
-        aid: Uint8List(0),
-        pin: Uint8List(0),
-      ),
-      throwsA(
-        isA<UnimplementedError>().having(
-          (e) => e.message,
-          'message',
-          'startEmulation() has not been implemented.',
-        ),
-      ),
+  test('a subclass can register and supply platform behavior.', () async {
+    NfcManagerPlatform.instance = TestNfcManagerPlatform();
+
+    expect(await NfcManagerPlatform.instance.isNfcSupported(), isTrue);
+    expect(
+      NfcManagerPlatform.instance.isHceSupported,
+      throwsUnimplementedError,
     );
   });
 
-  test('isPlatformException returns correctly.', () {
+  test('rejects implementations without the platform token.', () {
     expect(
-      MockNfcManagerPlatform().isPlatformException(
-        PlatformException(code: 'code'),
-      ),
-      isTrue,
+      () => NfcManagerPlatform.instance = InvalidNfcManagerPlatform(),
+      throwsA(isA<AssertionError>()),
     );
-    expect(MockNfcManagerPlatform().isPlatformException(''), isFalse);
+    expect(NfcManagerPlatform.instance, same(defaultPlatform));
   });
 
-  test('onStreamError throws correctly.', () {
-    expect(
-      () => MockNfcManagerPlatform().onStreamError(
-        PlatformException(code: 'code'),
-      ),
-      throwsA(isA<NfcException>()),
-    );
-    expect(
-      () => MockNfcManagerPlatform().onStreamError(''),
-      throwsA(
-        isA<NfcUnknownException>().having((e) => e.message, 'message', ''),
-      ),
-    );
+  test('accepts the standard mock platform mixin in tests.', () {
+    final mock = MockNfcManagerPlatform();
+    NfcManagerPlatform.instance = mock;
+
+    expect(NfcManagerPlatform.instance, same(mock));
   });
 }
 
-final class MockNfcManagerPlatform extends NfcManagerPlatform {
-  MockNfcManagerPlatform() : super('test');
+final class TestNfcManagerPlatform extends NfcManagerPlatform {
+  @override
+  Future<bool> isNfcSupported() async => true;
 }
+
+final class InvalidNfcManagerPlatform extends Fake
+    implements NfcManagerPlatform {}
+
+final class MockNfcManagerPlatform extends Fake
+    with MockPlatformInterfaceMixin
+    implements NfcManagerPlatform {}

@@ -1,16 +1,33 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
-/// Provides the Android-specific implementation of [NfcManagerPlatform],
-/// facilitating NFC operations on Android devices.
+/// The Android implementation of [NfcManagerPlatform].
 final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
-  /// Constructs a new [NfcManagerAndroidPlatform].
-  NfcManagerAndroidPlatform() : super('android');
+  /// Constructs an [NfcManagerAndroidPlatform].
+  NfcManagerAndroidPlatform();
 
-  /// Sets [NfcManagerAndroidPlatform] as the default platform implementation
-  /// for NFC operations on Android devices.
+  /// The Android request channel.
+  @visibleForTesting
+  final MethodChannel methodChannel = const MethodChannel(
+    'dev.huynh/nfc_manager_android',
+  );
+
+  /// The Android discovery event channel.
+  @visibleForTesting
+  final EventChannel discoveryEventChannel = const EventChannel(
+    'dev.huynh/nfc_manager_android/discovery',
+  );
+
+  /// The Android HCE event channel.
+  @visibleForTesting
+  final EventChannel hostCardEmulationEventChannel = const EventChannel(
+    'dev.huynh/nfc_manager_android/host_card_emulation',
+  );
+
+  /// Registers the Android NFC implementation.
   static void registerWith() =>
       NfcManagerPlatform.instance = NfcManagerAndroidPlatform();
 
@@ -30,7 +47,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .cast<String>()
-      .handleError(onStreamError, test: isPlatformException);
+      .handleError(_onStreamError, test: _isPlatformException);
 
   @override
   Future<ApduResponse> sendCommand(Command command) async {
@@ -40,7 +57,11 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         {'command': command.toUint8List()},
       );
 
-      return ApduResponse.fromUint8List(Uint8List.fromList(response!));
+      if (response == null) {
+        throw const TagConnectionException();
+      }
+
+      return ApduResponse.fromUint8List(Uint8List.fromList(response));
     } on PlatformException catch (e, stackTrace) {
       Error.throwWithStackTrace(
         NfcException.fromPlatformException(e),
@@ -57,5 +78,13 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
       .cast<String>()
       .map(HostCardEmulationStatus.fromString)
-      .handleError(onStreamError, test: isPlatformException);
+      .handleError(_onStreamError, test: _isPlatformException);
+
+  bool _isPlatformException(Object? error) => error is PlatformException;
+
+  Never _onStreamError(Object error, StackTrace stackTrace) =>
+      Error.throwWithStackTrace(
+        NfcException.fromPlatformException(error as PlatformException),
+        stackTrace,
+      );
 }
