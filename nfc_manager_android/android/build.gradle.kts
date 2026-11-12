@@ -77,15 +77,23 @@ android {
     }
 }
 
+// Keep in sync with the mockito-core version resolved through mockito-kotlin.
+val mockitoVersion = "5.23.0"
+
+// Resolves only the mockito-core jar, which is loaded as a Java agent for unit tests.
+val mockitoAgentConfiguration: Configuration by configurations.creating {
+    isTransitive = false
+}
+
 dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.mockito.kotlin:mockito-kotlin:6.4.0")
+    testImplementation("org.mockito:mockito-core:$mockitoVersion")
+    mockitoAgentConfiguration("org.mockito:mockito-core:$mockitoVersion")
 }
 
 tasks.withType<Test>().configureEach {
     val mockitoAgent = objects.newInstance<MockitoAgentArgumentProvider>()
-    mockitoAgent.agentJar.from(providers.provider {
-        classpath.filter { it.name.startsWith("mockito-core-") && it.extension == "jar" }
-    })
+    mockitoAgent.agentJar.from(mockitoAgentConfiguration)
     jvmArgumentProviders.add(mockitoAgent)
 }
