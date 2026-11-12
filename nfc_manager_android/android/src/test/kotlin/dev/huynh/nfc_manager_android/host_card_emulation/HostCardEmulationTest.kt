@@ -162,6 +162,32 @@ class HostCardEmulationTest {
     }
 
     @Test
+    fun `processCommandApdu emits WRONG_PIN when VERIFY PIN differs in the last byte`() {
+        startSession(pin = byteArrayOf(0x01, 0x02, 0x03, 0x04))
+        val response =
+            hostCardEmulation.processCommandApdu(
+                commandByteArray = byteArrayOf(0x00, 0x20, 0x00, 0x00, 0x04, 0x01, 0x02, 0x03, 0x05),
+                extras = null,
+            )
+
+        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
+    }
+
+    @Test
+    fun `processCommandApdu emits WRONG_PIN when VERIFY PIN is a prefix of the PIN`() {
+        startSession(pin = byteArrayOf(0x01, 0x02, 0x03, 0x04))
+        val response =
+            hostCardEmulation.processCommandApdu(
+                commandByteArray = byteArrayOf(0x00, 0x20, 0x00, 0x00, 0x02, 0x01, 0x02),
+                extras = null,
+            )
+
+        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
+    }
+
+    @Test
     fun `processCommandApdu rejects SELECT and VERIFY commands without data`() {
         val headers =
             listOf(
