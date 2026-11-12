@@ -11,7 +11,10 @@ void main() {
   final nfcManager = NfcManager();
   final mockPlatform = MockNfcManagerPlatform();
 
-  setUpAll(() => NfcManagerPlatform.instance = mockPlatform);
+  setUpAll(() {
+    registerFallbackValue(Uint8List(0));
+    NfcManagerPlatform.instance = mockPlatform;
+  });
 
   tearDownAll(() => NfcManagerPlatform.instance = originalPlatform);
 
@@ -137,8 +140,33 @@ void main() {
   });
 
   group('startEmulation', () {
-    final aid = Uint8List(0);
-    final pin = Uint8List(0);
+    final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
+    final pin = Uint8List.fromList([1, 2, 3, 4]);
+
+    setUp(() => clearInteractions(mockPlatform));
+
+    for (final (description, invalidAid, invalidPin, name) in [
+      ('an AID shorter than 5 bytes', Uint8List(4), pin, 'aid.length'),
+      ('an AID longer than 16 bytes', Uint8List(17), pin, 'aid.length'),
+      ('an empty PIN', aid, Uint8List(0), 'pin.length'),
+      ('a PIN longer than 255 bytes', aid, Uint8List(256), 'pin.length'),
+    ]) {
+      test('throws a RangeError for $description.', () {
+        expect(
+          () => nfcManager.startEmulation(aid: invalidAid, pin: invalidPin),
+          throwsA(
+            isA<RangeError>().having((error) => error.name, 'name', name),
+          ),
+        );
+        verifyNever(
+          () => mockPlatform.startEmulation(
+            aid: any(named: 'aid'),
+            pin: any(named: 'pin'),
+          ),
+        );
+      });
+    }
+
     test('forwards configuration and platform HCE events.', () async {
       when(
         () => mockPlatform.startEmulation(aid: aid, pin: pin),

@@ -62,8 +62,16 @@ class NfcManager {
   /// to stop emulation. On Android, [aid] must also be registered for the HCE
   /// service. See [NfcManagerPlatform.startEmulation]
   /// for configuration and subscription requirements.
+  ///
+  /// Throws [RangeError] when this method is called if [aid] does not contain
+  /// 5–16 bytes or [pin] does not contain 1–255 bytes.
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,
-  }) => _platform.startEmulation(aid: aid, pin: pin);
+  }) {
+    checkAidLength(aid);
+    checkPinLength(pin);
+
+    return _platform.startEmulation(aid: aid, pin: pin);
+  }
 }
