@@ -19,6 +19,20 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 class HostCardEmulationTest {
+    private companion object {
+        val VALID_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x04)
+        val VALID_PIN = byteArrayOf(0x01, 0x02, 0x03, 0x04)
+        val OTHER_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x05)
+        val SELECT_HEADER = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00)
+        val VERIFY_HEADER = byteArrayOf(0x00, 0x20, 0x00, 0x00)
+
+        fun shortDataApdu(
+            header: ByteArray,
+            data: ByteArray,
+            le: Byte? = null,
+        ): ByteArray = header + data.size.toByte() + data + (le?.let { byteArrayOf(it) } ?: byteArrayOf())
+    }
+
     private val mockEventSink = mock<EventSink>()
     private val hostCardEmulation = HostCardEmulation()
 
@@ -31,8 +45,8 @@ class HostCardEmulationTest {
     @Test
     fun `onListen starts a session owned by the stream handler`() {
         HostCardEmulationConfig.clear(hostCardEmulation)
-        val aid = byteArrayOf(0x01)
-        val pin = byteArrayOf(0x02)
+        val aid = VALID_AID
+        val pin = VALID_PIN
 
         hostCardEmulation.onListen(mapOf("aid" to aid, "pin" to pin), mockEventSink)
 
@@ -48,25 +62,25 @@ class HostCardEmulationTest {
     fun `onListen rejects null arguments`() = assertRejected(null)
 
     @Test
-    fun `onListen rejects arguments that are not a map`() = assertRejected(listOf(byteArrayOf(0x01)))
+    fun `onListen rejects arguments that are not a map`() = assertRejected(listOf(VALID_AID))
 
     @Test
-    fun `onListen rejects a missing aid`() = assertRejected(mapOf("pin" to byteArrayOf(0x02)))
+    fun `onListen rejects a missing aid`() = assertRejected(mapOf("pin" to VALID_PIN))
 
     @Test
-    fun `onListen rejects a missing pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01)))
+    fun `onListen rejects a missing pin`() = assertRejected(mapOf("aid" to VALID_AID))
 
     @Test
-    fun `onListen rejects a null aid`() = assertRejected(mapOf("aid" to null, "pin" to byteArrayOf(0x02)))
+    fun `onListen rejects a null aid`() = assertRejected(mapOf("aid" to null, "pin" to VALID_PIN))
 
     @Test
-    fun `onListen rejects a null pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01), "pin" to null))
+    fun `onListen rejects a null pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to null))
 
     @Test
-    fun `onListen rejects a wrongly typed aid`() = assertRejected(mapOf("aid" to "01", "pin" to byteArrayOf(0x02)))
+    fun `onListen rejects a wrongly typed aid`() = assertRejected(mapOf("aid" to "01", "pin" to VALID_PIN))
 
     @Test
-    fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01), "pin" to 2))
+    fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to 2))
 
     @Test
     fun `onCancel clears the session it owns`() {
@@ -107,18 +121,9 @@ class HostCardEmulationTest {
 
     @Test
     fun `processCommandApdu emits AID_SELECTED when command is SELECT command with correct AID`() {
-        startSession(aid = byteArrayOf(0x00))
         val response =
             hostCardEmulation.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0xA4.toByte(),
-                        0x04,
-                        0x00,
-                        0x01,
-                        0x00,
-                    ),
+                commandByteArray = shortDataApdu(SELECT_HEADER, VALID_AID),
                 extras = null,
             )
 
@@ -130,15 +135,7 @@ class HostCardEmulationTest {
     fun `processCommandApdu emits INVALID_AID when command is SELECT command with wrong AID`() {
         val response =
             hostCardEmulation.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0xA4.toByte(),
-                        0x04,
-                        0x00,
-                        0x01,
-                        0x00,
-                    ),
+                commandByteArray = shortDataApdu(SELECT_HEADER, OTHER_AID),
                 extras = null,
             )
 
@@ -148,18 +145,9 @@ class HostCardEmulationTest {
 
     @Test
     fun `processCommandApdu emits PIN_VERIFIED when command is VERIFY command with correct PIN`() {
-        startSession(pin = byteArrayOf(0x00))
         val response =
             hostCardEmulation.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0x20,
-                        0x00,
-                        0x00,
-                        0x01,
-                        0x00,
-                    ),
+                commandByteArray = shortDataApdu(VERIFY_HEADER, VALID_PIN),
                 extras = null,
             )
 
@@ -171,15 +159,7 @@ class HostCardEmulationTest {
     fun `processCommandApdu emits WRONG_PIN when command is VERIFY command with wrong PIN`() {
         val response =
             hostCardEmulation.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0x20,
-                        0x00,
-                        0x00,
-                        0x01,
-                        0x00,
-                    ),
+                commandByteArray = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09)),
                 extras = null,
             )
 
@@ -277,6 +257,90 @@ class HostCardEmulationTest {
     }
 
     @Test
+    fun `processCommandApdu emits AID_SELECTED when SELECT carries a trailing Le`() {
+        val response =
+            hostCardEmulation.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID, le = 0x00), null)
+
+        assertContentEquals(ResponseApdu.OK(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+    }
+
+    @Test
+    fun `processCommandApdu rejects SELECT with two trailing bytes after declared data`() {
+        val command = shortDataApdu(SELECT_HEADER, VALID_AID) + byteArrayOf(0x00, 0x00)
+
+        val response = hostCardEmulation.processCommandApdu(command, null)
+
+        assertContentEquals(byteArrayOf(0x67, 0x00), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `processCommandApdu emits PIN_VERIFIED for a 255-byte PIN`() {
+        val pin = ByteArray(255) { it.toByte() }
+        startSession(pin = pin)
+
+        val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin), null)
+
+        assertContentEquals(ResponseApdu.OK(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
+    }
+
+    @Test
+    fun `processCommandApdu emits PIN_VERIFIED for a 255-byte PIN followed by Le`() {
+        val pin = ByteArray(255) { it.toByte() }
+        startSession(pin = pin)
+
+        val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin, le = 0x00), null)
+
+        assertContentEquals(ResponseApdu.OK(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
+    }
+
+    @Test
+    fun `processCommandApdu emits WRONG_PIN for a 255-byte PIN differing in the last byte`() {
+        val pin = ByteArray(255) { it.toByte() }
+        startSession(pin = pin)
+        val attempt = pin.copyOf().also { it[it.lastIndex] = (it.last() + 1).toByte() }
+
+        val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, attempt, le = 0x00), null)
+
+        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
+    }
+
+    @Test
+    fun `processCommandApdu rejects extended-length SELECT and VERIFY commands`() {
+        // Extended-length APDUs (Lc = 00 followed by a two-byte length) are not supported.
+        val commands =
+            listOf(
+                SELECT_HEADER + byteArrayOf(0x00, 0x00, VALID_AID.size.toByte()) + VALID_AID,
+                VERIFY_HEADER + byteArrayOf(0x00, 0x00, VALID_PIN.size.toByte()) + VALID_PIN,
+                VERIFY_HEADER + byteArrayOf(0x00, 0x01, 0x00) + ByteArray(256),
+            )
+
+        for (command in commands) {
+            val response = hostCardEmulation.processCommandApdu(command, null)
+
+            assertContentEquals(byteArrayOf(0x67, 0x00), response, "Command: ${command.contentToString()}")
+        }
+        verify(mockEventSink, times(commands.size)).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `processCommandApdu rejects a command whose data is shorter than Lc`() {
+        val command = SELECT_HEADER + byteArrayOf(VALID_AID.size.toByte()) + VALID_AID.copyOf(VALID_AID.size - 2)
+
+        val response = hostCardEmulation.processCommandApdu(command, null)
+
+        assertContentEquals(byteArrayOf(0x67, 0x00), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
     fun `processCommandApdu answers 67 00 and emits INVALID_COMMAND for commands shorter than 4 bytes`() {
         for (size in 0..3) {
             val response =
@@ -349,8 +413,8 @@ class HostCardEmulationTest {
     }
 
     private fun startSession(
-        aid: ByteArray = byteArrayOf(),
-        pin: ByteArray = byteArrayOf(),
+        aid: ByteArray = VALID_AID,
+        pin: ByteArray = VALID_PIN,
     ) = HostCardEmulationConfig.start(
         HostCardEmulationConfig.Session(
             owner = hostCardEmulation,
