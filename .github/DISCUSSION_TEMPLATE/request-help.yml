@@ -4,7 +4,7 @@ body:
       value: |
         Before submitting your request, please consider the following:
         - Search for any [existing questions](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/categories/request-help) to avoid duplicates.
-        - Review the [guidelines for requesting help](https://github.com/ngoc-quoc-huynh/nfc_manager/blob/main/CONTRIBUTING.md#request-help) to ensure your request is clear and helpful.
+        - Review the [guidelines for requesting help](https://github.com/ngoc-quoc-huynh/nfc_manager/blob/main/CONTRIBUTING.md#requesting-help) to ensure your request is clear and helpful.
 
   - type: textarea
     attributes:
