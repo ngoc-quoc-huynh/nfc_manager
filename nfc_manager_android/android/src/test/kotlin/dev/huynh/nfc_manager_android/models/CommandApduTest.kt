@@ -78,16 +78,8 @@ class CommandApduTest {
     }
 
     @Test
-    fun `fromByteArray returns CLA, INS, P1, P2, LC, LE when command is exactly 6 bytes and LC is 0x00`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-                lc = 0x00.toByte(),
-                le = 0x00.toByte(),
-            ),
+    fun `fromByteArray throws InvalidLcDataLengthException when command is exactly 6 bytes and LC is 0x00`() {
+        assertThrows<InvalidLcDataLengthException> {
             CommandApdu.fromByteArray(
                 byteArrayOf(
                     0x00.toByte(),
@@ -97,8 +89,8 @@ class CommandApduTest {
                     0x00.toByte(),
                     0x00.toByte(),
                 ),
-            ),
-        )
+            )
+        }
     }
 
     @Test
