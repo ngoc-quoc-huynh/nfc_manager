@@ -43,6 +43,9 @@ class TagReader(
     /**
      * Sends a command to the active tag and replies on the main thread.
      *
+     * A command longer than the tag accepts is answered with [InvalidApduCommandException] and
+     * the tag stays connected.
+     *
      * @throws NfcException if the command is invalid or no tag is connected.
      */
     fun sendCommand(
@@ -68,6 +71,14 @@ class TagReader(
                 }
 
                 try {
+                    // Android fails an oversized transceive with an IOException, which would
+                    // drop the tag, so reject it here. A length of 0 is unknown; let the tag decide.
+                    val maxLength = tag.maxTransceiveLength
+                    if (maxLength > 0 && command.size > maxLength) {
+                        reply { onError(InvalidApduCommandException()) }
+                        return@execute
+                    }
+
                     val response = tag.transceive(command)
                     reply { onSuccess(response) }
                 } catch (exception: Exception) {

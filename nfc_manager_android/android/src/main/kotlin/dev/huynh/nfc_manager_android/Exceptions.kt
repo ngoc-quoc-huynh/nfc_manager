@@ -24,13 +24,15 @@ class InvalidArgumentsException :
     )
 
 /**
- * Exception thrown when the APDU command is invalid because it must be at
- * least 4 bytes long.
+ * Exception thrown when the APDU command is shorter than 4 bytes or longer than
+ * the tag accepts.
+ *
+ * The message is fixed and never echoes the command or its length.
  */
 class InvalidApduCommandException :
     NfcException(
         "INVALID_APDU_COMMAND",
-        "APDU command must be at least 4 bytes long.",
+        "APDU command must be at least 4 bytes long and no longer than the tag accepts.",
     )
 
 /**
