@@ -4,15 +4,25 @@ import dev.huynh.nfc_manager_android.NfcException
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel.Result
 
+private const val HEX_DIGITS = "0123456789ABCDEF"
+
 /**
- * Converts a ByteArray to a hexadecimal string.
- * 
+ * Converts a ByteArray to an uppercase hexadecimal string without separators.
+ *
+ * Formats manually because the stdlib `HexFormat` needs an opt-in before Kotlin 2.2,
+ * and the plugin compiles with the host app's Kotlin version.
+ *
  * @return The hexadecimal string representation of the ByteArray.
  */
-internal fun ByteArray.toHexString(): String =
-    joinToString(separator = "") { byte ->
-        "%02x".format(byte)
-    }.uppercase()
+internal fun ByteArray.toHexString(): String {
+    val chars = CharArray(size * 2)
+    forEachIndexed { index, byte ->
+        val value = byte.toUnsignedInt()
+        chars[index * 2] = HEX_DIGITS[value shr 4]
+        chars[index * 2 + 1] = HEX_DIGITS[value and 0x0F]
+    }
+    return String(chars)
+}
 
 /**
  * Emits an error status to the Flutter side.

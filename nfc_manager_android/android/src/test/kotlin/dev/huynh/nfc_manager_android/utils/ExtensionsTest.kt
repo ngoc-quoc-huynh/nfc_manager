@@ -26,6 +26,13 @@ class ExtensionsTest {
         )
 
     @Test
+    fun `toHexString should zero pad single digit bytes`() =
+        assertEquals(
+            "0A0F",
+            byteArrayOf(0x0A, 0x0F).toHexString(),
+        )
+
+    @Test
     fun `toHexString should convert multiple bytes to their hex representation`() =
         assertEquals(
             "1AFF003C",
