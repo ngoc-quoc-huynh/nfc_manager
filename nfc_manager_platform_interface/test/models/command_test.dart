@@ -29,7 +29,19 @@ void main() {
             ('p2', () => Command(cla: 0, ins: 0, p1: 0, p2: value)),
             ('le', () => Command(cla: 0, ins: 0, p1: 0, p2: 0, le: value)),
           ]) {
-            expect(create, throwsRangeError, reason: '$name: $value');
+            expect(
+              create,
+              throwsA(
+                isA<RangeError>()
+                    .having(
+                      (error) => error.invalidValue,
+                      'invalidValue',
+                      value,
+                    )
+                    .having((error) => error.name, 'name', name),
+              ),
+              reason: '$name: $value',
+            );
           }
         }
       });
@@ -40,11 +52,9 @@ void main() {
             () =>
                 Command(cla: 0, ins: 0, p1: 0, p2: 0, data: Uint8List(length)),
             throwsA(
-              isA<RangeError>().having(
-                (error) => error.invalidValue,
-                'invalidValue',
-                length,
-              ),
+              isA<RangeError>()
+                  .having((error) => error.invalidValue, 'invalidValue', length)
+                  .having((error) => error.name, 'name', 'data.length'),
             ),
             reason: 'data length: $length',
           );
