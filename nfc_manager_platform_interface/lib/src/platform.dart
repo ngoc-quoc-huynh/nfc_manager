@@ -50,6 +50,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// to stop discovery. [timeout] limits communication with a discovered tag,
   /// not the time spent waiting for a tag.
   ///
+  /// On Android, the stream ends when the activity detaches, for example when
+  /// it is destroyed. Listen again to resume discovery.
+  ///
   /// The stream reports [IsoDepNotSupportedException] when a tag lacks ISO-DEP,
   /// and [TagConnectionException] when connecting to a tag fails.
   Stream<String> startDiscovery({Duration? timeout}) =>

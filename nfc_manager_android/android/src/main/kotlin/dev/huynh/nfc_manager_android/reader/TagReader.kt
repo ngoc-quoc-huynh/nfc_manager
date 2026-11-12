@@ -147,10 +147,17 @@ class TagReader(
         cancelSession()
     }
 
-    /** Releases the reader and worker when the plugin detaches from its Activity or engine. */
+    /**
+     * Releases the reader and worker when the plugin detaches from its Activity or engine.
+     *
+     * An active discovery stream is ended so the Dart listener is not left waiting for tags.
+     * Call on the main thread.
+     */
     fun dispose() {
         ioExecutor.shutdown()
+        val activeSink = synchronized(stateLock) { eventSink }
         cancelSession()
+        activeSink?.endOfStream()
     }
 
     private fun handleTagFound(

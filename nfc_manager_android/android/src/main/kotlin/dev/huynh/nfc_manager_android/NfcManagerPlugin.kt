@@ -10,6 +10,8 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -79,7 +81,28 @@ class NfcManagerPlugin :
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/discovery",
-            )
+            ).apply {
+                // Keep the channel registered so Flutter can cancel after a reader ends its stream.
+                setStreamHandler(
+                    object : StreamHandler {
+                        override fun onListen(
+                            arguments: Any?,
+                            events: EventSink,
+                        ) {
+                            val reader = tagReader
+                            if (reader == null) {
+                                events.error(UnexpectedNfcException())
+                            } else {
+                                reader.onListen(arguments, events)
+                            }
+                        }
+
+                        override fun onCancel(arguments: Any?) {
+                            tagReader?.onCancel(arguments)
+                        }
+                    },
+                )
+            }
         val hostCardEmulation = HostCardEmulation()
         hostCardEmulationStreamHandler = hostCardEmulation
         hostCardEmulationEventChannel =
@@ -105,7 +128,6 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 activity = binding.activity,
             )
-        discoveryEventChannel.setStreamHandler(tagReader)
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
@@ -113,7 +135,6 @@ class NfcManagerPlugin :
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
 
     override fun onDetachedFromActivity() {
-        discoveryEventChannel.setStreamHandler(null)
         tagReader?.dispose()
         tagReader = null
     }

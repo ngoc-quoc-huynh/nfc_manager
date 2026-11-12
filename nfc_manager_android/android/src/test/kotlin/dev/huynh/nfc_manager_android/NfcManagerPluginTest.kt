@@ -1,3 +1,7 @@
+import android.app.Activity
+import android.content.Context
+import android.content.pm.PackageManager
+import android.nfc.NfcAdapter
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.NfcManagerPlugin
 import dev.huynh.nfc_manager_android.TagConnectionException
@@ -9,19 +13,31 @@ import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.StandardMethodCodec
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mockStatic
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
+import java.nio.ByteBuffer
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 
 class NfcManagerPluginTest {
@@ -147,6 +163,40 @@ class NfcManagerPluginTest {
     }
 
     @Test
+    fun `discovery accepts cancellation after an activity detaches`() {
+        val channel = DiscoveryChannel()
+        channel.attachActivity()
+        assertNull(StandardMethodCodec.INSTANCE.decodeEnvelope(assertNotNull(channel.call("listen"))))
+
+        plugin.onDetachedFromActivity()
+
+        val reply = assertNotNull(channel.call("cancel"))
+        assertNull(StandardMethodCodec.INSTANCE.decodeEnvelope(reply))
+    }
+
+    @Test
+    fun `discovery delivers events from the reader after activity reattachment`() {
+        val channel = DiscoveryChannel()
+        channel.attachActivity()
+        assertNotNull(channel.call("listen"))
+        val previousReader = plugin.tagReader
+        plugin.onDetachedFromActivity()
+        assertNotNull(channel.call("cancel"))
+
+        channel.attachActivity()
+        assertNotNull(channel.call("listen"))
+        val reader = assertNotNull(plugin.tagReader)
+        assertNull(previousReader?.eventSink)
+        assertNotNull(reader.eventSink).success("04A1")
+
+        val event = argumentCaptor<ByteBuffer>()
+        verify(channel.messenger, times(2)).send(eq(channel.name), event.capture())
+        assertNull(event.firstValue)
+        assertEquals("04A1", StandardMethodCodec.INSTANCE.decodeEnvelope(event.lastValue.apply { flip() }))
+        plugin.onDetachedFromActivity()
+    }
+
+    @Test
     fun `activity detachment cancels and releases the tag reader`() {
         val mockDiscoveryEventChannel = mock<EventChannel>()
         NfcManagerPlugin::class.java.getDeclaredField("discoveryEventChannel").apply {
@@ -156,8 +206,25 @@ class NfcManagerPluginTest {
 
         plugin.onDetachedFromActivity()
 
-        verify(mockDiscoveryEventChannel).setStreamHandler(null)
         verify(mockTagReader).dispose()
+    }
+
+    @Test
+    fun `activity detachment during discovery ends the discovery stream`() {
+        val mockActivity = mock<Activity>()
+        val mockNfcAdapter = mock<NfcAdapter>()
+        val mockEventSink = mock<EventSink>()
+        val tagReader = TagReader(activity = mockActivity, nfcAdapter = mockNfcAdapter)
+        plugin.tagReader = tagReader
+        setChannels()
+        tagReader.onListen(null, mockEventSink)
+
+        plugin.onDetachedFromActivity()
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockNfcAdapter).disableReaderMode(mockActivity)
+        assertNull(plugin.tagReader)
     }
 
     @Test
@@ -213,6 +280,45 @@ class NfcManagerPluginTest {
             mockResult,
         )
         verify(mockResult).notImplemented()
+    }
+
+    private inner class DiscoveryChannel {
+        val name = "dev.huynh/nfc_manager_android/discovery"
+        val messenger = mock<BinaryMessenger>()
+        private val adapter = mock<NfcAdapter>()
+        private var handler: BinaryMessenger.BinaryMessageHandler? = null
+
+        init {
+            whenever(messenger.setMessageHandler(eq(name), anyOrNull())).thenAnswer {
+                handler = it.getArgument(1)
+                null
+            }
+            val context = mock<Context> { on { packageManager } doReturn mock<PackageManager>() }
+            val binding =
+                mock<FlutterPlugin.FlutterPluginBinding> {
+                    on { applicationContext } doReturn context
+                    on { binaryMessenger } doReturn messenger
+                }
+            mockStatic(NfcAdapter::class.java).use {
+                it.`when`<NfcAdapter> { NfcAdapter.getDefaultAdapter(context) }.thenReturn(adapter)
+                plugin.onAttachedToEngine(binding)
+            }
+        }
+
+        fun attachActivity() {
+            val binding = mock<ActivityPluginBinding>()
+            whenever(binding.activity).thenReturn(mock())
+            plugin.onAttachedToActivity(binding)
+        }
+
+        fun call(method: String): ByteBuffer? {
+            val codec = StandardMethodCodec.INSTANCE
+            var reply: ByteBuffer? = null
+            handler?.onMessage(codec.encodeMethodCall(MethodCall(method, null)).apply { flip() }) {
+                reply = it?.apply { flip() }
+            }
+            return reply
+        }
     }
 
     private fun setChannels(

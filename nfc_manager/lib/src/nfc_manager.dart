@@ -36,6 +36,10 @@ class NfcManager {
   /// Discovery starts when the stream is listened to. Cancel the subscription
   /// to stop discovery. [timeout] limits communication with a discovered tag,
   /// not the time spent waiting for a tag.
+  ///
+  /// On Android, the stream ends when the activity detaches, for example when
+  /// it is destroyed. Listen again to resume discovery.
+  ///
   /// See [NfcManagerPlatform.startDiscovery] for stream errors.
   Stream<String> startDiscovery({Duration? timeout}) =>
       _platform.startDiscovery(timeout: timeout);

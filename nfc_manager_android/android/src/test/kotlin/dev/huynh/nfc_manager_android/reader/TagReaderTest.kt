@@ -673,6 +673,50 @@ class TagReaderTest {
         Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
     }
 
+    @Test
+    fun `onCancel does not end the stream that Dart cancelled`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+
+        tagReader.onCancel(null)
+
+        verify(mockEventSink, never()).endOfStream()
+    }
+
+    @Test
+    fun `dispose during discovery ends the stream and stops discovery`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+        tagReader.isoDep = mockIsoDep
+
+        tagReader.dispose()
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockNfcAdapter).disableReaderMode(mockActivity)
+        verify(mockIsoDep).close()
+        assertNull(tagReader.eventSink)
+        assertNull(tagReader.isoDep)
+    }
+
+    @Test
+    fun `dispose ends the stream only once`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+
+        tagReader.dispose()
+        tagReader.dispose()
+
+        verify(mockEventSink, times(1)).endOfStream()
+    }
+
+    @Test
+    fun `dispose without discovery has no stream to end`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+        tagReader.onCancel(null)
+
+        tagReader.dispose()
+
+        verifyNoInteractions(mockEventSink)
+    }
+
     private fun sendCommand(command: ByteArray): ByteArray {
         val result = CompletableFuture<Result<ByteArray>>()
         tagReader.sendCommand(
