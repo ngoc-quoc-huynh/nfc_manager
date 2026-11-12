@@ -11,7 +11,7 @@ your app when you do.
 
 ## Compatibility
 
-Libraries support Flutter 3.35 / Dart 3.9 and later. Android builds require
+Libraries support Flutter 3.44 / Dart 3.12 and later. Android builds require
 JDK 17 or later; the plugin targets Java 17 bytecode. Development uses JDK 21.
 
 CI analyzes and tests all libraries on the minimum and development Flutter
