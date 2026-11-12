@@ -12,6 +12,18 @@ sealed class NfcException(
 ) : Exception(message)
 
 /**
+ * Exception thrown when the arguments received from the Flutter side are missing or have the
+ * wrong type.
+ *
+ * The message is fixed and never echoes the received value or its type.
+ */
+class InvalidArgumentsException :
+    NfcException(
+        "INVALID_ARGUMENTS",
+        "The arguments are missing or have the wrong type.",
+    )
+
+/**
  * Exception thrown when the APDU command is invalid because it must be at
  * least 4 bytes long.
  */
