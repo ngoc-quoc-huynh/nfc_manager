@@ -58,10 +58,14 @@ internal data class CommandApdu(
         /**
          * Creates a [CommandApdu] from a byte array.
          *
+         * Only short APDUs (ISO/IEC 7816-4) are supported: Lc and Le are single bytes.
+         * Extended-length APDUs, whose Lc and Le fields span multiple bytes, are rejected.
+         *
          * @param command the byte array representing the APDU command.
          * @return the [CommandApdu] object.
          * @throws InvalidApduCommandException if the command is invalid.
-         * @throws InvalidLcDataLengthException if the Lc data length is invalid.
+         * @throws InvalidLcDataLengthException if the Lc data length is invalid, which
+         *   includes extended-length commands.
          */
         fun fromByteArray(command: ByteArray): CommandApdu {
             if (command.size < 4) {
