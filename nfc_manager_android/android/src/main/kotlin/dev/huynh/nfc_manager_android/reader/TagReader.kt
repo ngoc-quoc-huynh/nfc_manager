@@ -1,10 +1,17 @@
-package dev.huynh.nfc_manager_android
+package dev.huynh.nfc_manager_android.reader
 
 import android.app.Activity
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import androidx.annotation.VisibleForTesting
+import dev.huynh.nfc_manager_android.InvalidApduCommandException
+import dev.huynh.nfc_manager_android.InvalidArgumentsException
+import dev.huynh.nfc_manager_android.IsoDepNotSupportedException
+import dev.huynh.nfc_manager_android.NfcException
+import dev.huynh.nfc_manager_android.NfcNotSupportedException
+import dev.huynh.nfc_manager_android.TagConnectionException
+import dev.huynh.nfc_manager_android.UnexpectedNfcException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.utils.error
 import dev.huynh.nfc_manager_android.utils.toHexString

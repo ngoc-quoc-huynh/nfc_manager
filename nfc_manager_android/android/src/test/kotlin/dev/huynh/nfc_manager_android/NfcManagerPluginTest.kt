@@ -1,11 +1,10 @@
+package dev.huynh.nfc_manager_android
+
 import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
-import dev.huynh.nfc_manager_android.InvalidApduCommandException
-import dev.huynh.nfc_manager_android.NfcManagerPlugin
-import dev.huynh.nfc_manager_android.TagConnectionException
-import dev.huynh.nfc_manager_android.TagReader
+import dev.huynh.nfc_manager_android.reader.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationConfig

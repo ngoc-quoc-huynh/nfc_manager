@@ -9,7 +9,6 @@ import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.IsoDepNotSupportedException
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
-import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.AfterEach
