@@ -151,6 +151,15 @@ void main() {
       );
     });
 
+    test('hash code includes the exception type and message.', () {
+      const exception = NfcNotSupportedException();
+
+      expect(
+        exception.hashCode,
+        Object.hash(exception.runtimeType, exception.message),
+      );
+    });
+
     test(
       'includes the exception type and message in toString.',
       () => expect(
