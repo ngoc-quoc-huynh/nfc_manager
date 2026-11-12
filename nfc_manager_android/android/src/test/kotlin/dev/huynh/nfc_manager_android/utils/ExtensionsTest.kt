@@ -1,8 +1,6 @@
-package dev.huynh.nfc_manager_android
+package dev.huynh.nfc_manager_android.utils
 
-import dev.huynh.nfc_manager_android.utils.error
-import dev.huynh.nfc_manager_android.utils.toHexString
-import dev.huynh.nfc_manager_android.utils.toUnsignedInt
+import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
