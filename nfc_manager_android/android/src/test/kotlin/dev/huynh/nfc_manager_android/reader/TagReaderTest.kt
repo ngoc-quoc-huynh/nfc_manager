@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.kotlin.any
@@ -278,6 +279,22 @@ class TagReaderTest {
         verify(mockEventSink).error("NFC_ERROR", "Unexpected NFC reader error.", null)
         verifyNoMoreInteractions(mockEventSink)
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
+        assertNull(tagReader.eventSink)
+    }
+
+    @Test
+    fun `onListen emits NFC_ERROR once when enabling and releasing reader mode both fail`() {
+        doThrow(UnsupportedOperationException())
+            .whenever(mockNfcAdapter)
+            .enableReaderMode(any(), any(), any(), isNull())
+        doThrow(UnsupportedOperationException())
+            .whenever(mockNfcAdapter)
+            .disableReaderMode(mockActivity)
+
+        assertDoesNotThrow { tagReader.onListen(mapOf("timeout" to null), mockEventSink) }
+
+        verify(mockEventSink, times(1)).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verifyNoMoreInteractions(mockEventSink)
         assertNull(tagReader.eventSink)
     }
 
@@ -695,6 +712,20 @@ class TagReaderTest {
         verify(mockIsoDep).close()
         assertNull(tagReader.eventSink)
         assertNull(tagReader.isoDep)
+    }
+
+    @Test
+    fun `dispose ends the stream when releasing reader mode fails on a destroyed activity`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+        doThrow(IllegalStateException("activity is already destroyed"))
+            .whenever(mockNfcAdapter)
+            .disableReaderMode(mockActivity)
+
+        assertDoesNotThrow { tagReader.dispose() }
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        assertNull(tagReader.eventSink)
     }
 
     @Test

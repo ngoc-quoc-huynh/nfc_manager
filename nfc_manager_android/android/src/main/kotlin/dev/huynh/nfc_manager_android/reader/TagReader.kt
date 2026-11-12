@@ -246,7 +246,16 @@ class TagReader(
 
         // Closing from this thread also unblocks a transceive in progress on the worker.
         activeIsoDep?.let(::closeQuietly)
-        if (wasListening) nfcAdapter?.disableReaderMode(activity)
+        if (wasListening) releaseReaderMode()
+    }
+
+    private fun releaseReaderMode() {
+        try {
+            nfcAdapter?.disableReaderMode(activity)
+        } catch (_: RuntimeException) {
+            // Throws without the NFC feature or for a destroyed activity. Android already
+            // releases reader mode when the activity pauses and drops it when it is destroyed.
+        }
     }
 
     private fun isCurrentSession(listenSession: Long): Boolean =
