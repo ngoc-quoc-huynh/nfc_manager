@@ -18,16 +18,19 @@ import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
 import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
@@ -217,21 +220,57 @@ class TagReaderTest {
     }
 
     @Test
-    fun `onListen rejects malformed arguments without enabling reader mode`() {
-        assertThrows<IllegalArgumentException> {
-            tagReader.onListen("invalid", mockEventSink)
-        }
+    fun `onListen emits INVALID_ARGUMENTS for malformed arguments without enabling reader mode`() {
+        tagReader.onListen("invalid", mockEventSink)
 
+        verifyInvalidArgumentsEmitted()
         verifyNoInteractions(mockNfcAdapter)
     }
 
     @Test
-    fun `onListen rejects a non-positive timeout without enabling reader mode`() {
-        assertThrows<IllegalArgumentException> {
-            tagReader.onListen(mapOf("timeout" to 0), mockEventSink)
-        }
+    fun `onListen emits INVALID_ARGUMENTS for a non-integer timeout without enabling reader mode`() {
+        tagReader.onListen(mapOf("timeout" to "100"), mockEventSink)
 
+        verifyInvalidArgumentsEmitted()
         verifyNoInteractions(mockNfcAdapter)
+    }
+
+    @Test
+    fun `onListen emits INVALID_ARGUMENTS for a non-positive timeout without enabling reader mode`() {
+        tagReader.onListen(mapOf("timeout" to 0), mockEventSink)
+
+        verifyInvalidArgumentsEmitted()
+        verifyNoInteractions(mockNfcAdapter)
+    }
+
+    @Test
+    fun `onListen emits NFC_ERROR and releases the session when enableReaderMode fails`() {
+        doThrow(IllegalStateException("raw native detail"))
+            .whenever(mockNfcAdapter)
+            .enableReaderMode(any(), any(), any(), isNull())
+
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+
+        verify(mockEventSink).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockNfcAdapter).disableReaderMode(mockActivity)
+        assertNull(tagReader.eventSink)
+    }
+
+    @Test
+    fun `onListen emits NFC_ERROR once when enabling and releasing reader mode both fail`() {
+        doThrow(UnsupportedOperationException())
+            .whenever(mockNfcAdapter)
+            .enableReaderMode(any(), any(), any(), isNull())
+        doThrow(UnsupportedOperationException())
+            .whenever(mockNfcAdapter)
+            .disableReaderMode(mockActivity)
+
+        assertDoesNotThrow { tagReader.onListen(mapOf("timeout" to null), mockEventSink) }
+
+        verify(mockEventSink, times(1)).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verifyNoMoreInteractions(mockEventSink)
+        assertNull(tagReader.eventSink)
     }
 
     @Test
@@ -603,6 +642,15 @@ class TagReaderTest {
             onError = { result.complete(Result.failure(it)) },
         )
         return result.get(2, TimeUnit.SECONDS).getOrThrow()
+    }
+
+    private fun verifyInvalidArgumentsEmitted() {
+        verify(mockEventSink).error(
+            "INVALID_ARGUMENTS",
+            "The arguments are missing or have the wrong type.",
+            null,
+        )
+        verifyNoMoreInteractions(mockEventSink)
     }
 
     private fun discoverTag(tag: Tag) {

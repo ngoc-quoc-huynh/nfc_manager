@@ -98,6 +98,46 @@ void main() {
         ]),
       );
     });
+
+    test('preserves codes and messages for native reader errors.', () async {
+      const invalidArgumentsMessage =
+          'The arguments are missing or have the wrong type.';
+      const nfcErrorMessage = 'Unexpected NFC reader error.';
+      nfcManager.discoveryEventChannel.setMockStream(
+        (events) => events
+          ..error(
+            code: 'INVALID_ARGUMENTS',
+            message: invalidArgumentsMessage,
+          )
+          ..error(code: 'NFC_ERROR', message: nfcErrorMessage)
+          ..endOfStream(),
+      );
+
+      await expectLater(
+        nfcManager.startDiscovery(),
+        emitsInOrder([
+          emitsError(
+            isA<NfcUnknownException>()
+                .having(
+                  (error) => error.code,
+                  'code',
+                  'INVALID_ARGUMENTS',
+                )
+                .having(
+                  (error) => error.message,
+                  'message',
+                  invalidArgumentsMessage,
+                ),
+          ),
+          emitsError(
+            isA<NfcUnknownException>()
+                .having((error) => error.code, 'code', 'NFC_ERROR')
+                .having((error) => error.message, 'message', nfcErrorMessage),
+          ),
+          emitsDone,
+        ]),
+      );
+    });
   });
 
   group('sendCommand', () {

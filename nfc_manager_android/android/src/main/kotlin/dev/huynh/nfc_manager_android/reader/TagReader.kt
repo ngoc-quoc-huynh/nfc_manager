@@ -92,7 +92,13 @@ class TagReader(
         arguments: Any?,
         events: EventSink?,
     ) {
-        val requestedTimeout = parseTimeout(arguments)
+        val requestedTimeout =
+            try {
+                parseTimeout(arguments)
+            } catch (exception: InvalidArgumentsException) {
+                events?.error(exception)
+                return
+            }
         val adapter = nfcAdapter
         if (adapter == null) {
             events?.error(NfcNotSupportedException())
@@ -119,9 +125,10 @@ class TagReader(
                     NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
                 null,
             )
-        } catch (exception: RuntimeException) {
+        } catch (_: Exception) {
+            // cancelSession clears eventSink, so report through the sink this call received.
             cancelSession(listenSession)
-            throw exception
+            events?.error(UnexpectedNfcException())
         }
     }
 
@@ -216,7 +223,16 @@ class TagReader(
 
         // Closing from this thread also unblocks a transceive in progress on the worker.
         activeIsoDep?.let(::closeQuietly)
-        if (wasListening) nfcAdapter?.disableReaderMode(activity)
+        if (wasListening) releaseReaderMode()
+    }
+
+    private fun releaseReaderMode() {
+        try {
+            nfcAdapter?.disableReaderMode(activity)
+        } catch (_: RuntimeException) {
+            // Throws without the NFC feature or for a destroyed activity. Android already
+            // releases reader mode when the activity pauses and drops it when it is destroyed.
+        }
     }
 
     private fun isCurrentSession(listenSession: Long): Boolean =
@@ -244,18 +260,22 @@ class TagReader(
         }
     }
 
+    /**
+     * Reads the optional positive `timeout` in milliseconds from the discovery arguments.
+     *
+     * @throws InvalidArgumentsException if the arguments are not a map or the timeout is not a
+     * positive integer.
+     */
     private fun parseTimeout(arguments: Any?): Int? {
         val options =
             when (arguments) {
                 null -> emptyMap<Any?, Any?>()
                 is Map<*, *> -> arguments
-                else -> throw IllegalArgumentException("Discovery arguments must be a map.")
+                else -> throw InvalidArgumentsException()
             }
         val value = options["timeout"] ?: return null
-        val requestedTimeout =
-            value as? Int
-                ?: throw IllegalArgumentException("Timeout must be a positive integer in milliseconds.")
-        require(requestedTimeout > 0) { "Timeout must be a positive integer in milliseconds." }
+        val requestedTimeout = value as? Int ?: throw InvalidArgumentsException()
+        if (requestedTimeout <= 0) throw InvalidArgumentsException()
         return requestedTimeout
     }
 
