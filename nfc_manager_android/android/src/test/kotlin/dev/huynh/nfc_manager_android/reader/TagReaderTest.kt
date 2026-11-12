@@ -237,6 +237,7 @@ class TagReaderTest {
         tagReader.onListen(null, mockEventSink)
 
         verify(mockEventSink).error(NfcNotSupportedException())
+        verify(mockEventSink).endOfStream()
     }
 
     @Test
@@ -289,6 +290,7 @@ class TagReaderTest {
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
         verify(mockEventSink).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
         assertNull(tagReader.eventSink)
@@ -306,6 +308,7 @@ class TagReaderTest {
         assertDoesNotThrow { tagReader.onListen(mapOf("timeout" to null), mockEventSink) }
 
         verify(mockEventSink, times(1)).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         assertNull(tagReader.eventSink)
     }
@@ -500,6 +503,30 @@ class TagReaderTest {
         queuedWorkFinished.get(2, TimeUnit.SECONDS)
 
         verify(mockIsoDep, times(0)).connect()
+    }
+
+    @Test
+    fun `dispose drops a discovery event already queued for the main thread`() {
+        val mainThreadCallbackQueued = CountDownLatch(1)
+        val pendingMainThreadCallback = AtomicReference<Runnable?>()
+        whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
+        whenever(mockActivity.runOnUiThread(any())).thenAnswer { invocation ->
+            pendingMainThreadCallback.set(invocation.getArgument<Runnable>(0))
+            mainThreadCallbackQueued.countDown()
+        }
+
+        Mockito.mockStatic(IsoDep::class.java).use { mockStaticIsoDep ->
+            mockStaticIsoDep.`when`<IsoDep> { IsoDep.get(mockTag) }.thenReturn(mockIsoDep)
+            tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+            discoverTag(mockTag)
+            assertTrue(mainThreadCallbackQueued.await(2, TimeUnit.SECONDS))
+        }
+        tagReader.dispose()
+        pendingMainThreadCallback.get()!!.run()
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockIsoDep).connect()
     }
 
     @Test
@@ -702,6 +729,50 @@ class TagReaderTest {
         Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
     }
 
+    @Test
+    fun `onCancel does not end the stream that Dart cancelled`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+
+        tagReader.onCancel(null)
+
+        verify(mockEventSink, never()).endOfStream()
+    }
+
+    @Test
+    fun `dispose during discovery ends the stream and stops discovery`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+        tagReader.isoDep = mockIsoDep
+
+        tagReader.dispose()
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockNfcAdapter).disableReaderMode(mockActivity)
+        verify(mockIsoDep).close()
+        assertNull(tagReader.eventSink)
+        assertNull(tagReader.isoDep)
+    }
+
+    @Test
+    fun `dispose ends the stream only once`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+
+        tagReader.dispose()
+        tagReader.dispose()
+
+        verify(mockEventSink, times(1)).endOfStream()
+    }
+
+    @Test
+    fun `dispose without discovery has no stream to end`() {
+        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+        tagReader.onCancel(null)
+
+        tagReader.dispose()
+
+        verifyNoInteractions(mockEventSink)
+    }
+
     private fun sendCommand(command: ByteArray): ByteArray {
         val result = CompletableFuture<Result<ByteArray>>()
         tagReader.sendCommand(
@@ -718,6 +789,7 @@ class TagReaderTest {
             "The arguments are missing or have the wrong type.",
             null,
         )
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
     }
 

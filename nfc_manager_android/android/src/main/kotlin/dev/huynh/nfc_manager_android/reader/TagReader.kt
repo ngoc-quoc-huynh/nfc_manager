@@ -120,11 +120,13 @@ class TagReader(
                 parseTimeout(arguments)
             } catch (exception: InvalidArgumentsException) {
                 events?.error(exception)
+                events?.endOfStream()
                 return
             }
         val adapter = nfcAdapter
         if (adapter == null) {
             events?.error(NfcNotSupportedException())
+            events?.endOfStream()
             return
         }
 
@@ -152,6 +154,7 @@ class TagReader(
             // cancelSession clears eventSink, so report through the sink this call received.
             cancelSession(listenSession)
             events?.error(UnexpectedNfcException())
+            events?.endOfStream()
         }
     }
 
@@ -159,10 +162,17 @@ class TagReader(
         cancelSession()
     }
 
-    /** Releases the reader and worker when the plugin detaches from its Activity or engine. */
+    /**
+     * Releases the reader and worker when the plugin detaches from its Activity or engine.
+     *
+     * An active discovery stream is ended so the Dart listener is not left waiting for tags.
+     * Call on the main thread.
+     */
     fun dispose() {
         ioExecutor.shutdown()
+        val activeSink = synchronized(stateLock) { eventSink }
         cancelSession()
+        activeSink?.endOfStream()
     }
 
     private fun handleTagFound(

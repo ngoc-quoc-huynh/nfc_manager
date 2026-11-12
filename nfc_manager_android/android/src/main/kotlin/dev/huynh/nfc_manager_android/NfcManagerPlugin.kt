@@ -4,6 +4,7 @@ import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
+import dev.huynh.nfc_manager_android.reader.DiscoveryStreamHandler
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -78,7 +79,10 @@ class NfcManagerPlugin :
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/discovery",
-            )
+            ).apply {
+                // Keep the channel registered so Flutter can cancel after a reader ends its stream.
+                setStreamHandler(DiscoveryStreamHandler { tagReader })
+            }
         val hostCardEmulation = HostCardEmulation()
         hostCardEmulationStreamHandler = hostCardEmulation
         hostCardEmulationEventChannel =
@@ -104,7 +108,6 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 activity = binding.activity,
             )
-        discoveryEventChannel.setStreamHandler(tagReader)
     }
 
     override fun onDetachedFromActivityForConfigChanges() = onDetachedFromActivity()
@@ -112,7 +115,6 @@ class NfcManagerPlugin :
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) = onAttachedToActivity(binding)
 
     override fun onDetachedFromActivity() {
-        discoveryEventChannel.setStreamHandler(null)
         tagReader?.dispose()
         tagReader = null
     }

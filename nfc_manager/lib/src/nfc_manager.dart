@@ -34,8 +34,14 @@ class NfcManager {
   /// Discovers ISO-DEP tags and returns a stream of their identifiers.
   ///
   /// Discovery starts when the stream is listened to. Cancel the subscription
-  /// to stop discovery. [timeout] limits communication with a discovered tag,
+  /// to stop discovery. Use one discovery stream at a time. Before starting
+  /// another, let the current stream finish or cancel its subscription.
+  /// [timeout] limits communication with a discovered tag,
   /// not the time spent waiting for a tag.
+  ///
+  /// On Android, the stream ends when the activity detaches. After it
+  /// reattaches, call [startDiscovery] again and listen to the new stream.
+  ///
   /// See [NfcManagerPlatform.startDiscovery] for stream errors.
   Stream<String> startDiscovery({Duration? timeout}) =>
       _platform.startDiscovery(timeout: timeout);
