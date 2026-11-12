@@ -64,7 +64,7 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   ///
   /// See [ApduResponse] for the supported response format. Reports
   /// [TagConnectionException] if there is no connection or the tag is lost.
-  Future<ApduResponse> sendCommand(Command command) =>
+  Future<ApduResponse> sendCommand(ApduCommand command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.

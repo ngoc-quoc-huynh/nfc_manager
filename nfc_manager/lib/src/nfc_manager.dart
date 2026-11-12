@@ -66,7 +66,7 @@ class NfcManager {
   ///
   /// Throws [TagConnectionException] if there is no connection or the tag is
   /// lost.
-  Future<ApduResponse> sendCommand(Command command) =>
+  Future<ApduResponse> sendCommand(ApduCommand command) =>
       _platform.sendCommand(command);
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.

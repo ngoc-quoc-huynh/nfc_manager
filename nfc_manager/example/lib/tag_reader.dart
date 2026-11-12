@@ -72,7 +72,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
 
     try {
       final response = await NfcManager().sendCommand(
-        Command.selectAid(_aid.toUint8List(isHex: true)),
+        ApduCommand.selectAid(_aid.toUint8List(isHex: true)),
       );
       message = 'Select AID response: $response';
     } on NfcException catch (e) {
@@ -90,7 +90,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     String message;
     try {
       final response = await NfcManager().sendCommand(
-        Command.verifyPin(_pin.toHexString().toUint8List()),
+        ApduCommand.verifyPin(_pin.toHexString().toUint8List()),
       );
       message = 'Verify PIN response: $response';
     } on NfcException catch (e) {

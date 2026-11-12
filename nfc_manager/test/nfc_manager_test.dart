@@ -11,7 +11,7 @@ void main() {
   final nfcManager = NfcManager();
   final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
   final pin = Uint8List.fromList([1, 2, 3, 4]);
-  final command = Command.selectAid(aid);
+  final command = ApduCommand.selectAid(aid);
   late MockNfcManagerPlatform mockPlatform;
 
   setUpAll(() => registerFallbackValue(Uint8List(0)));
