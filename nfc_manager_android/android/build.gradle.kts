@@ -49,7 +49,7 @@ abstract class MockitoAgentArgumentProvider : CommandLineArgumentProvider {
 android {
     namespace = "dev.huynh.nfc_manager_android"
 
-    compileSdk = 34
+    compileSdk = flutter.compileSdkVersion
 
     compileOptions {
         // Target Java 17 so consuming apps do not need JDK 21.

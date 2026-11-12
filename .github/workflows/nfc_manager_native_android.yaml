@@ -4,7 +4,12 @@ on:
   push:
     branches: [main]
     paths: &ci_paths
+      - '.github/workflows/nfc_manager_native_android.yaml'
+      - 'mise.toml'
+      - 'mise.lock'
       - 'nfc_manager_android/android/**'
+      - 'nfc_manager_android/example/android/**'
+      - 'nfc_manager/example/android/**'
   pull_request:
     paths: *ci_paths
 
