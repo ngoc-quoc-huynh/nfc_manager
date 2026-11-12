@@ -10,7 +10,7 @@
   },
   "packageRules": [
     {
-      "description": "Preserve Android build fallbacks for Flutter 3.35 compatibility",
+      "description": "Keep Android build fallbacks at the Flutter 3.44 floor; host apps choose their own AGP and KGP",
       "matchManagers": ["gradle"],
       "matchFileNames": ["nfc_manager_android/android/build.gradle.kts"],
       "matchPackageNames": [
