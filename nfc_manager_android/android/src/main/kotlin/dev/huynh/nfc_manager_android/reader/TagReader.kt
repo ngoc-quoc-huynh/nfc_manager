@@ -195,14 +195,19 @@ class TagReader(
             requestedTimeout?.let { tagIsoDep.timeout = it }
             val tagId = tag.id.toHexString()
 
-            val previous =
+            // Decide under the lock, but close outside it: close() is blocking I/O.
+            val (accepted, previous) =
                 synchronized(stateLock) {
-                    if (!isCurrentSession(listenSession)) {
-                        closeQuietly(tagIsoDep)
-                        return
+                    if (isCurrentSession(listenSession)) {
+                        true to isoDep.also { isoDep = tagIsoDep }
+                    } else {
+                        false to null
                     }
-                    isoDep.also { isoDep = tagIsoDep }
                 }
+            if (!accepted) {
+                closeQuietly(tagIsoDep)
+                return
+            }
             previous?.let(::closeQuietly)
             emitSuccess(listenSession, tagId)
         } catch (exception: Exception) {
