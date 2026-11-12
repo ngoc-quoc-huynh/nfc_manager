@@ -8,7 +8,7 @@ plugin, as well as the plugin itself, to ensure they are supporting the same int
 # Usage
 
 To implement a new platform-specific implementation of `nfc_manager`, extend
-[`NfcManagerPlatform`](lib/src/platform.dart) with an implementation that performs the platform-specific
+[`NfcManagerPlatform`](lib/src/nfc_manager_platform.dart) with an implementation that performs the platform-specific
 behavior, and when you register your plugin, set the default
 `NfcManagerPlatform` by calling
 `NfcManagerPlatform.instance = NfcManagerExamplePlatform()`.
