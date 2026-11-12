@@ -61,6 +61,11 @@ android {
         minSdk = 24
     }
 
+    lint {
+        warningsAsErrors = true
+        disable += setOf("GradleDependency", "AndroidGradlePluginVersion")
+    }
+
     testOptions {
         unitTests.all {
             it.useJUnitPlatform()
