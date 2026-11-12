@@ -754,6 +754,26 @@ class TagReaderTest {
     }
 
     @Test
+    fun `dispose clears active state when mocked reader mode release fails`() {
+        tagReader.onListen(mapOf("timeout" to 3000), mockEventSink)
+        tagReader.isoDep = mockIsoDep
+        doThrow(IllegalStateException("activity is already destroyed"))
+            .whenever(mockNfcAdapter)
+            .disableReaderMode(mockActivity)
+
+        assertDoesNotThrow { tagReader.dispose() }
+        assertDoesNotThrow { tagReader.dispose() }
+
+        verify(mockEventSink).endOfStream()
+        verifyNoMoreInteractions(mockEventSink)
+        verify(mockNfcAdapter, times(1)).disableReaderMode(mockActivity)
+        verify(mockIsoDep, times(1)).close()
+        assertNull(tagReader.eventSink)
+        assertNull(tagReader.isoDep)
+        assertNull(tagReader.timeout)
+    }
+
+    @Test
     fun `dispose ends the stream only once`() {
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
