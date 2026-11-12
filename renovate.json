@@ -27,5 +27,5 @@
   "lockFileMaintenance": {
     "enabled": true
   },
-  "rebaseWhen": "never"
+  "rebaseWhen": "conflicted"
 }
