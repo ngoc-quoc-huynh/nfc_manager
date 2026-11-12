@@ -14,6 +14,41 @@ body:
     validations:
       required: true
 
+  - type: input
+    attributes:
+      label: Flutter version
+      description: Provide the first line of `flutter --version`.
+      placeholder: Flutter 3.x.x • channel stable • …
+    validations:
+      required: true
+
+  - type: input
+    attributes:
+      label: Android version
+      description: >-
+        If a device is involved, specify its Android version. Leave blank if no device is involved.
+      placeholder: Android 15 (API 35)
+
+  - type: input
+    attributes:
+      label: Device
+      description: >-
+        If a device is involved, specify its manufacturer and model. Leave blank if no device is involved.
+      placeholder: Google Pixel 8
+
+  - type: dropdown
+    attributes:
+      label: Mode
+      description: >-
+        Select whether the bug occurs when reading tags, emulating a card, or if the mode is not applicable or unknown.
+      options:
+        - Reader
+        - Host card emulation (HCE)
+        - Both
+        - Not applicable / unknown
+    validations:
+      required: true
+
   - type: textarea
     attributes:
       label: Description
@@ -44,11 +79,13 @@ body:
   - type: textarea
     attributes:
       label: Screenshots
-      description: Provide links to screenshots or images that can help illustrate the issue (if applicable).
+      description: >-
+        Provide links to screenshots or images that can help illustrate the issue (if applicable). Redact sensitive card identifiers, APDU payloads, and credentials before sharing screenshots or logs.
       placeholder: Link to screenshots or images …
 
   - type: textarea
     attributes:
       label: Additional information
-      description: Provide any other information that could be useful in diagnosing the issue.
-      placeholder: Any other relevant details?
+      description: >-
+        Provide any other useful information, such as the tag technology or external reader model. Redact sensitive card identifiers, APDU payloads, and credentials before sharing logs.
+      placeholder: Tag technology, external reader model, or other relevant details …
