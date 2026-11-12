@@ -7,6 +7,7 @@ on:
       - 'nfc_manager_android/**'
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_android.yaml'
+      - 'mise.toml'
       - 'mise.lock'
   pull_request:
     paths: *ci_paths
@@ -72,3 +73,33 @@ jobs:
           dart format --set-exit-if-changed .
           flutter analyze --no-pub
           dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
+
+  legacy:
+    name: Minimum Flutter analysis
+    runs-on: ubuntu-latest
+    env:
+      # Minimum supported Flutter version (see pubspec.yaml).
+      MISE_FLUTTER_VERSION: '3.44.0'
+
+    defaults:
+      run:
+        working-directory: ./nfc_manager_android
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.5"
+          install: false
+          install_args: "flutter"
+
+      - name: Log Flutter version
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter --version
+
+      - name: Install dependencies
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter pub get --no-example
+      # Compile compatibility only: the repo lint set needs a newer Dart.
+      - name: Analyze code
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib test
