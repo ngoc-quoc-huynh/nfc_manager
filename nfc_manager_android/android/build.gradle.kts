@@ -69,11 +69,9 @@ android {
     testOptions {
         unitTests.all {
             it.useJUnitPlatform()
-            it.outputs.upToDateWhen { false }
 
             it.testLogging {
-                events("passed", "skipped", "failed", "standardOut", "standardError")
-                showStandardStreams = true
+                events("skipped", "failed")
             }
         }
     }
