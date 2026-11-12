@@ -322,8 +322,8 @@ class TagReader(
 
     private fun emitSuccess(
         listenSession: Long,
-        data: Any,
-    ) = emit(listenSession) { it.success(data) }
+        tagId: String,
+    ) = emit(listenSession) { it.success(tagId) }
 
     private fun emitError(
         listenSession: Long,
