@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:nfc_manager_platform_interface/src/exceptions.dart';
-import 'package:nfc_manager_platform_interface/src/models/command.dart';
+import 'package:nfc_manager_platform_interface/src/models/apdu_command.dart';
 import 'package:nfc_manager_platform_interface/src/models/host_card_emulation_status.dart';
 import 'package:nfc_manager_platform_interface/src/models/response.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
@@ -62,7 +62,7 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   ///
   /// See [ApduResponse] for the supported response format. Reports
   /// [TagConnectionException] if there is no connection or the tag is lost.
-  Future<ApduResponse> sendCommand(Command command) =>
+  Future<ApduResponse> sendCommand(ApduCommand command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.

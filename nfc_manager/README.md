@@ -105,7 +105,7 @@ This setup ensures that your Android application is prepared to handle NFC card 
 - **Send an APDU Command**: Send a command to an NFC tag using a specific Application Identifier (AID).
   ```dart
   const aid = 'F000000001';
-  final command = SelectAidCommand(aid.toUint8List(isHex: true));
+  final command = ApduCommand.selectAid(aid.toUint8List(isHex: true));
   final response = await NfcManager().sendCommand(command);
   ```
 

@@ -115,7 +115,7 @@ void main() {
 
         expect(
           await nfcManager.sendCommand(
-            Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+            ApduCommand.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
           ),
           ApduResponse.ok,
         );
@@ -126,7 +126,7 @@ void main() {
       methodChannel.setMockResponse(null);
 
       await expectLater(
-        nfcManager.sendCommand(Command(cla: 0, ins: 0, p1: 0, p2: 0)),
+        nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
         throwsA(isA<TagConnectionException>()),
       );
     });
@@ -140,7 +140,7 @@ void main() {
 
         await expectLater(
           nfcManager.sendCommand(
-            Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
+            ApduCommand.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
           ),
           throwsA(isA<TagConnectionException>()),
         );

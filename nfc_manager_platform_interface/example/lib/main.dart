@@ -32,7 +32,7 @@ final class NfcManagerExamplePlatform() extends NfcManagerPlatform {
       .handleError(_onStreamError, test: _isPlatformException);
 
   @override
-  Future<ApduResponse> sendCommand(Command command) async {
+  Future<ApduResponse> sendCommand(ApduCommand command) async {
     try {
       final response = await _methodChannel.invokeListMethod<int>(
         'sendCommand',

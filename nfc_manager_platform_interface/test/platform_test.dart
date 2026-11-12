@@ -15,7 +15,7 @@ void main() {
     expect(defaultPlatform.startDiscovery, throwsUnimplementedError);
     expect(
       () => defaultPlatform.sendCommand(
-        Command(cla: 0, ins: 0, p1: 0, p2: 0),
+        ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0),
       ),
       throwsUnimplementedError,
     );

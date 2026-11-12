@@ -3,17 +3,18 @@ import 'package:nfc_manager_platform_interface/src/emulation_input.dart';
 
 /// An immutable short Application Protocol Data Unit (APDU) command.
 ///
-/// Use [Command.selectAid] and [Command.verifyPin] for common commands, or the
-/// [Command] constructor for other header values or expected response lengths.
+/// Use [ApduCommand.selectAid] and [ApduCommand.verifyPin] for common
+/// commands, or the [ApduCommand] constructor for other header values or
+/// expected response lengths.
 @immutable
-final class Command {
+final class ApduCommand {
   /// Creates a command and copies its payload.
   ///
   /// Header bytes must be 0–255. [le], when provided, must be 0–255.
   /// If provided, [data] must contain 1–255 bytes. [lc] is derived
   /// from its length and is null when data is absent.
   /// Throws [RangeError] if these requirements are not met.
-  Command({
+  ApduCommand({
     required this.cla,
     required this.ins,
     required this.p1,
@@ -36,9 +37,9 @@ final class Command {
   /// [le]. The AID must contain 5–16 bytes. The payload is copied.
   ///
   /// Throws [RangeError] if the AID length is outside that range.
-  factory Command.selectAid(Uint8List aid) {
+  factory ApduCommand.selectAid(Uint8List aid) {
     checkAidLength(aid);
-    return Command(
+    return ApduCommand(
       cla: 0x00,
       ins: 0xA4,
       p1: 0x04,
@@ -55,9 +56,9 @@ final class Command {
   /// the target card. The payload is copied.
   ///
   /// Throws [RangeError] if the PIN length is outside that range.
-  factory Command.verifyPin(Uint8List pin) {
+  factory ApduCommand.verifyPin(Uint8List pin) {
     checkPinLength(pin);
-    return Command(cla: 0x00, ins: 0x20, p1: 0x00, p2: 0x00, data: pin);
+    return ApduCommand(cla: 0x00, ins: 0x20, p1: 0x00, p2: 0x00, data: pin);
   }
 
   /// The command class byte (CLA).
@@ -114,7 +115,7 @@ final class Command {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is Command &&
+      other is ApduCommand &&
           cla == other.cla &&
           ins == other.ins &&
           p1 == other.p1 &&
