@@ -14,6 +14,7 @@ import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
@@ -27,6 +28,7 @@ import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
@@ -192,6 +194,41 @@ class TagReaderTest {
         }
 
         verifyNoInteractions(mockIsoDep)
+    }
+
+    @Test
+    fun `sendCommand rejects a command longer than maxTransceiveLength and keeps the tag connected`() {
+        val oversizedCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)
+        val lengthReadThread = AtomicReference<String>()
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.maxTransceiveLength).thenAnswer {
+            lengthReadThread.set(Thread.currentThread().name)
+            command.size
+        }
+        // Android rejects an oversized command with an IOException, which looks like a lost tag.
+        whenever(mockIsoDep.transceive(oversizedCommand))
+            .thenThrow(IOException("Transceive length exceeds supported maximum"))
+        whenever(mockIsoDep.transceive(command)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+
+        assertThrows<InvalidApduCommandException> { sendCommand(oversizedCommand) }
+
+        assertEquals("nfc-tag-io", lengthReadThread.get())
+        verify(mockIsoDep, never()).transceive(oversizedCommand)
+        verify(mockIsoDep, never()).close()
+        assertSame(mockIsoDep, tagReader.isoDep)
+        assertContentEquals(byteArrayOf(0x90.toByte(), 0x00), sendCommand(command))
+    }
+
+    @Test
+    fun `sendCommand skips the length check when maxTransceiveLength is unknown`() {
+        // A 261-byte short APDU: Lc = FF, 255 data bytes, and Le.
+        val longCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0xFF.toByte()) + ByteArray(256)
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.maxTransceiveLength).thenReturn(0)
+        whenever(mockIsoDep.transceive(longCommand)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+
+        assertContentEquals(byteArrayOf(0x90.toByte(), 0x00), sendCommand(longCommand))
+        verify(mockIsoDep).transceive(longCommand)
     }
 
     @Test

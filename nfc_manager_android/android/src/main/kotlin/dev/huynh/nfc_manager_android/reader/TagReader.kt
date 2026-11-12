@@ -43,6 +43,9 @@ class TagReader(
     /**
      * Sends a command to the active tag and replies on the main thread.
      *
+     * A command exceeding Android's transceive limit is answered with [InvalidApduCommandException] and
+     * the tag stays connected.
+     *
      * @throws NfcException if the command is invalid or no tag is connected.
      */
     fun sendCommand(
@@ -58,33 +61,53 @@ class TagReader(
                 tag to session
             }
 
-        fun reply(block: () -> Unit) = activity.runOnUiThread(block)
-
         try {
             ioExecutor.execute {
-                if (!isActive(tag, commandSession)) {
-                    reply { onError(TagConnectionException()) }
-                    return@execute
-                }
-
-                try {
-                    val response = tag.transceive(command)
-                    reply { onSuccess(response) }
-                } catch (exception: Exception) {
-                    val connectionLost =
-                        exception is IOException ||
-                            exception is SecurityException ||
-                            !isActive(tag, commandSession)
-                    if (connectionLost) {
-                        discard(tag)
-                        reply { onError(TagConnectionException()) }
-                    } else {
-                        reply { onError(exception) }
-                    }
-                }
+                sendCommandOnWorker(tag, commandSession, command, onSuccess, onError)
             }
         } catch (_: RejectedExecutionException) {
             onError(TagConnectionException())
+        }
+    }
+
+    private fun sendCommandOnWorker(
+        tag: IsoDep,
+        commandSession: Long,
+        command: ByteArray,
+        onSuccess: (ByteArray) -> Unit,
+        onError: (Throwable) -> Unit,
+    ) {
+        if (!isActive(tag, commandSession)) {
+            activity.runOnUiThread { onError(TagConnectionException()) }
+            return
+        }
+
+        val response =
+            try {
+                // Android fails an oversized transceive with an IOException, which would
+                // drop the tag, so reject it here. A length of 0 is unknown; let the tag decide.
+                val maxLength = tag.maxTransceiveLength
+                if (maxLength > 0 && command.size > maxLength) null else tag.transceive(command)
+            } catch (exception: Exception) {
+                val connectionLost =
+                    exception is IOException ||
+                        exception is SecurityException ||
+                        !isActive(tag, commandSession)
+                val error =
+                    if (connectionLost) {
+                        discard(tag)
+                        TagConnectionException()
+                    } else {
+                        exception
+                    }
+                activity.runOnUiThread { onError(error) }
+                return
+            }
+
+        if (response == null) {
+            activity.runOnUiThread { onError(InvalidApduCommandException()) }
+        } else {
+            activity.runOnUiThread { onSuccess(response) }
         }
     }
 
