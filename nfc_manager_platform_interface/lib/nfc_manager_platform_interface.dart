@@ -7,3 +7,4 @@ export 'src/models/command.dart';
 export 'src/models/host_card_emulation_status.dart';
 export 'src/models/response.dart';
 export 'src/platform.dart';
+export 'src/validation.dart' show checkAidLength, checkPinLength;

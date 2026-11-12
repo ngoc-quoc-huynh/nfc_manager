@@ -69,6 +69,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.
   ///
+  /// The [aid] must contain 5 to 16 bytes and the [pin] must contain 1 to 255
+  /// bytes.
+  ///
   /// Emulation starts when the stream is listened to. Cancel the subscription
   /// to stop emulation. Use one active emulation subscription at a time.
   ///
