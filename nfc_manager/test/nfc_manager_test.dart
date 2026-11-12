@@ -46,6 +46,21 @@ void main() {
 
       expect(await nfcManager.isHceSupported(), isFalse);
     });
+
+    test('forwards platform errors.', () async {
+      final error = _platformError(
+        code: 'IS_HCE_SUPPORTED',
+        message: 'HCE support lookup failed.',
+      );
+      when(
+        mockPlatform.isHceSupported,
+      ).thenAnswer((_) async => throw error);
+
+      await expectLater(
+        nfcManager.isHceSupported(),
+        throwsA(same(error)),
+      );
+    });
   });
 
   group('isNfcSupported', () {
@@ -60,6 +75,21 @@ void main() {
 
       expect(await nfcManager.isNfcSupported(), isFalse);
     });
+
+    test('forwards platform errors.', () async {
+      final error = _platformError(
+        code: 'IS_NFC_SUPPORTED',
+        message: 'NFC support lookup failed.',
+      );
+      when(
+        mockPlatform.isNfcSupported,
+      ).thenAnswer((_) async => throw error);
+
+      await expectLater(
+        nfcManager.isNfcSupported(),
+        throwsA(same(error)),
+      );
+    });
   });
 
   group('isNfcEnabled', () {
@@ -73,6 +103,21 @@ void main() {
       when(mockPlatform.isNfcEnabled).thenAnswer((_) async => false);
 
       expect(await nfcManager.isNfcEnabled(), isFalse);
+    });
+
+    test('forwards platform errors.', () async {
+      final error = _platformError(
+        code: 'IS_NFC_ENABLED',
+        message: 'NFC enabled lookup failed.',
+      );
+      when(
+        mockPlatform.isNfcEnabled,
+      ).thenAnswer((_) async => throw error);
+
+      await expectLater(
+        nfcManager.isNfcEnabled(),
+        throwsA(same(error)),
+      );
     });
   });
 
@@ -127,13 +172,19 @@ void main() {
     });
 
     test('forwards platform stream errors.', () async {
+      final error = _platformError(
+        code: 'START_DISCOVERY',
+        message: 'Discovery failed.',
+      );
       when(
         mockPlatform.startDiscovery,
-      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
+      ).thenAnswer(
+        (_) => Stream.error(error),
+      );
 
       await expectLater(
         nfcManager.startDiscovery(),
-        emitsInOrder([emitsError(isA<NfcUnknownException>()), emitsDone]),
+        emitsInOrder([emitsError(same(error)), emitsDone]),
       );
     });
   });
@@ -148,14 +199,37 @@ void main() {
     });
 
     test('forwards platform command errors.', () async {
+      final error = _platformError(
+        code: 'SEND_COMMAND',
+        message: 'Command failed.',
+      );
       when(
         () => mockPlatform.sendCommand(command),
-      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+      ).thenAnswer((_) async => throw error);
 
       await expectLater(
         nfcManager.sendCommand(command),
-        throwsA(isA<NfcUnknownException>()),
+        throwsA(same(error)),
       );
+    });
+  });
+
+  group('default platform', () {
+    setUp(() => NfcManagerPlatform.instance = defaultPlatform);
+
+    test('throws an UnimplementedError for every method.', () {
+      final calls = <Object? Function()>[
+        nfcManager.isHceSupported,
+        nfcManager.isNfcSupported,
+        nfcManager.isNfcEnabled,
+        nfcManager.startDiscovery,
+        () => nfcManager.sendCommand(command),
+        () => nfcManager.startEmulation(aid: aid, pin: pin),
+      ];
+
+      for (final call in calls) {
+        expect(call, throwsUnimplementedError);
+      }
     });
   });
 
@@ -194,17 +268,28 @@ void main() {
     });
 
     test('forwards platform stream errors.', () async {
+      final error = _platformError(
+        code: 'START_EMULATION',
+        message: 'Emulation failed.',
+      );
       when(
         () => mockPlatform.startEmulation(aid: aid, pin: pin),
-      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
+      ).thenAnswer(
+        (_) => Stream.error(error),
+      );
 
       await expectLater(
         nfcManager.startEmulation(aid: aid, pin: pin),
-        emitsInOrder([emitsError(isA<NfcUnknownException>()), emitsDone]),
+        emitsInOrder([emitsError(same(error)), emitsDone]),
       );
     });
   });
 }
+
+NfcUnknownException _platformError({
+  required String code,
+  required String message,
+}) => NfcUnknownException(message, code: code);
 
 final class MockNfcManagerPlatform extends Mock
     with MockPlatformInterfaceMixin
