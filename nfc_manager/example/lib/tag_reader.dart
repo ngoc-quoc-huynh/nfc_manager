@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
@@ -72,7 +73,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
 
     try {
       final response = await const NfcManager().sendCommand(
-        ApduCommand.selectAid(_aid.toUint8List(isHex: true)),
+        ApduCommand.selectAid(_aid.hexToBytes()),
       );
       message = 'Select AID response: $response';
     } on NfcException catch (e) {
@@ -90,7 +91,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     String message;
     try {
       final response = await const NfcManager().sendCommand(
-        ApduCommand.verifyPin(_pin.toHexString().toUint8List()),
+        ApduCommand.verifyPin(utf8.encode(_pin)),
       );
       message = 'Verify PIN response: $response';
     } on NfcException catch (e) {
