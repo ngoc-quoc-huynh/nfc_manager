@@ -19,6 +19,7 @@ dev_dependencies:
   test_cov_console: ^0.2.2
 
   # Linter
-  # Allow older Dart SDKs to select a compatible lint release.
-  cosee_lints: '>=0.11.0 <1.0.0'
+  # Keep a Dart 3.12-compatible lint release.
+  # Opt in to new lint minors explicitly.
+  cosee_lints: '>=0.14.0 <0.17.0'
   dart_code_linter: ^4.0.0
