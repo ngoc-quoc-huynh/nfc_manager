@@ -28,78 +28,88 @@ class HostCardEmulation :
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
-    ): ByteArray =
-        when {
-            !HostCardEmulationConfig.isConfigured -> {
-                ResponseApdu.HCE_NOT_READY()
-            }
-
-            commandByteArray == null -> ResponseApdu.NULL_COMMAND()
-            else -> handleCommand(commandByteArray)
+    ): ByteArray {
+        val session = HostCardEmulationConfig.session ?: return ResponseApdu.HCE_NOT_READY()
+        return when (commandByteArray) {
+            null -> ResponseApdu.NULL_COMMAND()
+            else -> handleCommand(session, commandByteArray)
         }
+    }
 
     /**
      * Handles the APDU command received from the NFC terminal.
      * 
+     * @param session The session snapshot used for the whole command.
      * @param commandByteArray The APDU command.
      * @return The response APDU.
      */
-    private fun handleCommand(commandByteArray: ByteArray): ByteArray =
+    private fun handleCommand(
+        session: HostCardEmulationConfig.Session,
+        commandByteArray: ByteArray,
+    ): ByteArray =
         try {
             val command = CommandApdu.fromByteArray(commandByteArray)
 
             when {
                 command.ins == 0xA4.toByte() && command.p1 == 0x04.toByte() ->
-                    processSelectAid(command.data ?: throw InvalidLcDataLengthException())
+                    processSelectAid(session, command.data ?: throw InvalidLcDataLengthException())
 
                 command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() ->
-                    processVerifyPin(command.data ?: throw InvalidLcDataLengthException())
+                    processVerifyPin(session, command.data ?: throw InvalidLcDataLengthException())
 
                 else -> {
-                    emitSuccess(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
+                    session.emit(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
                     ResponseApdu.FUNCTION_NOT_SUPPORTED
                 }
             }()
         } catch (e: InvalidApduCommandException) {
-            emitSuccess(HostCardEmulationStatus.INVALID_COMMAND)
+            session.emit(HostCardEmulationStatus.INVALID_COMMAND)
             ResponseApdu.WRONG_LENGTH()
         } catch (e: InvalidLcDataLengthException) {
-            emitSuccess(HostCardEmulationStatus.INVALID_LC_LENGTH)
+            session.emit(HostCardEmulationStatus.INVALID_LC_LENGTH)
             ResponseApdu.WRONG_LC_LENGTH()
         }
 
     /**
      * Processes the SELECT AID command.
      * 
+     * @param session The session snapshot used for the whole command.
      * @param data The data of the SELECT AID command.
      * @return The response APDU.
      */
-    private fun processSelectAid(data: ByteArray): ResponseApdu =
-        if (data.contentEquals(HostCardEmulationConfig.aid)) {
-            emitSuccess(HostCardEmulationStatus.AID_SELECTED)
+    private fun processSelectAid(
+        session: HostCardEmulationConfig.Session,
+        data: ByteArray,
+    ): ResponseApdu =
+        if (data.contentEquals(session.aid)) {
+            session.emit(HostCardEmulationStatus.AID_SELECTED)
             ResponseApdu.OK
         } else {
-            emitSuccess(HostCardEmulationStatus.INVALID_AID)
+            session.emit(HostCardEmulationStatus.INVALID_AID)
             ResponseApdu.INVALID_AID
         }
 
     /**
      * Processes the VERIFY PIN command.
      * 
+     * @param session The session snapshot used for the whole command.
      * @param data The data of the VERIFY PIN command.
      * @return The response APDU.
      */
-    private fun processVerifyPin(data: ByteArray): ResponseApdu =
-        if (data.contentEquals(HostCardEmulationConfig.pin!!)) {
-            emitSuccess(HostCardEmulationStatus.PIN_VERIFIED)
+    private fun processVerifyPin(
+        session: HostCardEmulationConfig.Session,
+        data: ByteArray,
+    ): ResponseApdu =
+        if (data.contentEquals(session.pin)) {
+            session.emit(HostCardEmulationStatus.PIN_VERIFIED)
             ResponseApdu.OK
         } else {
-            emitSuccess(HostCardEmulationStatus.WRONG_PIN)
+            session.emit(HostCardEmulationStatus.WRONG_PIN)
             ResponseApdu.WRONG_PIN
         }
 
     override fun onDeactivated(reason: Int) {
-        emitSuccess(HostCardEmulationStatus.TAG_DISCONNECTED)
+        HostCardEmulationConfig.session?.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
     }
 
     override fun onListen(
@@ -107,22 +117,23 @@ class HostCardEmulation :
         events: EventSink,
     ): Unit =
         (arguments as Map<*, *>).run {
-            HostCardEmulationConfig.configure(
-                aid = arguments["aid"] as ByteArray,
-                pin = arguments["pin"] as ByteArray,
-                eventSink = events,
-            )
-            emitSuccess(HostCardEmulationStatus.READY)
+            val session =
+                HostCardEmulationConfig.Session(
+                    owner = this@HostCardEmulation,
+                    aid = arguments["aid"] as ByteArray,
+                    pin = arguments["pin"] as ByteArray,
+                    sink = events,
+                )
+            HostCardEmulationConfig.start(session)
+            session.emit(HostCardEmulationStatus.READY)
         }
 
-    override fun onCancel(arguments: Any?) = HostCardEmulationConfig.clear()
+    override fun onCancel(arguments: Any?) = HostCardEmulationConfig.clear(owner = this)
 
     /**
      * Emits a success status to the Flutter side.
      * 
      * @param status The status to emit.
      */
-    private fun emitSuccess(status: HostCardEmulationStatus) =
-        HostCardEmulationConfig.eventSink
-            ?.success(status.name)
+    private fun HostCardEmulationConfig.Session.emit(status: HostCardEmulationStatus) = sink.success(status.name)
 }

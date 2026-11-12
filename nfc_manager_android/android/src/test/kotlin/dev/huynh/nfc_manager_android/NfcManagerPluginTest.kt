@@ -3,18 +3,26 @@ import dev.huynh.nfc_manager_android.NfcManagerPlugin
 import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationConfig
+import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.EventChannel
+import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoMoreInteractions
 import org.mockito.kotlin.whenever
+import kotlin.test.assertContentEquals
+import kotlin.test.assertNull
 
 class NfcManagerPluginTest {
     private val mockFeatureChecker = mock<FeatureChecker>()
@@ -25,6 +33,13 @@ class NfcManagerPluginTest {
             tagReader = mockTagReader
         }
     private val mockResult = mock<Result>()
+    private val hceArguments = mapOf("aid" to byteArrayOf(0x01), "pin" to byteArrayOf(0x02))
+    private val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x01, 0x01)
+
+    @AfterEach
+    fun tearDown() {
+        HostCardEmulationConfig.session?.let { HostCardEmulationConfig.clear(it.owner) }
+    }
 
     @Test
     fun `isHceSupported method call returns correctly`() {
@@ -150,16 +165,7 @@ class NfcManagerPluginTest {
         val mockMethodChannel = mock<MethodChannel>()
         val mockDiscoveryEventChannel = mock<EventChannel>()
         val mockHostCardEmulationEventChannel = mock<EventChannel>()
-        mapOf(
-            "methodChannel" to mockMethodChannel,
-            "discoveryEventChannel" to mockDiscoveryEventChannel,
-            "hostCardEmulationEventChannel" to mockHostCardEmulationEventChannel,
-        ).forEach { (fieldName, value) ->
-            NfcManagerPlugin::class.java.getDeclaredField(fieldName).apply {
-                isAccessible = true
-                set(plugin, value)
-            }
-        }
+        setChannels(mockMethodChannel, mockDiscoveryEventChannel, mockHostCardEmulationEventChannel)
 
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
 
@@ -170,6 +176,37 @@ class NfcManagerPluginTest {
     }
 
     @Test
+    fun `engine detachment during emulation stops HCE responses`() {
+        val mockEventSink = mock<EventSink>()
+        val streamHandler = HostCardEmulation()
+        plugin.hostCardEmulationStreamHandler = streamHandler
+        setChannels()
+        streamHandler.onListen(hceArguments, mockEventSink)
+
+        plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
+        val response = HostCardEmulation().processCommandApdu(selectCommand, null)
+
+        assertContentEquals(ResponseApdu.HCE_NOT_READY(), response)
+        assertNull(plugin.hostCardEmulationStreamHandler)
+        verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `engine detachment keeps an HCE session started by another engine`() {
+        val mockEventSink = mock<EventSink>()
+        plugin.hostCardEmulationStreamHandler = HostCardEmulation()
+        setChannels()
+        HostCardEmulation().onListen(hceArguments, mockEventSink)
+
+        plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
+        val response = HostCardEmulation().processCommandApdu(selectCommand, null)
+
+        assertContentEquals(ResponseApdu.OK(), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+    }
+
+    @Test
     fun `throws not implemented for other method calls`() {
         plugin.onMethodCall(
             MethodCall("other", null),
@@ -177,4 +214,20 @@ class NfcManagerPluginTest {
         )
         verify(mockResult).notImplemented()
     }
+
+    private fun setChannels(
+        methodChannel: MethodChannel = mock(),
+        discoveryEventChannel: EventChannel = mock(),
+        hostCardEmulationEventChannel: EventChannel = mock(),
+    ) = mapOf(
+        "methodChannel" to methodChannel,
+        "discoveryEventChannel" to discoveryEventChannel,
+        "hostCardEmulationEventChannel" to hostCardEmulationEventChannel,
+    ).forEach { (fieldName, value) ->
+        NfcManagerPlugin::class.java.getDeclaredField(fieldName).apply {
+            isAccessible = true
+            set(plugin, value)
+        }
+    }
+
 }

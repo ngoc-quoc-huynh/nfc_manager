@@ -4,6 +4,7 @@ import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationConfig
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -55,6 +56,12 @@ class NfcManagerPlugin :
     @VisibleForTesting
     var tagReader: TagReader? = null
 
+    /**
+     * The stream handler for HCE events. It owns the HCE session it starts.
+     */
+    @VisibleForTesting
+    internal var hostCardEmulationStreamHandler: HostCardEmulation? = null
+
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val context = flutterPluginBinding.applicationContext
         nfcAdapter = NfcAdapter.getDefaultAdapter(context)
@@ -73,17 +80,21 @@ class NfcManagerPlugin :
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/discovery",
             )
+        val hostCardEmulation = HostCardEmulation()
+        hostCardEmulationStreamHandler = hostCardEmulation
         hostCardEmulationEventChannel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/host_card_emulation",
-            ).apply { setStreamHandler(HostCardEmulation()) }
+            ).apply { setStreamHandler(hostCardEmulation) }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         methodChannel.setMethodCallHandler(null)
         discoveryEventChannel.setStreamHandler(null)
         hostCardEmulationEventChannel.setStreamHandler(null)
+        hostCardEmulationStreamHandler?.let { HostCardEmulationConfig.clear(owner = it) }
+        hostCardEmulationStreamHandler = null
         tagReader?.dispose()
         tagReader = null
     }
