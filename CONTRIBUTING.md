@@ -46,6 +46,10 @@ understand and address the issue effectively.
 
 - **Plugin version**: Specify the version of the plugin where you encountered the bug. This helps us understand if the issue
   is version-specific.
+- **Flutter version**: Specify the Flutter version you are using, e.g. the output of `flutter --version`.
+- **Android version**: Specify the Android version of the device you are testing on.
+- **Device**: Specify the device manufacturer and model.
+- **Mode**: State whether the bug occurs in reader mode, host card emulation (HCE), or both.
 - **Description**: Give a clear and detailed description of the bug. The more specific you are, the easier it will be
   for us to understand the issue.
 - **Steps to reproduce**: List the steps you took when you encountered the bug. This should be a clear, step-by-step
