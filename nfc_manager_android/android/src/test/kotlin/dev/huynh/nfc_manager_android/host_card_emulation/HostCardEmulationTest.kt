@@ -226,7 +226,7 @@ class HostCardEmulationTest {
     }
 
     @Test
-    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when is not supported`() {
+    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when the instruction is neither SELECT nor VERIFY`() {
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =

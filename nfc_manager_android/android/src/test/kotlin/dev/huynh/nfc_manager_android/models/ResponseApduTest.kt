@@ -5,7 +5,7 @@ import kotlin.test.assertContentEquals
 
 class ResponseApduTest {
     @Test
-    fun `toByteArray returns correctly`() {
+    fun `each ResponseApdu status word serializes to its two bytes`() {
         assertContentEquals(
             byteArrayOf(0x6A, 0x81.toByte()),
             ResponseApdu.FUNCTION_NOT_SUPPORTED(),
