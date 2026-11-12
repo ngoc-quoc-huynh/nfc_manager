@@ -48,13 +48,13 @@ class NfcManagerPlugin :
      * The feature checker for checking the NFC capabilities of the device.
      */
     @VisibleForTesting
-    lateinit var featureChecker: FeatureChecker
+    internal lateinit var featureChecker: FeatureChecker
 
     /**
      * The tag reader for handling NFC tag operations.
      */
     @VisibleForTesting
-    var tagReader: TagReader? = null
+    internal var tagReader: TagReader? = null
 
     /**
      * The stream handler for HCE events. It owns the HCE session it starts.

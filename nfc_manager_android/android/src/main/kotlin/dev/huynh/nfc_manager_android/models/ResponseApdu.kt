@@ -3,7 +3,7 @@ package dev.huynh.nfc_manager_android.models
 /**
  * Represents the possible responses from an APDU command.
  */
-enum class ResponseApdu(
+internal enum class ResponseApdu(
     /**
      * The status word of the APDU response.
      */
