@@ -9,6 +9,7 @@ import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
+import java.security.MessageDigest
 
 /**
  * The HostCardEmulation is responsible for handling APDU (Application Protocol Data Unit) commands
@@ -91,6 +92,8 @@ class HostCardEmulation :
 
     /**
      * Processes the VERIFY PIN command.
+     *
+     * Compares equal-length PINs across all bytes, even after a mismatch.
      * 
      * @param session The session snapshot used for the whole command.
      * @param data The data of the VERIFY PIN command.
@@ -100,7 +103,7 @@ class HostCardEmulation :
         session: HostCardEmulationConfig.Session,
         data: ByteArray,
     ): ResponseApdu =
-        if (data.contentEquals(session.pin)) {
+        if (MessageDigest.isEqual(data, session.pin)) {
             session.emit(HostCardEmulationStatus.PIN_VERIFIED)
             ResponseApdu.OK
         } else {
