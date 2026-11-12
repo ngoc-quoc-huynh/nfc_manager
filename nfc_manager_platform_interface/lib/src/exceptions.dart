@@ -28,7 +28,7 @@ sealed class NfcException implements Exception {
           message == other.message;
 
   @override
-  int get hashCode => message.hashCode;
+  int get hashCode => Object.hash(runtimeType, message);
 }
 
 /// Exception thrown when the APDU command is invalid because it must be at

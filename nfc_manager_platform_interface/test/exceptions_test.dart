@@ -233,4 +233,14 @@ void main() {
       ),
     );
   });
+
+  test(
+    'different exception types with equal messages are unequal.',
+    () {
+      const known = NfcNotSupportedException();
+      final unknown = NfcUnknownException(known.message);
+
+      expect(known, isNot(unknown));
+    },
+  );
 }
