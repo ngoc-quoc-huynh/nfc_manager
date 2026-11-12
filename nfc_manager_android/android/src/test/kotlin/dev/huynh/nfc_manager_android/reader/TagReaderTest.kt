@@ -503,6 +503,37 @@ class TagReaderTest {
     }
 
     @Test
+    fun `onTagFound closes a tag connected after cancellation without holding the state lock`() {
+        val connectStarted = CountDownLatch(1)
+        val allowConnect = CountDownLatch(1)
+        val closedHoldingLock = CompletableFuture<Boolean>()
+        whenever(mockTag.id).thenReturn(byteArrayOf(0x01))
+        whenever(mockIsoDep.connect()).thenAnswer {
+            connectStarted.countDown()
+            assertTrue(allowConnect.await(2, TimeUnit.SECONDS))
+            null
+        }
+        whenever(mockIsoDep.close()).thenAnswer {
+            closedHoldingLock.complete(Thread.holdsLock(stateLock()))
+            null
+        }
+
+        Mockito.mockStatic(IsoDep::class.java).use { mockStaticIsoDep ->
+            mockStaticIsoDep.`when`<IsoDep> { IsoDep.get(mockTag) }.thenReturn(mockIsoDep)
+            tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+            discoverTag(mockTag)
+        }
+        assertTrue(connectStarted.await(2, TimeUnit.SECONDS))
+        tagReader.onCancel(null)
+        allowConnect.countDown()
+
+        assertEquals(false, closedHoldingLock.get(2, TimeUnit.SECONDS))
+        verify(mockIsoDep, times(1)).close()
+        verify(mockEventSink, never()).success(any())
+        assertNull(tagReader.isoDep)
+    }
+
+    @Test
     fun `queued command from old session is rejected and old tag is closed only once`() {
         val firstCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00)
         val queuedCommand = byteArrayOf(0x00, 0x01, 0x00, 0x00)
@@ -705,4 +736,9 @@ class TagReaderTest {
         TagReader::class.java.getDeclaredField("ioExecutor").apply {
             isAccessible = true
         }.get(tagReader) as ExecutorService
+
+    private fun stateLock(): Any =
+        TagReader::class.java.getDeclaredField("stateLock").apply {
+            isAccessible = true
+        }.get(tagReader)!!
 }
