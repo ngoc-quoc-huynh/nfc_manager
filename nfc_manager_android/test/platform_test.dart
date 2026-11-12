@@ -238,6 +238,27 @@ void main() {
       },
     );
 
+    test('preserves the HCE argument error code before completing.', () async {
+      const message = 'The arguments are missing or have the wrong type.';
+      nfcManager.hostCardEmulationEventChannel.setMockStream(
+        (events) => events
+          ..error(code: 'INVALID_ARGUMENTS', message: message)
+          ..endOfStream(),
+      );
+
+      await expectLater(
+        nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+        emitsInOrder([
+          emitsError(
+            isA<NfcUnknownException>()
+                .having((error) => error.code, 'code', 'INVALID_ARGUMENTS')
+                .having((error) => error.message, 'message', message),
+          ),
+          emitsDone,
+        ]),
+      );
+    });
+
     test('emits HCE statuses and converts native errors.', () async {
       nfcManager.hostCardEmulationEventChannel.setMockStream(
         (events) => events

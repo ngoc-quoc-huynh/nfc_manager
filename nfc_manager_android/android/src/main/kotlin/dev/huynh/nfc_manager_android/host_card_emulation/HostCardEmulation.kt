@@ -3,10 +3,12 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
+import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
+import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.security.MessageDigest
@@ -117,22 +119,34 @@ class HostCardEmulation :
 
     private var closed = false
 
+    /**
+     * Starts an HCE session from the `aid` and `pin` byte arrays in [arguments].
+     *
+     * Malformed arguments are reported as [InvalidArgumentsException]. The stream ends without
+     * starting a session.
+     */
     override fun onListen(
         arguments: Any?,
         events: EventSink,
     ) {
         check(!closed) { "The HCE stream handler is detached from the engine." }
-        (arguments as Map<*, *>).run {
-            val session =
-                HostCardEmulationConfig.Session(
-                    owner = this@HostCardEmulation,
-                    aid = arguments["aid"] as ByteArray,
-                    pin = arguments["pin"] as ByteArray,
-                    sink = events,
-                )
-            HostCardEmulationConfig.start(session)
-            session.emit(HostCardEmulationStatus.READY)
+        val map = arguments as? Map<*, *>
+        val aid = map?.get("aid") as? ByteArray
+        val pin = map?.get("pin") as? ByteArray
+        if (aid == null || pin == null) {
+            events.error(InvalidArgumentsException())
+            events.endOfStream()
+            return
         }
+        val session =
+            HostCardEmulationConfig.Session(
+                owner = this,
+                aid = aid,
+                pin = pin,
+                sink = events,
+            )
+        HostCardEmulationConfig.start(session)
+        session.emit(HostCardEmulationStatus.READY)
     }
 
     override fun onCancel(arguments: Any?) = clearSession()

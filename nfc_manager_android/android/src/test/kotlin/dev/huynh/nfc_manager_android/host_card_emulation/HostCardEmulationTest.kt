@@ -1,11 +1,13 @@
 package dev.huynh.nfc_manager_android.host_card_emulation
 
+import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
@@ -41,6 +43,30 @@ class HostCardEmulationTest {
         assertSame(mockEventSink, session.sink)
         verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
     }
+
+    @Test
+    fun `onListen rejects null arguments`() = assertRejected(null)
+
+    @Test
+    fun `onListen rejects arguments that are not a map`() = assertRejected(listOf(byteArrayOf(0x01)))
+
+    @Test
+    fun `onListen rejects a missing aid`() = assertRejected(mapOf("pin" to byteArrayOf(0x02)))
+
+    @Test
+    fun `onListen rejects a missing pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01)))
+
+    @Test
+    fun `onListen rejects a null aid`() = assertRejected(mapOf("aid" to null, "pin" to byteArrayOf(0x02)))
+
+    @Test
+    fun `onListen rejects a null pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01), "pin" to null))
+
+    @Test
+    fun `onListen rejects a wrongly typed aid`() = assertRejected(mapOf("aid" to "01", "pin" to byteArrayOf(0x02)))
+
+    @Test
+    fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to byteArrayOf(0x01), "pin" to 2))
 
     @Test
     fun `onCancel clears the session it owns`() {
@@ -283,6 +309,27 @@ class HostCardEmulationTest {
         hostCardEmulation.onDeactivated(0)
 
         verifyNoInteractions(mockEventSink)
+    }
+
+    /**
+     * Asserts that [onListen] reports [InvalidArgumentsException] for [arguments] and leaves HCE
+     * unconfigured.
+     */
+    private fun assertRejected(arguments: Any?) {
+        HostCardEmulationConfig.clear(hostCardEmulation)
+
+        hostCardEmulation.onListen(arguments, mockEventSink)
+
+        assertNull(HostCardEmulationConfig.session)
+        inOrder(mockEventSink) {
+            verify(mockEventSink).error(
+                "INVALID_ARGUMENTS",
+                "The arguments are missing or have the wrong type.",
+                null,
+            )
+            verify(mockEventSink).endOfStream()
+        }
+        verifyNoMoreInteractions(mockEventSink)
     }
 
     private fun startSession(

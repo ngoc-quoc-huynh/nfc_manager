@@ -17,7 +17,7 @@ sealed class NfcException implements Exception {
         'ISO_DEP_NOT_SUPPORTED' => const IsoDepNotSupportedException(),
         'NFC_NOT_SUPPORTED' => const NfcNotSupportedException(),
         'TAG_CONNECTION_FAILED' => const TagConnectionException(),
-        _ => NfcUnknownException(exception.message),
+        _ => NfcUnknownException(exception.message, code: exception.code),
       };
 
   @override
@@ -92,7 +92,10 @@ final class TagConnectionException extends NfcException {
 /// Exception thrown when the exception is unknown.
 final class NfcUnknownException extends NfcException {
   /// Constructs a [NfcUnknownException].
-  const NfcUnknownException(super.message);
+  const NfcUnknownException(super.message, {this.code});
+
+  /// The platform error code, if one was supplied.
+  final String? code;
 
   @override
   String toString() => 'NfcUnknownException: $message';
