@@ -13,7 +13,7 @@ Thank you for your interest in contributing to NFC Manager! We welcome community
     - Maintain a positive and respectful tone in all communications. Constructive feedback is essential for a healthy
       community.
 4. **Use the appropriate template**:
-    - When submitting a reporting a bug, request for help, suggesting an idea, or creating a pull request, ensure you
+    - When reporting a bug, request for help, suggesting an idea, or creating a pull request, ensure you
       use the relevant template to provide all necessary information.
 
 ## Creating a Pull Request
@@ -21,7 +21,7 @@ Thank you for your interest in contributing to NFC Manager! We welcome community
 Before creating a pull request, please follow these steps:
 
 1. **Fork the repository**: Create your own fork and clone it to your local machine.
-2. **Create your branch**: Start your new branch from `main (e.g., git checkout -b feature/your-feature).
+2. **Create your branch**: Start your new branch from `main` (e.g., `git checkout -b feature/your-feature`).
 3. **Install dependencies**: Ensure all dependencies are installed and up to date.
 4. **Squash your commits**: Combine your commits into a single, meaningful commit message.
 5. **Add tests**: If you’ve fixed a bug or added new functionality, please include tests.
