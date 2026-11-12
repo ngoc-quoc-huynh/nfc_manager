@@ -8,7 +8,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 
 void main() {
   final defaultPlatform = NfcManagerPlatform.instance;
-  final nfcManager = NfcManager();
+  const nfcManager = NfcManager();
   final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
   final pin = Uint8List.fromList([1, 2, 3, 4]);
   final command = ApduCommand.selectAid(aid);
@@ -22,6 +22,31 @@ void main() {
   });
 
   tearDown(() => NfcManagerPlatform.instance = defaultPlatform);
+
+  group('NfcManager', () {
+    test('can be created as a compile-time constant.', () {
+      const first = NfcManager();
+      const second = NfcManager();
+
+      expect(identical(first, second), isTrue);
+    });
+
+    test('separate non-const calls create distinct objects.', () {
+      const createManager = NfcManager.new;
+      final first = createManager();
+      final second = createManager();
+
+      expect(identical(first, second), isFalse);
+    });
+
+    test('can be replaced by a mocktail mock.', () async {
+      final NfcManager manager = MockNfcManager();
+      when(manager.isNfcSupported).thenAnswer((_) async => true);
+
+      expect(await manager.isNfcSupported(), isTrue);
+      verify(manager.isNfcSupported).called(1);
+    });
+  });
 
   group('isHceSupported', () {
     test('uses platform replacements after the first call.', () async {
@@ -285,6 +310,8 @@ void main() {
     });
   });
 }
+
+final class MockNfcManager extends Mock implements NfcManager {}
 
 NfcUnknownException _platformError({
   required String code,

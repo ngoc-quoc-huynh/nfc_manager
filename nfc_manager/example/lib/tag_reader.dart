@@ -23,7 +23,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
           switch (_stream) {
             null => FilledButton(
               onPressed: () =>
-                  setState(() => _stream = NfcManager().startDiscovery()),
+                  setState(() => _stream = const NfcManager().startDiscovery()),
               child: const Text('Start discovery'),
             ),
             Stream<String>() => FilledButton(
@@ -71,7 +71,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     String message;
 
     try {
-      final response = await NfcManager().sendCommand(
+      final response = await const NfcManager().sendCommand(
         ApduCommand.selectAid(_aid.toUint8List(isHex: true)),
       );
       message = 'Select AID response: $response';
@@ -89,7 +89,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
   Future<void> _onVerifyPin(BuildContext context) async {
     String message;
     try {
-      final response = await NfcManager().sendCommand(
+      final response = await const NfcManager().sendCommand(
         ApduCommand.verifyPin(_pin.toHexString().toUint8List()),
       );
       message = 'Verify PIN response: $response';

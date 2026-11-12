@@ -4,12 +4,8 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 /// Provides access to the registered NFC platform implementation.
 class NfcManager {
-  /// Returns the shared [NfcManager] instance.
-  factory NfcManager() => _instance;
-
-  const NfcManager._();
-
-  static const NfcManager _instance = NfcManager._();
+  /// Creates an [NfcManager] that delegates to [NfcManagerPlatform.instance].
+  const NfcManager();
 
   /// The largest timeout in milliseconds, which fits in a signed 32-bit
   /// integer.
