@@ -29,27 +29,49 @@ void main() {
             ('p2', () => Command(cla: 0, ins: 0, p1: 0, p2: value)),
             ('le', () => Command(cla: 0, ins: 0, p1: 0, p2: 0, le: value)),
           ]) {
-            expect(create, throwsRangeError, reason: '$name: $value');
+            expect(
+              create,
+              throwsA(
+                isA<RangeError>()
+                    .having(
+                      (error) => error.invalidValue,
+                      'invalidValue',
+                      value,
+                    )
+                    .having((error) => error.name, 'name', name),
+              ),
+              reason: '$name: $value',
+            );
           }
         }
       });
 
-      test('reports the invalid length for empty and oversized payloads.', () {
-        for (final length in [0, 256]) {
-          expect(
-            () =>
-                Command(cla: 0, ins: 0, p1: 0, p2: 0, data: Uint8List(length)),
-            throwsA(
-              isA<RangeError>().having(
-                (error) => error.invalidValue,
-                'invalidValue',
-                length,
+      test(
+        'reports the name and length of empty and oversized payloads.',
+        () {
+          for (final length in [0, 256]) {
+            expect(
+              () => Command(
+                cla: 0,
+                ins: 0,
+                p1: 0,
+                p2: 0,
+                data: Uint8List(length),
               ),
-            ),
-            reason: 'data length: $length',
-          );
-        }
-      });
+              throwsA(
+                isA<RangeError>()
+                    .having(
+                      (error) => error.invalidValue,
+                      'invalidValue',
+                      length,
+                    )
+                    .having((error) => error.name, 'name', 'data.length'),
+              ),
+              reason: 'data length: $length',
+            );
+          }
+        },
+      );
 
       test('accepts a maximum-length short payload and byte boundaries.', () {
         final command = Command(
