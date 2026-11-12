@@ -84,21 +84,21 @@ This setup ensures that your Android application is prepared to handle NFC card 
 #### Checking device capabilities
 - **HCE Support**: Determine if Host Card Emulation (HCE) is supported.
   ```dart
-  NfcManager().isHceSupported();
+  const NfcManager().isHceSupported();
   ```
 - **NFC Support**: Check if NFC is supported on the device.
   ```dart
-  NfcManager().isNfcSupported();
+  const NfcManager().isNfcSupported();
   ```
 - **NFC Enabled**: Verify if NFC is enabled.
   ```dart
-  NfcManager().isNfcEnabled();
+  const NfcManager().isNfcEnabled();
   ```
 
 #### Starting NFC operations
 - **Discover NFC Tags**: Begin the discovery of nearby NFC tags.
   ```dart
-  NfcManager().startDiscovery();
+  const NfcManager().startDiscovery();
   ```
 
 #### Communicating with NFC tags
@@ -106,7 +106,7 @@ This setup ensures that your Android application is prepared to handle NFC card 
   ```dart
   const aid = 'F000000001';
   final command = ApduCommand.selectAid(aid.toUint8List(isHex: true));
-  final response = await NfcManager().sendCommand(command);
+  final response = await const NfcManager().sendCommand(command);
   ```
 
 #### Emulating an NFC card
@@ -114,7 +114,7 @@ This setup ensures that your Android application is prepared to handle NFC card 
   ```dart
   const aid = 'F000000001';
   const pin = '1234';
-  final stream = NfcManager().startEmulation(
+  final stream = const NfcManager().startEmulation(
     aid: aid.toUint8List(isHex: true),
     pin: pin.toUint8List(),
   );

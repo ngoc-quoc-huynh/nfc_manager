@@ -21,7 +21,7 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
           switch (_stream) {
             null => FilledButton(
               onPressed: () => setState(
-                () => _stream = NfcManager().startEmulation(
+                () => _stream = const NfcManager().startEmulation(
                   aid: _aid.toUint8List(isHex: true),
                   pin: _pin.toHexString().toUint8List(),
                 ),

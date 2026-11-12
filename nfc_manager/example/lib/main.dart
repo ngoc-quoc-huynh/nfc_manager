@@ -25,15 +25,15 @@ class const NfcManagerExample({super.key}) extends StatelessWidget {
               children: [
                 _FeatureStatusView(
                   title: 'NFC support:',
-                  statusFuture: NfcManager().isNfcSupported(),
+                  statusFuture: const NfcManager().isNfcSupported(),
                 ),
                 _FeatureStatusView(
                   title: 'NFC enabled:',
-                  statusFuture: NfcManager().isNfcEnabled(),
+                  statusFuture: const NfcManager().isNfcEnabled(),
                 ),
                 _FeatureStatusView(
                   title: 'HCE support:',
-                  statusFuture: NfcManager().isHceSupported(),
+                  statusFuture: const NfcManager().isHceSupported(),
                 ),
                 const Divider(),
                 FilledButton(
