@@ -11,6 +11,10 @@ class NfcManager {
 
   static const NfcManager _instance = NfcManager._();
 
+  /// The largest timeout in milliseconds, which fits in a signed 32-bit
+  /// integer.
+  static const _maxTimeoutMilliseconds = 0x7FFFFFFF;
+
   static NfcManagerPlatform get _platform => NfcManagerPlatform.instance;
 
   /// Checks if the device supports Host Card Emulation (HCE).
@@ -41,8 +45,16 @@ class NfcManager {
   /// it is destroyed. Listen again to resume discovery.
   ///
   /// See [NfcManagerPlatform.startDiscovery] for stream errors.
-  Stream<String> startDiscovery({Duration? timeout}) =>
-      _platform.startDiscovery(timeout: timeout);
+  ///
+  /// Throws [ArgumentError] when this method is called if [timeout] is not a
+  /// positive whole number of milliseconds up to 2147483647.
+  Stream<String> startDiscovery({Duration? timeout}) {
+    if (timeout != null) {
+      _checkTimeout(timeout);
+    }
+
+    return _platform.startDiscovery(timeout: timeout);
+  }
 
   /// Sends an APDU command to the connected tag and returns its response.
   ///
@@ -71,5 +83,18 @@ class NfcManager {
     checkPinLength(pin);
 
     return _platform.startEmulation(aid: aid, pin: pin);
+  }
+
+  static void _checkTimeout(Duration timeout) {
+    if (timeout <= Duration.zero ||
+        timeout.inMicroseconds % Duration.microsecondsPerMillisecond != 0 ||
+        timeout.inMilliseconds > _maxTimeoutMilliseconds) {
+      throw ArgumentError.value(
+        timeout,
+        'timeout',
+        'Must be a positive whole number of milliseconds up to '
+            '$_maxTimeoutMilliseconds',
+      );
+    }
   }
 }

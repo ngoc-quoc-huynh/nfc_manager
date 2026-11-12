@@ -73,6 +73,43 @@ void main() {
   });
 
   group('startDiscovery', () {
+    setUp(() => clearInteractions(mockPlatform));
+
+    for (final (description, timeout) in [
+      ('a zero', Duration.zero),
+      ('a negative', const Duration(milliseconds: -1)),
+      ('a sub-millisecond', const Duration(microseconds: 500)),
+      ('a fractional millisecond', const Duration(microseconds: 1500)),
+      ('an Int32 overflowing', const Duration(milliseconds: 0x80000000)),
+    ]) {
+      test('throws an ArgumentError for $description timeout.', () {
+        expect(
+          () => nfcManager.startDiscovery(timeout: timeout),
+          throwsA(
+            isA<ArgumentError>()
+                .having((error) => error.name, 'name', 'timeout')
+                .having((error) => error.invalidValue, 'invalidValue', timeout),
+          ),
+        );
+        verifyNever(
+          () => mockPlatform.startDiscovery(timeout: any(named: 'timeout')),
+        );
+      });
+    }
+
+    test('forwards the largest supported timeout.', () async {
+      const timeout = Duration(milliseconds: 0x7FFFFFFF);
+      when(
+        () => mockPlatform.startDiscovery(timeout: timeout),
+      ).thenAnswer((_) => Stream.value('1'));
+
+      await expectLater(
+        nfcManager.startDiscovery(timeout: timeout),
+        emitsInOrder(['1', emitsDone]),
+      );
+      verify(() => mockPlatform.startDiscovery(timeout: timeout)).called(1);
+    });
+
     test('forwards the supplied communication timeout.', () async {
       const timeout = Duration(seconds: 3);
       when(
