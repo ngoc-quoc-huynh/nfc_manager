@@ -46,6 +46,17 @@ void main() {
 
       expect(await nfcManager.isHceSupported(), isFalse);
     });
+
+    test('forwards platform errors.', () async {
+      when(
+        mockPlatform.isHceSupported,
+      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+
+      await expectLater(
+        nfcManager.isHceSupported(),
+        throwsA(isA<NfcUnknownException>()),
+      );
+    });
   });
 
   group('isNfcSupported', () {
@@ -60,6 +71,17 @@ void main() {
 
       expect(await nfcManager.isNfcSupported(), isFalse);
     });
+
+    test('forwards platform errors.', () async {
+      when(
+        mockPlatform.isNfcSupported,
+      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+
+      await expectLater(
+        nfcManager.isNfcSupported(),
+        throwsA(isA<NfcUnknownException>()),
+      );
+    });
   });
 
   group('isNfcEnabled', () {
@@ -73,6 +95,17 @@ void main() {
       when(mockPlatform.isNfcEnabled).thenAnswer((_) async => false);
 
       expect(await nfcManager.isNfcEnabled(), isFalse);
+    });
+
+    test('forwards platform errors.', () async {
+      when(
+        mockPlatform.isNfcEnabled,
+      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+
+      await expectLater(
+        nfcManager.isNfcEnabled(),
+        throwsA(isA<NfcUnknownException>()),
+      );
     });
   });
 
@@ -164,6 +197,25 @@ void main() {
         nfcManager.sendCommand(command),
         throwsA(isA<NfcUnknownException>()),
       );
+    });
+  });
+
+  group('default platform', () {
+    setUp(() => NfcManagerPlatform.instance = originalPlatform);
+
+    test('throws an UnimplementedError for every method.', () {
+      final calls = <Object? Function()>[
+        nfcManager.isHceSupported,
+        nfcManager.isNfcSupported,
+        nfcManager.isNfcEnabled,
+        nfcManager.startDiscovery,
+        () => nfcManager.sendCommand(command),
+        () => nfcManager.startEmulation(aid: aid, pin: pin),
+      ];
+
+      for (final call in calls) {
+        expect(call, throwsUnimplementedError);
+      }
     });
   });
 
