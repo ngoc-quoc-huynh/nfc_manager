@@ -220,6 +220,19 @@ class TagReaderTest {
     }
 
     @Test
+    fun `sendCommand treats a SecurityException from maxTransceiveLength as a lost tag`() {
+        tagReader.isoDep = mockIsoDep
+        // Android throws SecurityException for a tag that is out of date after it left the field.
+        whenever(mockIsoDep.maxTransceiveLength).thenThrow(SecurityException())
+
+        assertThrows<TagConnectionException> { sendCommand(command) }
+
+        assertNull(tagReader.isoDep)
+        verify(mockIsoDep, never()).transceive(any())
+        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
+    }
+
+    @Test
     fun `onListen emits NfcNotSupportedException if NfcAdapter is null`() {
         val tagReader = TagReader(activity = mockActivity, nfcAdapter = null)
         tagReader.onListen(null, mockEventSink)
@@ -263,6 +276,23 @@ class TagReaderTest {
     @Test
     fun `onListen emits INVALID_ARGUMENTS for a non-positive timeout without enabling reader mode`() {
         tagReader.onListen(mapOf("timeout" to 0), mockEventSink)
+
+        verifyInvalidArgumentsEmitted()
+        verifyNoInteractions(mockNfcAdapter)
+    }
+
+    @Test
+    fun `onListen emits INVALID_ARGUMENTS for a negative timeout without enabling reader mode`() {
+        tagReader.onListen(mapOf("timeout" to -1), mockEventSink)
+
+        verifyInvalidArgumentsEmitted()
+        verifyNoInteractions(mockNfcAdapter)
+    }
+
+    @Test
+    fun `onListen emits INVALID_ARGUMENTS for a timeout beyond the Int range without enabling reader mode`() {
+        // The standard message codec delivers a Dart int outside the 32-bit range as a Long.
+        tagReader.onListen(mapOf("timeout" to Int.MAX_VALUE.toLong() + 1), mockEventSink)
 
         verifyInvalidArgumentsEmitted()
         verifyNoInteractions(mockNfcAdapter)
@@ -355,6 +385,28 @@ class TagReaderTest {
             verify(mockIsoDep, times(0)).timeout = 3000
             Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(IsoDepNotSupportedException())
         }
+    }
+
+    @Test
+    fun `onTagFound emits TagConnectionException when IsoDep get throws SecurityException and keeps discovering`() {
+        val secondTag = mock<Tag>()
+        whenever(secondTag.id).thenReturn(byteArrayOf(0x02))
+
+        Mockito.mockStatic(IsoDep::class.java).use { mockStaticIsoDep ->
+            // Android throws SecurityException for a tag that is out of date after it left the field.
+            mockStaticIsoDep.`when`<IsoDep> { IsoDep.get(mockTag) }.thenThrow(SecurityException())
+            mockStaticIsoDep.`when`<IsoDep> { IsoDep.get(secondTag) }.thenReturn(mockIsoDep)
+
+            tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+            assertDoesNotThrow { discoverTag(mockTag) }
+            verify(mockEventSink).error(TagConnectionException())
+
+            discoverTag(secondTag)
+        }
+
+        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).connect()
+        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("02")
+        verify(mockNfcAdapter, never()).disableReaderMode(mockActivity)
     }
 
     @Test
