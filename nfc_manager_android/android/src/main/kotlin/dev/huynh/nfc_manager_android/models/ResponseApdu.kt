@@ -35,14 +35,9 @@ enum class ResponseApdu(
     OK(byteArrayOf(0x90.toByte(), 0x00)),
 
     /**
-     * Indicates that the length of the command data is invalid.
+     * Indicates that the command is too short or its Lc does not match its data length.
      */
-    WRONG_LC_LENGTH(byteArrayOf(0x67, 0x00)),
-
-    /**
-     * Indicates that the length of the response is invalid.
-     */
-    WRONG_LENGTH(byteArrayOf(0x6C, 0x00)),
+    WRONG_LENGTH(byteArrayOf(0x67, 0x00)),
 
     /**
      * Indicates that the PIN is incorrect.

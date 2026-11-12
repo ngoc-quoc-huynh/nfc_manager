@@ -28,10 +28,6 @@ class ResponseApduTest {
         )
         assertContentEquals(
             byteArrayOf(0x67.toByte(), 0x00.toByte()),
-            ResponseApdu.WRONG_LC_LENGTH(),
-        )
-        assertContentEquals(
-            byteArrayOf(0x6C, 0x00.toByte()),
             ResponseApdu.WRONG_LENGTH(),
         )
         assertContentEquals(

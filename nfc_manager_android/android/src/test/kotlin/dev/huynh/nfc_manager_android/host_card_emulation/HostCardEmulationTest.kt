@@ -264,19 +264,22 @@ class HostCardEmulationTest {
     }
 
     @Test
-    fun `processCommandApdu emits INVALID_APDU_COMMAND when InvalidApduCommandException is thrown`() {
-        val response =
-            hostCardEmulation.processCommandApdu(
-                commandByteArray = byteArrayOf(),
-                extras = null,
-            )
+    fun `processCommandApdu answers 67 00 and emits INVALID_COMMAND for commands shorter than 4 bytes`() {
+        for (size in 0..3) {
+            val response =
+                hostCardEmulation.processCommandApdu(
+                    commandByteArray = ByteArray(size),
+                    extras = null,
+                )
 
-        assertContentEquals(ResponseApdu.WRONG_LENGTH(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_COMMAND.name)
+            assertContentEquals(byteArrayOf(0x67, 0x00), response, "command of $size bytes")
+        }
+        verify(mockEventSink, times(4)).success(HostCardEmulationStatus.INVALID_COMMAND.name)
+        verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test
-    fun `processCommandApdu emits UNKNOWN when NfcException is thrown`() {
+    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH when Lc does not match the data length`() {
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -291,7 +294,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.WRONG_LC_LENGTH(), response)
+        assertContentEquals(byteArrayOf(0x67, 0x00), response)
         verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
     }
 
