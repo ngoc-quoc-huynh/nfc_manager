@@ -3,53 +3,62 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
-import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.verifyNoMoreInteractions
 import kotlin.test.assertContentEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 class HostCardEmulationTest {
     private val mockEventSink = mock<EventSink>()
     private val hostCardEmulation = HostCardEmulation()
 
     @BeforeEach
-    fun setup() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(),
-            eventSink = mockEventSink,
-        )
-    }
+    fun setup() = startSession()
+
+    @AfterEach
+    fun tearDown() = HostCardEmulationConfig.clear(hostCardEmulation)
 
     @Test
-    fun `onListen configures HostCardEmulation correctly`() {
-        hostCardEmulation.onListen(
-            mapOf(
-                "aid" to byteArrayOf(),
-                "pin" to byteArrayOf(),
-            ),
-            mockEventSink,
-        )
+    fun `onListen starts a session owned by the stream handler`() {
+        HostCardEmulationConfig.clear(hostCardEmulation)
+        val aid = byteArrayOf(0x01)
+        val pin = byteArrayOf(0x02)
 
-        assertTrue(HostCardEmulationConfig.isConfigured)
+        hostCardEmulation.onListen(mapOf("aid" to aid, "pin" to pin), mockEventSink)
+
+        val session = assertNotNull(HostCardEmulationConfig.session)
+        assertSame(hostCardEmulation, session.owner)
+        assertContentEquals(aid, session.aid)
+        assertContentEquals(pin, session.pin)
+        assertSame(mockEventSink, session.sink)
         verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
     }
 
     @Test
-    fun `onCancel clears HostCardEmulationConfig`() {
+    fun `onCancel clears the session it owns`() {
         hostCardEmulation.onCancel(null)
 
-        assertFalse(HostCardEmulationConfig.isConfigured)
+        assertNull(HostCardEmulationConfig.session)
+    }
+
+    @Test
+    fun `onCancel keeps a session owned by another stream handler`() {
+        HostCardEmulation().onCancel(null)
+
+        assertNotNull(HostCardEmulationConfig.session)
     }
 
     @Test
     fun `processCommandApdu emits HCE_NOT_READY when it is not configured`() {
-        HostCardEmulationConfig.clear()
+        HostCardEmulationConfig.clear(hostCardEmulation)
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray = byteArrayOf(),
@@ -72,11 +81,7 @@ class HostCardEmulationTest {
 
     @Test
     fun `processCommandApdu emits AID_SELECTED when command is SELECT command with correct AID`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(0x00),
-            pin = byteArrayOf(),
-            eventSink = mockEventSink,
-        )
+        startSession(aid = byteArrayOf(0x00))
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -117,11 +122,7 @@ class HostCardEmulationTest {
 
     @Test
     fun `processCommandApdu emits PIN_VERIFIED when command is VERIFY command with correct PIN`() {
-        HostCardEmulationConfig.configure(
-            aid = byteArrayOf(),
-            pin = byteArrayOf(0x00),
-            eventSink = mockEventSink,
-        )
+        startSession(pin = byteArrayOf(0x00))
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -248,4 +249,25 @@ class HostCardEmulationTest {
 
         verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
     }
+
+    @Test
+    fun `onDeactivated emits nothing when it is not configured`() {
+        HostCardEmulationConfig.clear(hostCardEmulation)
+
+        hostCardEmulation.onDeactivated(0)
+
+        verifyNoInteractions(mockEventSink)
+    }
+
+    private fun startSession(
+        aid: ByteArray = byteArrayOf(),
+        pin: ByteArray = byteArrayOf(),
+    ) = HostCardEmulationConfig.start(
+        HostCardEmulationConfig.Session(
+            owner = hostCardEmulation,
+            aid = aid,
+            pin = pin,
+            sink = mockEventSink,
+        ),
+    )
 }

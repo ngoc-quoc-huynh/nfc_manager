@@ -3,60 +3,47 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 import io.flutter.plugin.common.EventChannel.EventSink
 
 /**
- * Manages the configuration for NFC Host Card Emulation (HCE).
- * 
- * This class holds the necessary information for setting up and managing HCE operations,
- * including the Application Identifier (AID), PIN, and event sink for communication with Flutter.
+ * Holds the active NFC Host Card Emulation (HCE) session.
+ *
+ * The Android-managed [HostCardEmulation] service and the plugin's stream handler are different
+ * instances, so they share the session through this object.
  */
-object HostCardEmulationConfig {
+internal object HostCardEmulationConfig {
     /**
-     * The Application Identifier (AID) for the HCE.
+     * An active HCE session.
+     *
+     * @property owner The stream handler that started the session. Only it can clear the session.
+     * @property aid The Application Identifier which uniquely identifies the application.
+     * @property pin The Personal Identification Number used for authentication.
+     * @property sink The EventSink from Flutter used for sending events back to the Flutter side.
      */
-    var aid: ByteArray? = null
+    class Session(
+        val owner: Any,
+        val aid: ByteArray,
+        val pin: ByteArray,
+        val sink: EventSink,
+    )
+
+    /**
+     * The active session, or null when HCE is not configured.
+     */
+    @Volatile
+    var session: Session? = null
         private set
 
     /**
-     * The PIN for the HCE.
+     * Replaces the active session with [session].
      */
-    var pin: ByteArray? = null
-        private set
-
-    /**
-     * The event sink for communication with Flutter.
-     */
-    var eventSink: EventSink? = null
-        private set
-
-    /**
-     * Checks if the configuration is complete.
-     */
-    val isConfigured: Boolean
-        get() = listOf(aid, pin, eventSink).all { it != null }
-
-    /**
-     * Configures the HCE with the given AID, PIN, and event sink.
-     * This method sets the internal state of the HCE configuration to the provided values.
-     * 
-     * @param aid The Application Identifier which uniquely identifies the application.
-     * @param pin The Personal Identification Number used for authentication.
-     * @param eventSink The EventSink from Flutter used for sending events back to the Flutter side.
-     */
-    fun configure(
-        aid: ByteArray,
-        pin: ByteArray,
-        eventSink: EventSink,
-    ) {
-        this.aid = aid
-        this.pin = pin
-        this.eventSink = eventSink
+    @Synchronized
+    fun start(session: Session) {
+        this.session = session
     }
 
     /**
-     * Clears the HCE configuration by setting all internal state variables to null.
+     * Clears the active session if [owner] started it.
      */
-    fun clear() {
-        aid = null
-        pin = null
-        eventSink = null
+    @Synchronized
+    fun clear(owner: Any) {
+        if (session?.owner === owner) session = null
     }
 }
