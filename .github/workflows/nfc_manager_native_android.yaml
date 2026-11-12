@@ -1,0 +1,43 @@
+name: nfc_manager native Android
+
+on:
+  push:
+    branches: [main]
+    paths: &ci_paths
+      - 'nfc_manager_android/android/**'
+  pull_request:
+    paths: *ci_paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  android:
+    name: Android tests, lint, and example APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
+        with:
+          version: "2026.10.5"
+          install_args: "flutter java"
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+      - name: Run Android tests and lint
+        working-directory: ./nfc_manager_android/example
+        run: |
+          flutter pub get --enforce-lockfile
+          cd android
+          ./gradlew :nfc_manager_android:testDebugUnitTest :nfc_manager_android:lintDebug --build-cache
+      - name: Build example APK
+        working-directory: ./nfc_manager/example
+        run: |
+          flutter pub get --enforce-lockfile
+          flutter build apk --debug --no-pub

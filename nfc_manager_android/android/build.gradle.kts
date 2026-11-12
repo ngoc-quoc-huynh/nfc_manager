@@ -4,17 +4,16 @@ group = "dev.huynh.nfc_manager_android"
 version = "1.0"
 
 buildscript {
-    // Flutter 3.35 fallbacks support older hosts; host versions take precedence.
-    // Update only for a higher Flutter minimum or a required tooling fix.
-    val kotlinVersion = "2.1.0"
+    // These are upstream flutter/packages fallback pins, not Flutter tooling minimum versions.
+    // Use host-provided AGP or KGP when present. Keep pins frozen with the matching Renovate rule.
+    val kotlinVersion = "2.3.0"
     repositories {
         google()
         mavenCentral()
     }
 
     dependencies {
-        // Keep AGP 8.9.1 for Flutter 3.35 compatibility; host apps can use newer AGP.
-        classpath("com.android.tools.build:gradle:8.9.1")
+        classpath("com.android.tools.build:gradle:8.13.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
@@ -30,13 +29,12 @@ plugins {
     id("com.android.library")
 }
 
-// Use AGP 9+ built-in Kotlin unless disabled; otherwise apply the Kotlin Android plugin.
-val agpMajor = com.android.Version.ANDROID_GRADLE_PLUGIN_VERSION.substringBefore('.').toInt()
-val builtInKotlinEnabled = agpMajor >= 9 &&
-    (providers.gradleProperty("android.builtInKotlin").orNull?.toBoolean() ?: true)
-
-if (!builtInKotlinEnabled) {
-    apply(plugin = "org.jetbrains.kotlin.android")
+// On AGP 8, Flutter tooling applies KGP. With Flutter 3.44, set android.builtInKotlin=false
+// when using AGP 9. AGP 9 built-in Kotlin requires Flutter 3.47 or later.
+kotlin {
+    compilerOptions {
+        jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
+    }
 }
 
 abstract class MockitoAgentArgumentProvider : CommandLineArgumentProvider {
@@ -73,12 +71,6 @@ android {
                 showStandardStreams = true
             }
         }
-    }
-}
-
-tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile>().configureEach {
-    compilerOptions {
-        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
     }
 }
 
