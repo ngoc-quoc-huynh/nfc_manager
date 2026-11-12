@@ -70,7 +70,7 @@ class HostCardEmulation :
             ResponseApdu.WRONG_LENGTH()
         } catch (e: InvalidLcDataLengthException) {
             session.emit(HostCardEmulationStatus.INVALID_LC_LENGTH)
-            ResponseApdu.WRONG_LC_LENGTH()
+            ResponseApdu.WRONG_LENGTH()
         }
 
     /**
