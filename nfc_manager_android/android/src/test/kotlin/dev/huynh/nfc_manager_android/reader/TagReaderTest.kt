@@ -389,7 +389,8 @@ class TagReaderTest {
         verify(secondIsoDep).connect()
     }
 
-fun `onTagFound skips queued connection work after cancellation`() {
+    @Test
+    fun `onTagFound skips queued connection work after cancellation`() {
         val executor = ioExecutor()
         val executorStarted = CountDownLatch(1)
         val allowQueuedWork = CountDownLatch(1)
@@ -479,7 +480,8 @@ fun `onTagFound skips queued connection work after cancellation`() {
         verify(mockIsoDep, times(1)).close()
     }
 
-fun `onListen releases the previous tag and accepts a tag in the new session`() {
+    @Test
+    fun `onListen releases the previous tag and accepts a tag in the new session`() {
         val secondTag = mock<Tag>()
         val secondIsoDep = mock<IsoDep>()
         whenever(mockTag.id).thenReturn(byteArrayOf(0x01))
