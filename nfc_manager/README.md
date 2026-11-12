@@ -107,17 +107,19 @@ This setup ensures that your Android application is prepared to handle NFC card 
 - **Send an APDU Command**: Send a command to an NFC tag using a specific Application Identifier (AID).
   ```dart
   const aid = 'F000000001';
-  final command = ApduCommand.selectAid(aid.toUint8List(isHex: true));
+  final command = ApduCommand.selectAid(aid.hexToBytes());
   final response = await const NfcManager().sendCommand(command);
   ```
 
 #### Emulating an NFC card
 - **Start NFC Card Emulation**: Emulate an NFC card using a provided AID and PIN.
   ```dart
+  import 'dart:convert';
+
   const aid = 'F000000001';
-  const pin = '1234';
+  const pin = '1234'; // Sent as its UTF-8 bytes: 31 32 33 34.
   final stream = const NfcManager().startEmulation(
-    aid: aid.toUint8List(isHex: true),
-    pin: pin.toUint8List(),
+    aid: aid.hexToBytes(),
+    pin: utf8.encode(pin),
   );
   ```

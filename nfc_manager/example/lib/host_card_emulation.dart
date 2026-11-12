@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 
@@ -22,8 +24,8 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
             null => FilledButton(
               onPressed: () => setState(
                 () => _stream = const NfcManager().startEmulation(
-                  aid: _aid.toUint8List(isHex: true),
-                  pin: _pin.toHexString().toUint8List(),
+                  aid: _aid.hexToBytes(),
+                  pin: utf8.encode(_pin),
                 ),
               ),
               child: const Text('Start emulation'),
