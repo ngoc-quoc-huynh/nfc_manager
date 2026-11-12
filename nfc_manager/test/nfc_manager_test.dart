@@ -9,10 +9,15 @@ import 'package:nfc_manager/nfc_manager.dart';
 void main() {
   final originalPlatform = NfcManagerPlatform.instance;
   final nfcManager = NfcManager();
-  final mockPlatform = MockNfcManagerPlatform();
+  final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
+  final pin = Uint8List.fromList([1, 2, 3, 4]);
+  final command = Command.selectAid(aid);
+  late MockNfcManagerPlatform mockPlatform;
 
-  setUpAll(() {
-    registerFallbackValue(Uint8List(0));
+  setUpAll(() => registerFallbackValue(Uint8List(0)));
+
+  setUp(() {
+    mockPlatform = MockNfcManagerPlatform();
     NfcManagerPlatform.instance = mockPlatform;
   });
 
@@ -25,7 +30,6 @@ void main() {
 
       final replacement = MockNfcManagerPlatform();
       when(replacement.isHceSupported).thenAnswer((_) async => true);
-      addTearDown(() => NfcManagerPlatform.instance = mockPlatform);
       NfcManagerPlatform.instance = replacement;
 
       expect(await nfcManager.isHceSupported(), isTrue);
@@ -73,8 +77,6 @@ void main() {
   });
 
   group('startDiscovery', () {
-    setUp(() => clearInteractions(mockPlatform));
-
     for (final (description, timeout) in [
       ('a zero', Duration.zero),
       ('a negative', const Duration(milliseconds: -1)),
@@ -147,41 +149,25 @@ void main() {
   group('sendCommand', () {
     test('forwards the command and returns the platform response.', () async {
       when(
-        () => mockPlatform.sendCommand(
-          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-        ),
+        () => mockPlatform.sendCommand(command),
       ).thenAnswer((_) async => ApduResponse.ok);
 
-      expect(
-        await nfcManager.sendCommand(
-          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-        ),
-        ApduResponse.ok,
-      );
+      expect(await nfcManager.sendCommand(command), ApduResponse.ok);
     });
 
     test('forwards platform command errors.', () async {
       when(
-        () => mockPlatform.sendCommand(
-          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-        ),
+        () => mockPlatform.sendCommand(command),
       ).thenAnswer((_) async => throw const NfcUnknownException(null));
 
       await expectLater(
-        nfcManager.sendCommand(
-          Command.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-        ),
+        nfcManager.sendCommand(command),
         throwsA(isA<NfcUnknownException>()),
       );
     });
   });
 
   group('startEmulation', () {
-    final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
-    final pin = Uint8List.fromList([1, 2, 3, 4]);
-
-    setUp(() => clearInteractions(mockPlatform));
-
     for (final (description, invalidAid, invalidPin, name) in [
       ('an AID shorter than 5 bytes', Uint8List(4), pin, 'aid.length'),
       ('an AID longer than 16 bytes', Uint8List(17), pin, 'aid.length'),
