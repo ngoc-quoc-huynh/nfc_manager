@@ -10,10 +10,16 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   final originalPlatform = NfcManagerPlatform.instance;
-  tearDown(() => NfcManagerPlatform.instance = originalPlatform);
 
   final nfcManager = NfcManagerAndroidPlatform();
   final methodChannel = nfcManager.methodChannel;
+
+  tearDown(() {
+    NfcManagerPlatform.instance = originalPlatform;
+    methodChannel.clearMockCallHandler();
+    nfcManager.discoveryEventChannel.clearMockStream();
+    nfcManager.hostCardEmulationEventChannel.clearMockStream();
+  });
 
   test('registers the Android platform implementation.', () {
     NfcManagerAndroidPlatform.registerWith();
@@ -28,12 +34,11 @@ void main() {
     group(method, () {
       for (final response in [true, false]) {
         test('calls $method and returns $response.', () async {
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-              .setMockMethodCallHandler(methodChannel, (call) async {
-                expect(call.method, method);
-                expect(call.arguments, isNull);
-                return response;
-              });
+          methodChannel.setMockCallHandler((call) async {
+            expect(call.method, method);
+            expect(call.arguments, isNull);
+            return response;
+          });
 
           expect(await check(), response);
         });
@@ -48,21 +53,17 @@ void main() {
         () async {
           final listening = Completer<void>();
           final cancelled = Completer<void>();
-          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-              .setMockStreamHandler(
-                nfcManager.discoveryEventChannel,
-                MockStreamHandler.inline(
-                  onListen: (arguments, events) {
-                    expect(arguments, {'timeout': milliseconds});
-                    listening.complete();
-                    events.success('A1');
-                  },
-                  onCancel: (arguments) {
-                    expect(arguments, {'timeout': milliseconds});
-                    cancelled.complete();
-                  },
-                ),
-              );
+          nfcManager.discoveryEventChannel.setMockListener(
+            (arguments, events) {
+              expect(arguments, {'timeout': milliseconds});
+              listening.complete();
+              events.success('A1');
+            },
+            onCancel: (arguments) {
+              expect(arguments, {'timeout': milliseconds});
+              cancelled.complete();
+            },
+          );
 
           final stream = nfcManager.startDiscovery(
             timeout: milliseconds == null
@@ -144,25 +145,13 @@ void main() {
     test(
       'sends the serialized command using the existing wire format.',
       () async {
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(methodChannel, (call) async {
-              expect(call.method, 'sendCommand');
-              expect(call.arguments, {
-                'command': Uint8List.fromList([
-                  0,
-                  0xA4,
-                  4,
-                  0,
-                  5,
-                  0xF0,
-                  0,
-                  0,
-                  0,
-                  1,
-                ]),
-              });
-              return Uint8List.fromList([0x90, 0]);
-            });
+        methodChannel.setMockCallHandler((call) async {
+          expect(call.method, 'sendCommand');
+          expect(call.arguments, {
+            'command': Uint8List.fromList([0, 0xA4, 4, 0, 5, 0xF0, 0, 0, 0, 1]),
+          });
+          return Uint8List.fromList([0x90, 0]);
+        });
 
         expect(
           await nfcManager.sendCommand(
@@ -185,13 +174,9 @@ void main() {
     test(
       'converts native connection errors to TagConnectionException.',
       () async {
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(
-              methodChannel,
-              (_) async => throw PlatformException(
-                code: 'TAG_CONNECTION_FAILED',
-              ),
-            );
+        methodChannel.setMockCallHandler(
+          (_) async => throw PlatformException(code: 'TAG_CONNECTION_FAILED'),
+        );
 
         await expectLater(
           nfcManager.sendCommand(
@@ -255,21 +240,17 @@ void main() {
         final pin = Uint8List.fromList([1]);
         final listening = Completer<void>();
         final cancelled = Completer<void>();
-        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockStreamHandler(
-              nfcManager.hostCardEmulationEventChannel,
-              MockStreamHandler.inline(
-                onListen: (arguments, events) {
-                  expect(arguments, {'aid': aid, 'pin': pin});
-                  listening.complete();
-                  events.success('READY');
-                },
-                onCancel: (arguments) {
-                  expect(arguments, {'aid': aid, 'pin': pin});
-                  cancelled.complete();
-                },
-              ),
-            );
+        nfcManager.hostCardEmulationEventChannel.setMockListener(
+          (arguments, events) {
+            expect(arguments, {'aid': aid, 'pin': pin});
+            listening.complete();
+            events.success('READY');
+          },
+          onCancel: (arguments) {
+            expect(arguments, {'aid': aid, 'pin': pin});
+            cancelled.complete();
+          },
+        );
 
         final stream = nfcManager.startEmulation(aid: aid, pin: pin);
         expect(listening.isCompleted, isFalse);
