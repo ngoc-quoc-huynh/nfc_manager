@@ -66,3 +66,25 @@ jobs:
           dart format --set-exit-if-changed .
           flutter analyze --no-pub
           dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
+
+  legacy:
+    name: Minimum Flutter analysis
+    runs-on: ubuntu-latest
+    env:
+      # Latest patch of the minimum supported Flutter minor (see pubspec.yaml).
+      MISE_FLUTTER_VERSION: '3.44.9'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.5"
+          install_args: "flutter"
+
+      - name: Install dependencies
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter pub get --no-example
+      # Compile compatibility only: the repo lint set needs a newer Dart.
+      - name: Analyze code
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib test
