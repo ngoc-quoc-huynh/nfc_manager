@@ -10,9 +10,7 @@ import io.flutter.plugin.common.MethodChannel.Result
  * @return The hexadecimal string representation of the ByteArray.
  */
 internal fun ByteArray.toHexString(): String =
-    joinToString(separator = "") { byte ->
-        "%02x".format(byte)
-    }.uppercase()
+    toHexString(HexFormat { upperCase = true })
 
 /**
  * Emits an error status to the Flutter side.
