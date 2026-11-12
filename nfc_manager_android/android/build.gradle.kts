@@ -13,6 +13,7 @@ buildscript {
     }
 
     dependencies {
+        //noinspection AndroidGradlePluginVersion
         classpath("com.android.tools.build:gradle:8.13.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
@@ -59,6 +60,10 @@ android {
 
     defaultConfig {
         minSdk = flutter.minSdkVersion
+    }
+
+    lint {
+        warningsAsErrors = true
     }
 
     testOptions {
