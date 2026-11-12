@@ -226,7 +226,7 @@ class HostCardEmulationTest {
     }
 
     @Test
-    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when is not supported`() {
+    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when the instruction is neither SELECT nor VERIFY`() {
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =
@@ -344,7 +344,7 @@ class HostCardEmulationTest {
     }
 
     @Test
-    fun `processCommandApdu emits UNKNOWN when NfcException is thrown`() {
+    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH when Lc does not match the data length`() {
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray =

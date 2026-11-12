@@ -28,7 +28,7 @@ class FeatureCheckerTest {
     }
 
     @Test
-    fun `isHceSupported returns false when device does not supports NFC host card emulation`() {
+    fun `isHceSupported returns false when device does not support NFC host card emulation`() {
         whenever(
             mockPackageManager.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION),
         ).thenReturn(
@@ -66,7 +66,7 @@ class FeatureCheckerTest {
                 packageManager = mockPackageManager,
                 nfcAdapter = null,
             )
-        assertFalse(featureChecker.isNfcSupported())
+        assertFalse(featureChecker.isNfcEnabled())
     }
 
     @Test
