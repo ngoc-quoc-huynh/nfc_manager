@@ -1,6 +1,7 @@
 export 'package:plugin_platform_interface/plugin_platform_interface.dart'
     show MockPlatformInterfaceMixin;
 
+export 'src/emulation_input.dart' show checkAidLength, checkPinLength;
 export 'src/exceptions.dart';
 export 'src/extensions.dart';
 export 'src/models/command.dart';

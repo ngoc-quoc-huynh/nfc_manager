@@ -267,7 +267,7 @@ void main() {
   });
 
   group('Command.selectAid', () {
-    test('rejects AIDs outside the 5–16 byte range.', () {
+    test('rejects AIDs outside the 5 to 16 byte range.', () {
       for (final length in [0, 1, 4, 17]) {
         expect(
           () => Command.selectAid(Uint8List(length)),
@@ -314,7 +314,13 @@ void main() {
       for (final length in [0, 256]) {
         expect(
           () => Command.verifyPin(Uint8List(length)),
-          throwsRangeError,
+          throwsA(
+            isA<RangeError>()
+                .having((error) => error.invalidValue, 'invalidValue', length)
+                .having((error) => error.start, 'start', 1)
+                .having((error) => error.end, 'end', 255)
+                .having((error) => error.name, 'name', 'pin.length'),
+          ),
           reason: 'PIN length: $length',
         );
       }

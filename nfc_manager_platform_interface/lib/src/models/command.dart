@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:nfc_manager_platform_interface/src/emulation_input.dart';
 
 /// An immutable short Application Protocol Data Unit (APDU) command.
 ///
@@ -36,7 +37,7 @@ final class Command {
   ///
   /// Throws [RangeError] if the AID length is outside that range.
   factory Command.selectAid(Uint8List aid) {
-    RangeError.checkValueInInterval(aid.length, 5, 16, 'aid.length');
+    checkAidLength(aid);
     return Command(
       cla: 0x00,
       ins: 0xA4,
@@ -54,8 +55,10 @@ final class Command {
   /// the target card. The payload is copied.
   ///
   /// Throws [RangeError] if the PIN length is outside that range.
-  factory Command.verifyPin(Uint8List pin) =>
-      Command(cla: 0x00, ins: 0x20, p1: 0x00, p2: 0x00, data: pin);
+  factory Command.verifyPin(Uint8List pin) {
+    checkPinLength(pin);
+    return Command(cla: 0x00, ins: 0x20, p1: 0x00, p2: 0x00, data: pin);
+  }
 
   /// The command class byte (CLA).
   final int cla;
