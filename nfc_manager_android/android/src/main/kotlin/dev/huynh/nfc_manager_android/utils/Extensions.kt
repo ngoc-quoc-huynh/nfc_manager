@@ -9,7 +9,7 @@ import io.flutter.plugin.common.MethodChannel.Result
  * 
  * @return The hexadecimal string representation of the ByteArray.
  */
-fun ByteArray.toHexString(): String =
+internal fun ByteArray.toHexString(): String =
     joinToString(separator = "") { byte ->
         "%02x".format(byte)
     }.uppercase()
@@ -19,7 +19,7 @@ fun ByteArray.toHexString(): String =
  * 
  * @param exception The `NfcException` to emit, which contains the error code and message to be sent.
  */
-fun Result.error(exception: NfcException) =
+internal fun Result.error(exception: NfcException) =
     error(
         exception.code,
         exception.message,
@@ -31,7 +31,7 @@ fun Result.error(exception: NfcException) =
  * 
  * @param exception The `NfcException` to emit, which contains the error code and message to be sent.
  */
-fun EventSink.error(exception: NfcException) =
+internal fun EventSink.error(exception: NfcException) =
     error(
         exception.code,
         exception.message,
@@ -43,4 +43,4 @@ fun EventSink.error(exception: NfcException) =
  * 
  * @return The unsigned integer representation of the Byte.
  */
-fun Byte.toUnsignedInt(): Int = toInt() and 0xFF
+internal fun Byte.toUnsignedInt(): Int = toInt() and 0xFF

@@ -24,7 +24,7 @@ import java.util.concurrent.RejectedExecutionException
 /**
  * Discovers ISO-DEP tags and manages the active tag connection.
  */
-class TagReader(
+internal class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
 ) : StreamHandler {

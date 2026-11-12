@@ -8,7 +8,7 @@ import io.flutter.plugin.common.EventChannel.EventSink
  * The Android-managed [HostCardEmulation] service and the plugin's stream handler are different
  * instances, so they share the session through this object.
  */
-object HostCardEmulationConfig {
+internal object HostCardEmulationConfig {
     /**
      * An active HCE session.
      *

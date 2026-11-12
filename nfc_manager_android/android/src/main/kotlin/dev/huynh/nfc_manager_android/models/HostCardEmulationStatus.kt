@@ -3,7 +3,7 @@ package dev.huynh.nfc_manager_android.models
 /**
  * Represents the status of the host card emulation (HCE) operation.
  */
-enum class HostCardEmulationStatus {
+internal enum class HostCardEmulationStatus {
     /**
      * Indicates that the HCE is ready for operations.
      */

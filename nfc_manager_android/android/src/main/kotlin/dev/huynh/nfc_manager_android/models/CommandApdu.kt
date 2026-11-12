@@ -8,7 +8,7 @@ import java.util.Objects
 /**
  * Application Protocol Data Unit (APDU) commands used in NFC operations.
  */
-data class CommandApdu(
+internal data class CommandApdu(
     /**
      * The class byte (CLA) of the APDU command, which identifies the category of
      * the command.

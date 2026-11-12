@@ -9,7 +9,7 @@ import android.nfc.NfcAdapter
  * This class allows querying whether the device hardware supports NFC, if NFC is currently enabled,
  * and whether the device supports NFC Host Card Emulation (HCE).
  */
-class FeatureChecker(
+internal class FeatureChecker(
     private val nfcAdapter: NfcAdapter?,
     private val packageManager: PackageManager,
 ) {

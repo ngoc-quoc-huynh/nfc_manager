@@ -6,7 +6,7 @@ package dev.huynh.nfc_manager_android
  * @param code The error code.
  * @param message The error message.
  */
-sealed class NfcException(
+internal sealed class NfcException(
     val code: String,
     message: String,
 ) : Exception(message)
@@ -17,7 +17,7 @@ sealed class NfcException(
  *
  * The message is fixed and never echoes the received value or its type.
  */
-class InvalidArgumentsException :
+internal class InvalidArgumentsException :
     NfcException(
         "INVALID_ARGUMENTS",
         "The arguments are missing or have the wrong type.",
@@ -29,7 +29,7 @@ class InvalidArgumentsException :
  *
  * The message is fixed and never echoes the command or its length.
  */
-class InvalidApduCommandException :
+internal class InvalidApduCommandException :
     NfcException(
         "INVALID_APDU_COMMAND",
         "APDU command must be at least 4 bytes long and no longer than the tag accepts.",
@@ -38,7 +38,7 @@ class InvalidApduCommandException :
 /**
  * Exception thrown when the LC value does not match the length of the Data field in the APDU command.
  */
-class InvalidLcDataLengthException :
+internal class InvalidLcDataLengthException :
     NfcException(
         "INVALID_LC_DATA_LENGTH",
         "The LC value does not match the length of the Data field in the APDU command.",
@@ -47,7 +47,7 @@ class InvalidLcDataLengthException :
 /**
  * Exception thrown when the NFC tag does not support ISO-DEP.
  */
-class IsoDepNotSupportedException :
+internal class IsoDepNotSupportedException :
     NfcException(
         "ISO_DEP_NOT_SUPPORTED",
         "The NFC tag does not support ISO-DEP.",
@@ -56,7 +56,7 @@ class IsoDepNotSupportedException :
 /**
  * Exception thrown when the device does not support NFC.
  */
-class NfcNotSupportedException :
+internal class NfcNotSupportedException :
     NfcException(
         "NFC_NOT_SUPPORTED",
         "This device does not support NFC.",
@@ -65,7 +65,7 @@ class NfcNotSupportedException :
 /**
  * Exception thrown when the tag connection failed.
  */
-class TagConnectionException :
+internal class TagConnectionException :
     NfcException(
         "TAG_CONNECTION_FAILED",
         "Failed to establish a connection with the NFC tag or the tag was lost.",
@@ -74,7 +74,7 @@ class TagConnectionException :
 /**
  * Exception thrown when an unexpected error occurs while reading NFC tags.
  */
-class UnexpectedNfcException :
+internal class UnexpectedNfcException :
     NfcException(
         "NFC_ERROR",
         "Unexpected NFC reader error.",
