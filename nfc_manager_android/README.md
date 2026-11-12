@@ -21,5 +21,5 @@ Older Android toolchains are not built in CI.
 On AGP 9 hosts, the plugin uses built-in Kotlin when enabled and falls back
 to the Kotlin Android plugin when the host opts out.
 
-Interactive examples use Flutter 3.47.6 and AGP 9.4.1 with built-in Kotlin.
+Interactive examples use the Flutter version pinned in `mise.toml` and AGP 9.4.1 with built-in Kotlin.
 They retain `android.newDsl=false` for Flutter's legacy DSL compatibility.
