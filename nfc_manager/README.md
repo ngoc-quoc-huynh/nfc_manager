@@ -26,6 +26,8 @@ dependencies:
   nfc_manager:
     git:
       url: https://github.com/ngoc-quoc-huynh/nfc_manager
+      path: nfc_manager
+      ref: main # replace with a release tag or commit SHA to pin a version
 ```
 
 ### Android HCE setup
