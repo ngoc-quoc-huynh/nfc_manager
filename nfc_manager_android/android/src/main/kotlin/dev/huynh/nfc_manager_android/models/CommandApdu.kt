@@ -82,13 +82,13 @@ data class CommandApdu(
                 5 -> le = command[4]
                 6 -> {
                     lc = command[4]
-                    val lcLength = lc.toUnsignedInt()
 
-                    when (lcLength) {
-                        0 -> le = command[5]
-                        1 -> data = command.sliceArray(5 until 6)
-                        else -> throw InvalidLcDataLengthException()
+                    // Only Lc = 01 with one data byte fits; ISO/IEC 7816-4 short APDUs disallow Lc = 00.
+                    if (lc.toUnsignedInt() != 1) {
+                        throw InvalidLcDataLengthException()
                     }
+
+                    data = command.sliceArray(5 until 6)
                 }
 
                 else -> {

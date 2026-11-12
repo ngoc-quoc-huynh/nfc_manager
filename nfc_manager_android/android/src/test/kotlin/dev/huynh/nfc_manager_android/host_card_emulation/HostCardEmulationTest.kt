@@ -264,6 +264,19 @@ class HostCardEmulationTest {
     }
 
     @Test
+    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH for a 6-byte command with Lc 00`() {
+        val response =
+            hostCardEmulation.processCommandApdu(
+                commandByteArray = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
+                extras = null,
+            )
+
+        assertContentEquals(byteArrayOf(0x67, 0x00), response)
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
     fun `processCommandApdu answers 67 00 and emits INVALID_COMMAND for commands shorter than 4 bytes`() {
         for (size in 0..3) {
             val response =
