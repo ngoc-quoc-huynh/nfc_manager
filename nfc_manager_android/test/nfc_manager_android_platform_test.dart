@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_android/nfc_manager_android.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 import 'utils.dart';
 

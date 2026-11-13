@@ -1,3 +1,1 @@
-export 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
-
-export 'src/platform.dart';
+export 'src/nfc_manager_android_platform.dart';
