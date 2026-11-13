@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class CommandApduTest {
     @Test
@@ -37,34 +38,14 @@ class CommandApduTest {
 
     @Test
     fun `fromByteArray returns CLA, INS, P1, P2 when command is exactly 4 bytes`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-            ),
-            CommandApdu.fromByteArray(
-                byteArrayOf(
-                    0x00.toByte(),
-                    0x00.toByte(),
-                    0x00.toByte(),
-                    0x00.toByte(),
-                ),
-            ),
-        )
+        val command = CommandApdu.fromByteArray(byteArrayOf(0x01, 0x02, 0x03, 0x04))
+
+        assertCommand(command, header = byteArrayOf(0x01, 0x02, 0x03, 0x04))
     }
 
     @Test
     fun `fromByteArray returns CLA, INS, P1, P2, LE when command is exactly 5 bytes`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-                le = 0x00.toByte(),
-            ),
+        val command =
             CommandApdu.fromByteArray(
                 byteArrayOf(
                     0x00.toByte(),
@@ -73,8 +54,9 @@ class CommandApduTest {
                     0x00.toByte(),
                     0x00.toByte(),
                 ),
-            ),
-        )
+            )
+
+        assertCommand(command, le = 0x00)
     }
 
     @Test
@@ -95,15 +77,7 @@ class CommandApduTest {
 
     @Test
     fun `fromByteArray returns CLA, INS, P1, P2, LC, DATA when command is exactly 6 bytes and LC is 0x01`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-                lc = 0x01.toByte(),
-                data = byteArrayOf(0x00.toByte()),
-            ),
+        val command =
             CommandApdu.fromByteArray(
                 byteArrayOf(
                     0x00.toByte(),
@@ -113,8 +87,9 @@ class CommandApduTest {
                     0x01.toByte(),
                     0x00.toByte(),
                 ),
-            ),
-        )
+            )
+
+        assertCommand(command, data = byteArrayOf(0x00))
     }
 
     @Test
@@ -152,15 +127,7 @@ class CommandApduTest {
 
     @Test
     fun `fromByteArray returns CLA, INS, P1, P2, LC, Data when command is more than 6 bytes`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-                lc = 0x02.toByte(),
-                data = byteArrayOf(0x00.toByte(), 0x00.toByte()),
-            ),
+        val command =
             CommandApdu.fromByteArray(
                 byteArrayOf(
                     0x00.toByte(),
@@ -171,22 +138,14 @@ class CommandApduTest {
                     0x00.toByte(),
                     0x00.toByte(),
                 ),
-            ),
-        )
+            )
+
+        assertCommand(command, data = byteArrayOf(0x00, 0x00))
     }
 
     @Test
     fun `fromByteArray returns CLA, INS, P1, P2, LC, Data, LE when command is more than 6 bytes and LE is present`() {
-        assertEquals(
-            CommandApdu(
-                cla = 0x00.toByte(),
-                ins = 0x00.toByte(),
-                p1 = 0x00.toByte(),
-                p2 = 0x00.toByte(),
-                lc = 0x01.toByte(),
-                data = byteArrayOf(0x00.toByte()),
-                le = 0x00.toByte(),
-            ),
+        val command =
             CommandApdu.fromByteArray(
                 byteArrayOf(
                     0x00.toByte(),
@@ -197,7 +156,44 @@ class CommandApduTest {
                     0x00.toByte(),
                     0x00.toByte(),
                 ),
-            ),
-        )
+            )
+
+        assertCommand(command, data = byteArrayOf(0x00), le = 0x00)
+    }
+
+    @Test
+    fun `lc is the data length`() {
+        val command =
+            CommandApdu(
+                cla = 0x00,
+                ins = 0x00,
+                p1 = 0x00,
+                p2 = 0x00,
+                data = ByteArray(255),
+            )
+
+        assertEquals(255, command.lc)
+    }
+
+    @Test
+    fun `lc is null without data`() {
+        val command = CommandApdu(cla = 0x00, ins = 0x00, p1 = 0x00, p2 = 0x00, le = 0x00)
+
+        assertNull(command.lc)
+    }
+
+    /**
+     * Asserts every field of [command]; [header] holds the expected CLA, INS, P1 and P2.
+     */
+    private fun assertCommand(
+        command: CommandApdu,
+        header: ByteArray = byteArrayOf(0x00, 0x00, 0x00, 0x00),
+        data: ByteArray? = null,
+        le: Byte? = null,
+    ) {
+        assertContentEquals(header, byteArrayOf(command.cla, command.ins, command.p1, command.p2))
+        assertEquals(data?.size, command.lc)
+        assertContentEquals(data, command.data)
+        assertEquals(le, command.le)
     }
 }
