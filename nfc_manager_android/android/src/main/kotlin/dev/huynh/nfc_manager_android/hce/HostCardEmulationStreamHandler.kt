@@ -1,4 +1,4 @@
-package dev.huynh.nfc_manager_android.host_card_emulation
+package dev.huynh.nfc_manager_android.hce
 
 import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
@@ -10,7 +10,7 @@ import io.flutter.plugin.common.EventChannel.StreamHandler
  * Starts and stops the HCE session for the plugin's HCE event channel.
  *
  * Listening starts a session that this handler owns; cancelling clears it. The
- * [HostCardEmulation] service reads the session to answer APDUs.
+ * [HostCardEmulationService] reads the session to answer APDUs.
  */
 internal class HostCardEmulationStreamHandler : StreamHandler {
     private var closed = false

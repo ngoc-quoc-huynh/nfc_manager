@@ -1,4 +1,4 @@
-package dev.huynh.nfc_manager_android.host_card_emulation
+package dev.huynh.nfc_manager_android.hce
 
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
@@ -16,7 +16,7 @@ import java.security.MessageDigest
  * [HostCardEmulationConfig.Session] and emits each outcome to the session's event sink. Without a
  * session it answers `69 82` (HCE not ready).
  */
-class HostCardEmulation : HostApduService() {
+class HostCardEmulationService : HostApduService() {
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,

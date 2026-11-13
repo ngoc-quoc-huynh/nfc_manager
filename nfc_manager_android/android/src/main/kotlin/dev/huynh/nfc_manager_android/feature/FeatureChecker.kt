@@ -1,4 +1,4 @@
-package dev.huynh.nfc_manager_android.feature_checker
+package dev.huynh.nfc_manager_android.feature
 
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
