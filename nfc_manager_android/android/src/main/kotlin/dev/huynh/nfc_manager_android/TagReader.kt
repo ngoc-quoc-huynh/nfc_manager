@@ -11,30 +11,37 @@ import dev.huynh.nfc_manager_android.utils.toHexString
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.io.IOException
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.RejectedExecutionException
 
 /**
  * Discovers ISO-DEP tags and manages the active tag connection.
+ *
+ * @param ioExecutor is dedicated to this reader and runs blocking tag I/O one task at a time,
+ * in submission order, on a background thread. [dispose] shuts it down.
+ * @param mainThreadExecutor delivers asynchronous command replies and discovery events on the
+ * main thread. It must accept pending callbacks through [dispose].
+ * @param isoDepFor returns the ISO-DEP technology of a discovered tag, or null if it has none.
  */
 internal class TagReader(
     private val activity: Activity,
     private val nfcAdapter: NfcAdapter?,
+    private val ioExecutor: ExecutorService = newTagIoExecutor(),
+    private val mainThreadExecutor: Executor = Executor(activity::runOnUiThread),
+    private val isoDepFor: (Tag) -> IsoDep? = IsoDep::get,
 ) : StreamHandler {
     private val stateLock = Any()
-    private val ioExecutor =
-        Executors.newSingleThreadExecutor { runnable ->
-            Thread(runnable, "nfc-tag-io").apply { isDaemon = true }
-        }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var eventSink: EventSink? = null
+    var eventSink: EventSink? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var isoDep: IsoDep? = null
+    var isoDep: IsoDep? = null
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
-    internal var timeout: Int? = null
+    var timeout: Int? = null
 
     // Bumped on every listen and cancel so the I/O worker can discard stale results.
     private var session = 0L
@@ -45,6 +52,8 @@ internal class TagReader(
      *
      * A malformed command, or one exceeding Android's transceive limit, is answered with
      * [InvalidApduCommandException] and the tag stays connected.
+     * If the I/O executor rejects the request, [onError] is called immediately on the caller
+     * thread.
      *
      * @throws NfcException if the command is invalid or no tag is connected.
      */
@@ -82,7 +91,7 @@ internal class TagReader(
         onError: (Throwable) -> Unit,
     ) {
         if (!isActive(tag, commandSession)) {
-            activity.runOnUiThread { onError(TagConnectionException()) }
+            mainThreadExecutor.execute { onError(TagConnectionException()) }
             return
         }
 
@@ -104,14 +113,14 @@ internal class TagReader(
                     } else {
                         exception
                     }
-                activity.runOnUiThread { onError(error) }
+                mainThreadExecutor.execute { onError(error) }
                 return
             }
 
         if (response == null) {
-            activity.runOnUiThread { onError(InvalidApduCommandException()) }
+            mainThreadExecutor.execute { onError(InvalidApduCommandException()) }
         } else {
-            activity.runOnUiThread { onSuccess(response) }
+            mainThreadExecutor.execute { onSuccess(response) }
         }
     }
 
@@ -187,7 +196,7 @@ internal class TagReader(
 
         val tagIsoDep =
             try {
-                IsoDep.get(tag)
+                isoDepFor(tag)
             } catch (_: SecurityException) {
                 emitError(listenSession, TagConnectionException())
                 return
@@ -326,7 +335,7 @@ internal class TagReader(
         listenSession: Long,
         action: (EventSink) -> Unit,
     ) {
-        activity.runOnUiThread {
+        mainThreadExecutor.execute {
             val sink = synchronized(stateLock) { if (isListening && session == listenSession) eventSink else null }
             sink?.let(action)
         }
@@ -344,4 +353,11 @@ internal class TagReader(
 
     private fun emitUnexpectedError(listenSession: Long) =
         emitError(listenSession, UnexpectedNfcException())
+
+    private companion object {
+        fun newTagIoExecutor(): ExecutorService =
+            Executors.newSingleThreadExecutor { runnable ->
+                Thread(runnable, "nfc-tag-io").apply { isDaemon = true }
+            }
+    }
 }
