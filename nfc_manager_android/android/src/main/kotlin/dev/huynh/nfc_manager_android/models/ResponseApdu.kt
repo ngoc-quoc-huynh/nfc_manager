@@ -46,7 +46,7 @@ internal enum class ResponseApdu(
     ;
 
     /**
-     * Returns the status word of the APDU response.
+     * Returns a copy of the status word, so callers cannot change the shared constant.
      */
-    operator fun invoke(): ByteArray = statusWord
+    fun toByteArray(): ByteArray = statusWord.copyOf()
 }

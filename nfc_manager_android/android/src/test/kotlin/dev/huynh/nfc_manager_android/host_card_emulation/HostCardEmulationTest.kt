@@ -105,7 +105,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.HCE_NOT_READY(), response)
+        assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), response)
     }
 
     @Test
@@ -116,7 +116,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.NULL_COMMAND(), response)
+        assertContentEquals(ResponseApdu.NULL_COMMAND.toByteArray(), response)
     }
 
     @Test
@@ -127,7 +127,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
     }
 
@@ -139,7 +139,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.INVALID_AID(), response)
+        assertContentEquals(ResponseApdu.INVALID_AID.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.INVALID_AID.name)
     }
 
@@ -151,7 +151,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
     }
 
@@ -163,7 +163,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
     }
 
@@ -176,7 +176,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
     }
 
@@ -189,7 +189,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
     }
 
@@ -239,7 +239,7 @@ class HostCardEmulationTest {
                 extras = null,
             )
 
-        assertContentEquals(ResponseApdu.FUNCTION_NOT_SUPPORTED(), response)
+        assertContentEquals(ResponseApdu.FUNCTION_NOT_SUPPORTED.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED.name)
     }
 
@@ -261,7 +261,7 @@ class HostCardEmulationTest {
         val response =
             hostCardEmulation.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID, le = 0x00), null)
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
     }
 
@@ -283,7 +283,7 @@ class HostCardEmulationTest {
 
         val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin), null)
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
     }
 
@@ -294,7 +294,7 @@ class HostCardEmulationTest {
 
         val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin, le = 0x00), null)
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
     }
 
@@ -306,7 +306,7 @@ class HostCardEmulationTest {
 
         val response = hostCardEmulation.processCommandApdu(shortDataApdu(VERIFY_HEADER, attempt, le = 0x00), null)
 
-        assertContentEquals(ResponseApdu.WRONG_PIN(), response)
+        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
     }
 

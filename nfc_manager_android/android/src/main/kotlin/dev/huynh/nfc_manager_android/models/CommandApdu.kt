@@ -3,12 +3,11 @@ package dev.huynh.nfc_manager_android.models
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.utils.toUnsignedInt
-import java.util.Objects
 
 /**
  * Application Protocol Data Unit (APDU) commands used in NFC operations.
  */
-internal data class CommandApdu(
+internal class CommandApdu(
     /**
      * The class byte (CLA) of the APDU command, which identifies the category of
      * the command.
@@ -32,13 +31,6 @@ internal data class CommandApdu(
      * further instruction specifics or conditions.
      */
     val p2: Byte,
-
-    /**
-     * An optional length byte (Lc) that indicates the number of bytes in the
-     * command data field.
-     * This is only present if the command includes data.
-     */
-    val lc: Byte? = null,
 
     /**
      * Optional data payload for the command, represented as a sequence of bytes.
@@ -75,39 +67,25 @@ internal data class CommandApdu(
             val p1 = command[2]
             val p2 = command[3]
 
-            var lc: Byte? = null
             var data: ByteArray? = null
             var le: Byte? = null
 
-            when (command.size) {
-                4 -> Unit
-                5 -> le = command[4]
-                6 -> {
-                    lc = command[4]
+            if (command.size == 5) {
+                le = command[4]
+            } else if (command.size > 5) {
+                // ISO/IEC 7816-4 short APDUs disallow Lc = 00.
+                val lcLength = command[4].toUnsignedInt()
+                val dataEndIndex = lcLength + 5
+                val isLePresent = command.size == dataEndIndex + 1
 
-                    // Only Lc = 01 with one data byte fits; ISO/IEC 7816-4 short APDUs disallow Lc = 00.
-                    if (lc.toUnsignedInt() != 1) {
-                        throw InvalidLcDataLengthException()
-                    }
-
-                    data = command.sliceArray(5 until 6)
+                if (lcLength == 0 || (command.size != dataEndIndex && !isLePresent)) {
+                    throw InvalidLcDataLengthException()
                 }
 
-                else -> {
-                    lc = command[4]
-                    val lcLength = lc.toUnsignedInt()
-                    val dataEndIndex = lcLength + 5
-                    val isLePresent = command.size == dataEndIndex + 1
+                data = command.sliceArray(5 until dataEndIndex)
 
-                    if (command.size != dataEndIndex && !isLePresent) {
-                        throw InvalidLcDataLengthException()
-                    }
-
-                    data = command.sliceArray(5 until dataEndIndex)
-
-                    if (isLePresent) {
-                        le = command[dataEndIndex]
-                    }
+                if (isLePresent) {
+                    le = command[dataEndIndex]
                 }
             }
 
@@ -116,35 +94,9 @@ internal data class CommandApdu(
                 ins = ins,
                 p1 = p1,
                 p2 = p2,
-                lc = lc,
                 data = data,
                 le = le,
             )
         }
     }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || javaClass != other.javaClass) return false
-        other as CommandApdu
-
-        return cla == other.cla &&
-            ins == other.ins &&
-            p1 == other.p1 &&
-            p2 == other.p2 &&
-            lc == other.lc &&
-            data.contentEquals(other.data) &&
-            le == other.le
-    }
-
-    override fun hashCode(): Int =
-        Objects.hash(
-            cla,
-            ins,
-            p1,
-            p2,
-            lc,
-            data?.contentHashCode(),
-            le,
-        )
 }

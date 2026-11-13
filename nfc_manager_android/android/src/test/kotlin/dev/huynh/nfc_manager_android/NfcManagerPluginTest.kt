@@ -92,7 +92,7 @@ class NfcManagerPluginTest {
     @Test
     fun `sendCommand method call returns correctly`() {
         whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer { invocation ->
-            invocation.getArgument<(ByteArray) -> Unit>(1)(ResponseApdu.OK())
+            invocation.getArgument<(ByteArray) -> Unit>(1)(ResponseApdu.OK.toByteArray())
         }
         plugin.onMethodCall(
             MethodCall(
@@ -102,7 +102,7 @@ class NfcManagerPluginTest {
             mockResult,
         )
 
-        verify(mockResult).success(ResponseApdu.OK())
+        verify(mockResult).success(ResponseApdu.OK.toByteArray())
     }
 
     @Test
@@ -258,7 +258,7 @@ class NfcManagerPluginTest {
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
         val response = HostCardEmulation().processCommandApdu(selectCommand, null)
 
-        assertContentEquals(ResponseApdu.HCE_NOT_READY(), response)
+        assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), response)
         assertNull(plugin.hostCardEmulationStreamHandler)
         verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
         verifyNoMoreInteractions(mockEventSink)
@@ -274,7 +274,7 @@ class NfcManagerPluginTest {
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
         val response = HostCardEmulation().processCommandApdu(selectCommand, null)
 
-        assertContentEquals(ResponseApdu.OK(), response)
+        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
     }
 
@@ -297,18 +297,18 @@ class NfcManagerPluginTest {
 
         val service = HostCardEmulation()
         deliverListen()
-        assertContentEquals(ResponseApdu.OK(), service.processCommandApdu(selectCommand, null))
+        assertContentEquals(ResponseApdu.OK.toByteArray(), service.processCommandApdu(selectCommand, null))
 
         plugin.onDetachedFromEngine(binding)
-        assertContentEquals(ResponseApdu.HCE_NOT_READY(), service.processCommandApdu(selectCommand, null))
+        assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), service.processCommandApdu(selectCommand, null))
 
         deliverListen()
-        assertContentEquals(ResponseApdu.HCE_NOT_READY(), service.processCommandApdu(selectCommand, null))
+        assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), service.processCommandApdu(selectCommand, null))
 
         val otherSink = mock<EventSink>()
         HostCardEmulation().onListen(hceArguments, otherSink)
         deliverListen()
-        assertContentEquals(ResponseApdu.OK(), service.processCommandApdu(selectCommand, null))
+        assertContentEquals(ResponseApdu.OK.toByteArray(), service.processCommandApdu(selectCommand, null))
         verify(otherSink).success(HostCardEmulationStatus.AID_SELECTED.name)
     }
 

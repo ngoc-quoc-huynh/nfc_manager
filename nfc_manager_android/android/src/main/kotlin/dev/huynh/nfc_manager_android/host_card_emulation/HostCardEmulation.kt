@@ -32,11 +32,14 @@ class HostCardEmulation :
         commandByteArray: ByteArray?,
         extras: Bundle?,
     ): ByteArray {
-        val session = HostCardEmulationConfig.session ?: return ResponseApdu.HCE_NOT_READY()
-        return when (commandByteArray) {
-            null -> ResponseApdu.NULL_COMMAND()
-            else -> handleCommand(session, commandByteArray)
-        }
+        val session = HostCardEmulationConfig.session
+        val response =
+            when {
+                session == null -> ResponseApdu.HCE_NOT_READY
+                commandByteArray == null -> ResponseApdu.NULL_COMMAND
+                else -> handleCommand(session, commandByteArray)
+            }
+        return response.toByteArray()
     }
 
     /**
@@ -49,7 +52,7 @@ class HostCardEmulation :
     private fun handleCommand(
         session: HostCardEmulationConfig.Session,
         commandByteArray: ByteArray,
-    ): ByteArray =
+    ): ResponseApdu =
         try {
             val command = CommandApdu.fromByteArray(commandByteArray)
 
@@ -64,13 +67,13 @@ class HostCardEmulation :
                     session.emit(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
                     ResponseApdu.FUNCTION_NOT_SUPPORTED
                 }
-            }()
+            }
         } catch (e: InvalidApduCommandException) {
             session.emit(HostCardEmulationStatus.INVALID_COMMAND)
-            ResponseApdu.WRONG_LENGTH()
+            ResponseApdu.WRONG_LENGTH
         } catch (e: InvalidLcDataLengthException) {
             session.emit(HostCardEmulationStatus.INVALID_LC_LENGTH)
-            ResponseApdu.WRONG_LENGTH()
+            ResponseApdu.WRONG_LENGTH
         }
 
     /**
