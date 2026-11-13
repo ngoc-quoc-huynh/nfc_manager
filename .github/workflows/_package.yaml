@@ -11,6 +11,10 @@ on:
         description: Also run the Android unit tests and lint (Java and Gradle).
         type: boolean
         default: false
+      apk:
+        description: Also build the example debug APK (Java and Gradle).
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -36,7 +40,7 @@ jobs:
         uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
         with:
           version: "2026.10.5"
-          install_args: ${{ inputs.android && 'flutter java' || 'flutter' }}
+          install_args: ${{ (inputs.android || inputs.apk) && 'flutter java' || 'flutter' }}
 
       - name: Cache flutter dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -59,11 +63,15 @@ jobs:
         run: make test PUB_FLAGS=--no-pub
 
       - name: Setup Gradle
-        if: inputs.android
+        if: inputs.android || inputs.apk
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
       - name: Run Android tests and lint
         if: inputs.android
         run: make android
+      - name: Build example APK
+        if: inputs.apk
+        working-directory: ./${{ inputs.package }}/example
+        run: flutter build apk --debug --no-pub
 
   legacy:
     name: Minimum Flutter analysis

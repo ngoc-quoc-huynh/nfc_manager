@@ -21,3 +21,4 @@ jobs:
     uses: ./.github/workflows/_package.yaml
     with:
       package: nfc_manager
+      apk: true
