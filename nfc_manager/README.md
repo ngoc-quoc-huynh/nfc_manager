@@ -81,45 +81,103 @@ Ensure these strings are defined in your `strings.xml` file located in `res/valu
 This setup ensures that your Android application is prepared to handle NFC card emulation via the
 `nfc_manager` plugin. 
 
+### Platform support
+
+Android only. Tag discovery and APDU exchange work with ISO-DEP (ISO 14443-4) tags. Other platforms
+throw `UnimplementedError`.
+
 ### Minimal Examples
 
-#### Checking device capabilities
-- **HCE Support**: Determine if Host Card Emulation (HCE) is supported.
-  ```dart
-  const NfcManager().isHceSupported();
-  ```
-- **NFC Support**: Check if NFC is supported on the device.
-  ```dart
-  const NfcManager().isNfcSupported();
-  ```
-- **NFC Enabled**: Verify if NFC is enabled.
-  ```dart
-  const NfcManager().isNfcEnabled();
-  ```
+Import the package in each snippet below:
 
-#### Starting NFC operations
-- **Discover NFC Tags**: Begin the discovery of nearby NFC tags.
-  ```dart
-  const NfcManager().startDiscovery();
-  ```
+```dart
+import 'dart:convert';
+
+import 'package:nfc_manager/nfc_manager.dart';
+```
+
+#### Checking device capabilities
+
+```dart
+const manager = NfcManager();
+
+final hceSupported = await manager.isHceSupported();
+final nfcSupported = await manager.isNfcSupported();
+final nfcEnabled = await manager.isNfcEnabled();
+```
+
+#### Discovering NFC tags
+
+`startDiscovery` returns a stream. Discovery starts when you listen and stops when you cancel the
+subscription. Each event is the tag ID as uppercase hexadecimal, for example `04A1B2C3`. The optional
+`timeout` limits communication with a discovered tag, not the wait for a tag.
+
+```dart
+final subscription = const NfcManager().startDiscovery().listen(
+  (tagId) => print('Found tag $tagId'),
+  onError: (Object error) {
+    if (error is IsoDepNotSupportedException) {
+      // The tag does not support ISO-DEP.
+    }
+  },
+);
+
+// Later, to stop discovery:
+await subscription.cancel();
+```
 
 #### Communicating with NFC tags
-- **Send an APDU Command**: Send a command to an NFC tag using a specific Application Identifier (AID).
-  ```dart
-  const aid = 'F000000001';
-  final command = ApduCommand.selectAid(aid.hexToBytes());
-  final response = await const NfcManager().sendCommand(command);
-  ```
+
+Send an APDU command to the discovered tag. `ApduResponse` keeps the response `data` and the status
+bytes `sw1` and `sw2`.
+
+```dart
+const aid = 'F000000001';
+
+try {
+  final response = await const NfcManager().sendCommand(
+    ApduCommand.selectAid(aid.hexToBytes()),
+  );
+  if (response.isSuccess) {
+    print('Selected, data: ${response.data.toHex()}');
+  } else {
+    print('Status ${response.status.name}: ${response.statusWord.toRadixString(16)}');
+  }
+} on TagConnectionException {
+  // There is no connection, the tag was lost, or it returned fewer than 2 bytes.
+} on NfcException catch (e) {
+  // Another plugin error. Treat `e.message` as diagnostic text only.
+}
+```
 
 #### Emulating an NFC card
-- **Start NFC Card Emulation**: Emulate an NFC card using a provided AID and PIN.
-  ```dart
-  import 'dart:convert';
 
-  const aid = 'F000000001';
-  const pin = '1234'; // Sent as its UTF-8 bytes: 31 32 33 34.
-  final stream = const NfcManager().startEmulation(
-    aid: aid.hexToBytes(),
-    pin: utf8.encode(pin),
-  );
-  ```
+Emulation starts when you listen to the stream and stops when you cancel the subscription. Encode the
+PIN yourself, here as UTF-8 bytes (`31 32 33 34`).
+
+```dart
+const aid = 'F000000001';
+const pin = '1234';
+
+final subscription = const NfcManager()
+    .startEmulation(aid: aid.hexToBytes(), pin: utf8.encode(pin))
+    .listen((status) {
+      if (status == HostCardEmulationStatus.pinVerified) {
+        // The reader sent the correct PIN.
+      }
+    });
+
+// Later, to stop emulation:
+await subscription.cancel();
+```
+
+#### Handling errors
+
+- `startDiscovery` throws `ArgumentError` when `timeout` is not a positive whole number of
+  milliseconds up to 2147483647.
+- `startEmulation` throws `RangeError` when the AID has fewer than 5 or more than 16 bytes, or the
+  PIN has fewer than 1 or more than 255 bytes.
+- `hexToBytes` throws `FormatException` for an odd length or a non-hexadecimal character.
+- All other errors are subtypes of `NfcException`. `NfcUnknownException` carries the platform's
+  `code`. The `message` of any `NfcException` is untrusted diagnostic text: do not parse it or rely
+  on it.
