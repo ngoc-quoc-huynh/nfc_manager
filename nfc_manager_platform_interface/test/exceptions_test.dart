@@ -186,5 +186,21 @@ void main() {
         'NfcUnknownException(CODE): message',
       ),
     );
+
+    test(
+      'includes an explicitly empty message in toString.',
+      () => expect(
+        const NfcUnknownException(code: 'CODE', message: '').toString(),
+        'NfcUnknownException(CODE): ',
+      ),
+    );
+
+    test(
+      'omits a missing message from toString.',
+      () => expect(
+        const NfcUnknownException(code: 'CODE').toString(),
+        'NfcUnknownException(CODE)',
+      ),
+    );
   });
 }
