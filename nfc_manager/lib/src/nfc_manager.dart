@@ -63,8 +63,9 @@ class NfcManager {
   /// On Android, [timeout] applies to each APDU exchange after connection.
   /// Tag discovery and connection are outside this timeout.
   ///
-  /// On Android, detaching the activity ends the stream. To resume, call
-  /// [startDiscovery] after reattachment and listen to the new stream.
+  /// On Android, detaching the host UI (the activity) ends the stream. To
+  /// resume, call [startDiscovery] after reattachment and listen to the new
+  /// stream.
   ///
   /// Throws [UnimplementedError] synchronously if there is no registered
   /// implementation for this method.

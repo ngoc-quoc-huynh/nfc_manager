@@ -93,9 +93,10 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// Emulation starts when the stream is listened to. Cancel the subscription
   /// to stop emulation. Use one active emulation subscription at a time.
   ///
-  /// On Android, [aid] must also be registered for the HCE service. A ready
-  /// event confirms that the configuration is stored. It does not confirm that
-  /// NFC is enabled or that the device routes commands to the service.
+  /// The platform may require [aid] to be registered with the operating system
+  /// as well. A ready event confirms that the configuration is stored. It does
+  /// not confirm that NFC is enabled or that the device routes commands to the
+  /// service.
   /// Choose the byte encoding of [pin] before calling this method.
   ///
   /// The stream reports [NfcUnknownException] for native HCE errors without a
