@@ -22,13 +22,32 @@ Before creating a pull request, please follow these steps:
 
 1. **Fork the repository**: Create your own fork and clone it to your local machine.
 2. **Create your branch**: Start your new branch from `main` (e.g., `git checkout -b feature/your-feature`).
-3. **Install dependencies**: Ensure all dependencies are installed and up to date.
+3. **Set up your environment**: Follow [Development setup](#development-setup).
 4. **Squash your commits**: Combine your commits into a single, meaningful commit message.
 5. **Add tests**: If you’ve fixed a bug or added new functionality, please include tests.
 6. **Run tests**: Ensure the test suite passes before submitting your PR.
-7. **Format and analyze your code**: Use tools like `make style` to format your code and check for issues.
+7. **Format and analyze your code**: Run `make style` to format your code and `make check` to confirm it passes.
 8. **Create the pull request**: Submit your PR and include a detailed description of the changes made.
 9. **Verify status checks**: Ensure all status checks are passing before finalizing your PR.
+
+## Development setup
+
+The repository pins Flutter and Java in `mise.toml`. Install [mise](https://mise.jdx.dev), then run once
+from the repository root:
+
+```sh
+mise install
+```
+
+Run the commands below inside the package you changed (`nfc_manager`, `nfc_manager_android` or
+`nfc_manager_platform_interface`):
+
+- `make style` formats your code and analyzes it. It modifies files.
+- `make check` runs the same formatting and analysis checks as CI without modifying files.
+- `make test` runs the tests. Pass `seed=1` to reproduce a test order.
+- `make android` runs the Android unit tests and lint. It exists in `nfc_manager_android` only.
+
+Run these from the package directory with `mise exec -- make check` if mise is not activated in your shell.
 
 ## Commit messages
 
