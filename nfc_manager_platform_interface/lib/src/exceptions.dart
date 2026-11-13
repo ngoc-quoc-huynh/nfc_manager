@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart';
 
 /// Base class for all NFC exceptions.
 @immutable
@@ -8,17 +7,6 @@ sealed class NfcException implements Exception {
 
   /// The message associated with the exception.
   final String? message;
-
-  /// Constructs an [NfcException] from a [PlatformException].
-  static NfcException fromPlatformException(PlatformException exception) =>
-      switch (exception.code) {
-        'INVALID_APDU_COMMAND' => const InvalidApduCommandException(),
-        'INVALID_LC_DATA_LENGTH' => const InvalidLcDataLengthException(),
-        'ISO_DEP_NOT_SUPPORTED' => const IsoDepNotSupportedException(),
-        'NFC_NOT_SUPPORTED' => const NfcNotSupportedException(),
-        'TAG_CONNECTION_FAILED' => const TagConnectionException(),
-        _ => NfcUnknownException(exception.message, code: exception.code),
-      };
 
   @override
   bool operator ==(Object other) =>

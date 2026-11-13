@@ -1,6 +1,5 @@
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:nfc_manager_platform_interface/src/exceptions.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 void main() {
   group('NfcException', () {
@@ -14,52 +13,6 @@ void main() {
         expect(unknown, isNot(exception));
       },
     );
-
-    test('maps known platform error codes to NFC exceptions.', () {
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'INVALID_APDU_COMMAND'),
-        ),
-        const InvalidApduCommandException(),
-      );
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'INVALID_LC_DATA_LENGTH'),
-        ),
-        const InvalidLcDataLengthException(),
-      );
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'ISO_DEP_NOT_SUPPORTED'),
-        ),
-        const IsoDepNotSupportedException(),
-      );
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'NFC_NOT_SUPPORTED'),
-        ),
-        const NfcNotSupportedException(),
-      );
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'TAG_CONNECTION_FAILED'),
-        ),
-        const TagConnectionException(),
-      );
-    });
-
-    test('preserves the message for unknown platform error codes.', () {
-      expect(
-        NfcException.fromPlatformException(PlatformException(code: '')),
-        const NfcUnknownException(null),
-      );
-      expect(
-        NfcException.fromPlatformException(
-          PlatformException(code: 'unknown', message: 'message'),
-        ),
-        const NfcUnknownException('message'),
-      );
-    });
   });
 
   group('InvalidApduCommandException', () {
