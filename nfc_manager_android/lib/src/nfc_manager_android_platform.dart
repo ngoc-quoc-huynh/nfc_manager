@@ -5,6 +5,17 @@ import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 /// The Android implementation of [NfcManagerPlatform].
+///
+/// Platform errors without a dedicated [NfcException] subtype are reported as
+/// [NfcUnknownException] with these codes:
+///
+/// * `INVALID_ARGUMENTS`: the plugin received missing or mistyped arguments.
+/// * `NFC_ERROR`: the NFC reader failed unexpectedly.
+/// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
+///   version does not know; the message holds that name.
+///
+/// An [InvalidApduCommandException] can mean the command is longer than
+/// `IsoDep.getMaxTransceiveLength` allows; the tag stays connected.
 final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   /// Constructs an [NfcManagerAndroidPlatform].
   NfcManagerAndroidPlatform();

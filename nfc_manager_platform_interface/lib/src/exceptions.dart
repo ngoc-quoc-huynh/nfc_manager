@@ -23,9 +23,8 @@ sealed class NfcException implements Exception {
 /// Exception thrown when the platform rejected the APDU command.
 ///
 /// [ApduCommand] already enforces the APDU structure, so this reports a limit
-/// of the platform or tag, such as a command longer than the tag accepts
-/// (`IsoDep.getMaxTransceiveLength` on Android, where the tag stays
-/// connected).
+/// of the platform or tag, such as a command longer than the tag accepts. The
+/// tag stays connected.
 final class InvalidApduCommandException extends NfcException {
   /// Constructs an [InvalidApduCommandException].
   const InvalidApduCommandException()
@@ -72,13 +71,9 @@ final class TagConnectionException extends NfcException {
 /// [NfcException] subtype.
 ///
 /// [code] is the platform's error code and [message] is the platform's own
-/// text, which is not translated or guaranteed to be stable. On Android the
-/// codes include:
-///
-/// * `INVALID_ARGUMENTS`: the plugin received missing or mistyped arguments.
-/// * `NFC_ERROR`: the NFC reader failed unexpectedly.
-/// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
-///   version does not know; [message] holds that name.
+/// text, which is not translated or guaranteed to be stable. Treat it as
+/// untrusted diagnostic text. The codes are defined by each platform
+/// implementation; see its package documentation.
 final class NfcUnknownException extends NfcException {
   /// Constructs an [NfcUnknownException] with the platform's [code] and
   /// optional [message].
