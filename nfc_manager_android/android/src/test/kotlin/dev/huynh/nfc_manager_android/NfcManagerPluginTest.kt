@@ -8,6 +8,7 @@ import dev.huynh.nfc_manager_android.reader.TagReader
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
 import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationConfig
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import dev.huynh.nfc_manager_android.utils.error
@@ -38,6 +39,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 class NfcManagerPluginTest {
     private val mockFeatureChecker = mock<FeatureChecker>()
@@ -242,9 +244,36 @@ class NfcManagerPluginTest {
     }
 
     @Test
+    fun `engine detachment clears the HCE session of the stream handler that engine attachment registered`() {
+        val mockBinaryMessenger = mock<BinaryMessenger>()
+        val mockPackageManager = mock<PackageManager>()
+        val mockContext = mock<Context> { on { packageManager } doReturn mockPackageManager }
+        val binding =
+            mock<FlutterPlugin.FlutterPluginBinding> {
+                on { applicationContext } doReturn mockContext
+                on { binaryMessenger } doReturn mockBinaryMessenger
+            }
+        mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
+        val messageHandler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
+        verify(mockBinaryMessenger).setMessageHandler(
+            eq("dev.huynh/nfc_manager_android/host_card_emulation"),
+            messageHandler.capture(),
+        )
+
+        val listen = StandardMethodCodec.INSTANCE.encodeMethodCall(MethodCall("listen", hceArguments))
+        messageHandler.firstValue.onMessage(listen.also { it.rewind() }, mock())
+
+        assertSame(plugin.hostCardEmulationStreamHandler, HostCardEmulationConfig.session?.owner)
+
+        plugin.onDetachedFromEngine(binding)
+
+        assertNull(HostCardEmulationConfig.session)
+    }
+
+    @Test
     fun `engine detachment during emulation stops HCE responses`() {
         val mockEventSink = mock<EventSink>()
-        val streamHandler = HostCardEmulation()
+        val streamHandler = HostCardEmulationStreamHandler()
         plugin.hostCardEmulationStreamHandler = streamHandler
         setChannels()
         streamHandler.onListen(hceArguments, mockEventSink)
@@ -261,9 +290,9 @@ class NfcManagerPluginTest {
     @Test
     fun `engine detachment keeps an HCE session started by another engine`() {
         val mockEventSink = mock<EventSink>()
-        plugin.hostCardEmulationStreamHandler = HostCardEmulation()
+        plugin.hostCardEmulationStreamHandler = HostCardEmulationStreamHandler()
         setChannels()
-        HostCardEmulation().onListen(hceArguments, mockEventSink)
+        HostCardEmulationStreamHandler().onListen(hceArguments, mockEventSink)
 
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
         val response = HostCardEmulation().processCommandApdu(selectCommand, null)
@@ -334,5 +363,4 @@ class NfcManagerPluginTest {
             set(plugin, value)
         }
     }
-
 }

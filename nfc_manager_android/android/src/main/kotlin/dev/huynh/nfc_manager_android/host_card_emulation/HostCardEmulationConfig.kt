@@ -1,12 +1,14 @@
 package dev.huynh.nfc_manager_android.host_card_emulation
 
+import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 
 /**
  * Holds the active NFC Host Card Emulation (HCE) session.
  *
- * The Android-managed [HostCardEmulation] service and the plugin's stream handler are different
- * instances, so they share the session through this object.
+ * Android creates the [HostCardEmulation] service and the plugin creates the
+ * [HostCardEmulationStreamHandler], so they share the session through this object.
  */
 internal object HostCardEmulationConfig {
     /**
@@ -18,11 +20,16 @@ internal object HostCardEmulationConfig {
      * @property sink The EventSink from Flutter used for sending events back to the Flutter side.
      */
     class Session(
-        val owner: Any,
+        val owner: StreamHandler,
         val aid: ByteArray,
         val pin: ByteArray,
         val sink: EventSink,
-    )
+    ) {
+        /**
+         * Sends [status] to the Flutter side.
+         */
+        fun emit(status: HostCardEmulationStatus) = sink.success(status.name)
+    }
 
     /**
      * The active session, or null when HCE is not configured.
@@ -43,7 +50,7 @@ internal object HostCardEmulationConfig {
      * Clears the active session if [owner] started it.
      */
     @Synchronized
-    fun clear(owner: Any) {
+    fun clear(owner: StreamHandler) {
         if (session?.owner === owner) session = null
     }
 }

@@ -1,6 +1,7 @@
 package dev.huynh.nfc_manager_android.host_card_emulation
 
 import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
@@ -8,7 +9,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertSame
 
 class HostCardEmulationConfigTest {
-    private val owner = Any()
+    private val owner = mock<StreamHandler>()
     private val session =
         HostCardEmulationConfig.Session(
             owner = owner,
@@ -45,7 +46,7 @@ class HostCardEmulationConfigTest {
     fun `clear by another owner keeps the session`() {
         HostCardEmulationConfig.start(session)
 
-        HostCardEmulationConfig.clear(Any())
+        HostCardEmulationConfig.clear(mock<StreamHandler>())
 
         assertSame(session, HostCardEmulationConfig.session)
     }
