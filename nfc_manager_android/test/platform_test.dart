@@ -201,7 +201,6 @@ void main() {
   group('native errors', () {
     for (final (code, message, expected) in <(String, String?, NfcException)>[
       ('INVALID_APDU_COMMAND', null, const InvalidApduCommandException()),
-      ('INVALID_LC_DATA_LENGTH', null, const InvalidLcDataLengthException()),
       ('ISO_DEP_NOT_SUPPORTED', null, const IsoDepNotSupportedException()),
       ('NFC_NOT_SUPPORTED', null, const NfcNotSupportedException()),
       ('TAG_CONNECTION_FAILED', null, const TagConnectionException()),
@@ -211,6 +210,14 @@ void main() {
         'native text',
         const NfcUnknownException(
           code: 'INVALID_ARGUMENTS',
+          message: 'native text',
+        ),
+      ),
+      (
+        'INVALID_LC_DATA_LENGTH',
+        'native text',
+        const NfcUnknownException(
+          code: 'INVALID_LC_DATA_LENGTH',
           message: 'native text',
         ),
       ),

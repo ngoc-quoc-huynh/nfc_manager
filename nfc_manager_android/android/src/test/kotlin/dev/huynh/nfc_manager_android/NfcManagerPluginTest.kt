@@ -151,14 +151,14 @@ class NfcManagerPluginTest {
     fun `sendCommand method call rejects a missing command`() {
         plugin.onMethodCall(MethodCall("sendCommand", null), mockResult)
 
-        verify(mockResult).error(InvalidApduCommandException())
+        verify(mockResult).error(InvalidArgumentsException())
     }
 
     @Test
     fun `sendCommand method call rejects a malformed command`() {
         plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to "invalid")), mockResult)
 
-        verify(mockResult).error(InvalidApduCommandException())
+        verify(mockResult).error(InvalidArgumentsException())
     }
 
     @Test

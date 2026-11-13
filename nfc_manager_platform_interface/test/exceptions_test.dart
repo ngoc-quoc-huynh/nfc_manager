@@ -22,7 +22,7 @@ void main() {
     test('exposes the exception message.', () {
       expect(
         const InvalidApduCommandException().message,
-        'APDU command must be at least 4 bytes long.',
+        'The platform rejected the APDU command.',
       );
     });
 
@@ -30,8 +30,7 @@ void main() {
       'includes the exception type and message in toString.',
       () => expect(
         const InvalidApduCommandException().toString(),
-        'InvalidApduCommandException: APDU command must be at least 4 bytes'
-        ' long.',
+        'InvalidApduCommandException: The platform rejected the APDU command.',
       ),
     );
 
@@ -39,34 +38,6 @@ void main() {
       const exception = InvalidApduCommandException();
       // ignore: prefer_const_constructors, verify separate instances.
       final equalException = InvalidApduCommandException();
-
-      expect(exception, equalException);
-      expect(exception.hashCode, equalException.hashCode);
-    });
-  });
-
-  group('InvalidLcDataLengthException', () {
-    test('exposes the exception message.', () {
-      expect(
-        const InvalidLcDataLengthException().message,
-        'The LC value does not match the length of the Data field in the APDU'
-        ' command.',
-      );
-    });
-
-    test(
-      'includes the exception type and message in toString.',
-      () => expect(
-        const InvalidLcDataLengthException().toString(),
-        'InvalidLcDataLengthException: The LC value does not match the length '
-        'of the Data field in the APDU command.',
-      ),
-    );
-
-    test('equal exceptions have equal hash codes.', () {
-      const exception = InvalidLcDataLengthException();
-      // ignore: prefer_const_constructors, verify separate instances.
-      final equalException = InvalidLcDataLengthException();
 
       expect(exception, equalException);
       expect(exception.hashCode, equalException.hashCode);
