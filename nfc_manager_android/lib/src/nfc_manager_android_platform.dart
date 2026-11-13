@@ -124,16 +124,15 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   /// reports it as an error and continues.
   static HostCardEmulationStatus _toHostCardEmulationStatus(String status) =>
       switch (status) {
-        'READY' => HostCardEmulationStatus.ready,
-        'INVALID_COMMAND' => HostCardEmulationStatus.invalidCommand,
-        'INVALID_LC_LENGTH' => HostCardEmulationStatus.invalidLcLength,
-        'AID_SELECTED' => HostCardEmulationStatus.aidSelected,
-        'INVALID_AID' => HostCardEmulationStatus.invalidAid,
-        'PIN_VERIFIED' => HostCardEmulationStatus.pinVerified,
-        'WRONG_PIN' => HostCardEmulationStatus.wrongPin,
-        'FUNCTION_NOT_SUPPORTED' =>
-          HostCardEmulationStatus.functionNotSupported,
-        'TAG_DISCONNECTED' => HostCardEmulationStatus.tagDisconnected,
+        'READY' => .ready,
+        'INVALID_COMMAND' => .invalidCommand,
+        'INVALID_LC_LENGTH' => .invalidLcLength,
+        'AID_SELECTED' => .aidSelected,
+        'INVALID_AID' => .invalidAid,
+        'PIN_VERIFIED' => .pinVerified,
+        'WRONG_PIN' => .wrongPin,
+        'FUNCTION_NOT_SUPPORTED' => .functionNotSupported,
+        'TAG_DISCONNECTED' => .tagDisconnected,
         _ => throw NfcUnknownException(
           code: 'UNKNOWN_HCE_STATUS',
           message: status,

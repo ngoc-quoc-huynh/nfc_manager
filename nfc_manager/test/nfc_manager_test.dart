@@ -219,7 +219,7 @@ void main() {
   group('sendCommand', () {
     test('forwards the command and returns the platform response.', () async {
       final response = ApduResponse.fromUint8List(
-        Uint8List.fromList([0x6F, 0x00, 0x90, 0x00]),
+        .fromList([0x6F, 0x00, 0x90, 0x00]),
       );
       when(
         () => mockPlatform.sendCommand(command),
