@@ -177,6 +177,14 @@ void main() {
         'NfcUnknownException(CODE): message',
       ),
     );
+
+    test(
+      'omits a missing message from toString.',
+      () => expect(
+        const NfcUnknownException(code: 'CODE').toString(),
+        'NfcUnknownException(CODE)',
+      ),
+    );
   });
 
   test(

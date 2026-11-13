@@ -91,5 +91,8 @@ final class NfcUnknownException extends NfcException {
   int get hashCode => Object.hash(super.hashCode, code);
 
   @override
-  String toString() => 'NfcUnknownException($code): $message';
+  String toString() => switch (message) {
+    null => 'NfcUnknownException($code)',
+    final message => 'NfcUnknownException($code): $message',
+  };
 }
