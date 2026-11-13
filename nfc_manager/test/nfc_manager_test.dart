@@ -319,7 +319,7 @@ final class MockNfcManager extends Mock implements NfcManager {}
 NfcUnknownException _platformError({
   required String code,
   required String message,
-}) => NfcUnknownException(message, code: code);
+}) => NfcUnknownException(code: code, message: message);
 
 final class MockNfcManagerPlatform extends Mock
     with MockPlatformInterfaceMixin

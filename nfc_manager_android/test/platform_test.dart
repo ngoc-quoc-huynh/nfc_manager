@@ -47,6 +47,24 @@ void main() {
   }
 
   group('startDiscovery', () {
+    test('continues after a non-string discovery event.', () async {
+      nfcManager.discoveryEventChannel.setMockStream(
+        (events) => events
+          ..success(42)
+          ..success('A1')
+          ..endOfStream(),
+      );
+
+      await expectLater(
+        nfcManager.startDiscovery(),
+        emitsInOrder([
+          emitsError(const NfcUnknownException(code: 'INVALID_EVENT_PAYLOAD')),
+          'A1',
+          emitsDone,
+        ]),
+      );
+    });
+
     for (final milliseconds in <int?>[null, 3000]) {
       test(
         'passes timeout $milliseconds on subscription and cancels discovery.',
@@ -227,8 +245,25 @@ void main() {
       ('ISO_DEP_NOT_SUPPORTED', null, const IsoDepNotSupportedException()),
       ('NFC_NOT_SUPPORTED', null, const NfcNotSupportedException()),
       ('TAG_CONNECTION_FAILED', null, const TagConnectionException()),
-      ('', null, const NfcUnknownException(null)),
-      ('unknown', 'native text', const NfcUnknownException('native text')),
+      ('', null, const NfcUnknownException(code: '')),
+      (
+        'INVALID_ARGUMENTS',
+        'native text',
+        const NfcUnknownException(
+          code: 'INVALID_ARGUMENTS',
+          message: 'native text',
+        ),
+      ),
+      (
+        'NFC_ERROR',
+        'native text',
+        const NfcUnknownException(code: 'NFC_ERROR', message: 'native text'),
+      ),
+      (
+        'UNKNOWN',
+        'native text',
+        const NfcUnknownException(code: 'UNKNOWN', message: 'native text'),
+      ),
     ]) {
       test('sendCommand maps "$code" to $expected.', () async {
         methodChannel.setMockCallHandler(
@@ -267,6 +302,21 @@ void main() {
         );
       });
     }
+  });
+
+  test('keeps an unknown native code on NfcUnknownException.', () async {
+    methodChannel.setMockCallHandler(
+      (_) async => throw PlatformException(code: 'NEW_CODE', message: 'text'),
+    );
+
+    await expectLater(
+      nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
+      throwsA(
+        isA<NfcUnknownException>()
+            .having((e) => e.code, 'code', 'NEW_CODE')
+            .having((e) => e.message, 'message', 'text'),
+      ),
+    );
   });
 
   group('startEmulation', () {
@@ -308,7 +358,12 @@ void main() {
         await expectLater(
           nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
           emitsInOrder([
-            emitsError(const NfcUnknownException('UNKNOWN_EVENT')),
+            emitsError(
+              const NfcUnknownException(
+                code: 'UNKNOWN_HCE_STATUS',
+                message: 'UNKNOWN_EVENT',
+              ),
+            ),
             HostCardEmulationStatus.ready,
             emitsDone,
           ]),
@@ -328,7 +383,9 @@ void main() {
         await expectLater(
           nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
           emitsInOrder([
-            emitsError(isA<TypeError>()),
+            emitsError(
+              const NfcUnknownException(code: 'INVALID_EVENT_PAYLOAD'),
+            ),
             HostCardEmulationStatus.ready,
             emitsDone,
           ]),

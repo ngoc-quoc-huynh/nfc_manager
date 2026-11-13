@@ -5,6 +5,20 @@ import 'package:flutter/services.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 /// The Android implementation of [NfcManagerPlatform].
+///
+/// Android native errors without a dedicated [NfcException] subtype are
+/// reported as [NfcUnknownException] with their native code and message.
+///
+/// * `INVALID_ARGUMENTS`: the plugin received missing, mistyped, or
+///   out-of-range arguments.
+/// * `NFC_ERROR`: the NFC reader failed unexpectedly or discovery started
+///   without an attached Android activity.
+///
+/// The Dart adapter also generates codes when decoding event streams:
+///
+/// * `INVALID_EVENT_PAYLOAD`: discovery or HCE received a non-string event.
+/// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
+///   version does not know; the message holds that name.
 final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   /// Constructs an [NfcManagerAndroidPlatform].
   NfcManagerAndroidPlatform();
@@ -46,7 +60,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
-      .cast<String>()
+      .map(_decodeStringEvent)
       .handleError(_onStreamError, test: _isPlatformException);
 
   @override
@@ -75,9 +89,13 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
     required Uint8List pin,
   }) => hostCardEmulationEventChannel
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
-      .cast<String>()
-      .map(_toHostCardEmulationStatus)
+      .map((event) => _toHostCardEmulationStatus(_decodeStringEvent(event)))
       .handleError(_onStreamError, test: _isPlatformException);
+
+  static String _decodeStringEvent(Object? event) => switch (event) {
+    final String value => value,
+    _ => throw const NfcUnknownException(code: 'INVALID_EVENT_PAYLOAD'),
+  };
 
   bool _isPlatformException(Object? error) => error is PlatformException;
 
@@ -95,7 +113,10 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         'ISO_DEP_NOT_SUPPORTED' => const IsoDepNotSupportedException(),
         'NFC_NOT_SUPPORTED' => const NfcNotSupportedException(),
         'TAG_CONNECTION_FAILED' => const TagConnectionException(),
-        _ => NfcUnknownException(exception.message, code: exception.code),
+        _ => NfcUnknownException(
+          code: exception.code,
+          message: exception.message,
+        ),
       };
 
   /// Decodes a native HCE event name.
@@ -114,6 +135,9 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         'FUNCTION_NOT_SUPPORTED' =>
           HostCardEmulationStatus.functionNotSupported,
         'TAG_DISCONNECTED' => HostCardEmulationStatus.tagDisconnected,
-        _ => throw NfcUnknownException(status),
+        _ => throw NfcUnknownException(
+          code: 'UNKNOWN_HCE_STATUS',
+          message: status,
+        ),
       };
 }

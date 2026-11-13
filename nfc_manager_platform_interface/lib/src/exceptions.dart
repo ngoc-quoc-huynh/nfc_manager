@@ -77,14 +77,28 @@ final class TagConnectionException extends NfcException {
   String toString() => 'TagConnectionException: $message';
 }
 
-/// Exception thrown when the exception is unknown.
+/// Exception thrown for a platform error that has no dedicated
+/// [NfcException] subtype.
+///
+/// Each platform implementation defines its [code] values. See its package
+/// documentation. The optional [message] is diagnostic text and may change.
+/// Treat it as untrusted input.
 final class NfcUnknownException extends NfcException {
-  /// Constructs a [NfcUnknownException].
-  const NfcUnknownException(super.message, {this.code});
+  /// Constructs an [NfcUnknownException] with an error [code] and
+  /// optional [message].
+  const NfcUnknownException({required this.code, String? message})
+    : super(message);
 
-  /// The platform error code, if one was supplied.
-  final String? code;
+  /// The error code reported by the platform implementation.
+  final String code;
 
   @override
-  String toString() => 'NfcUnknownException: $message';
+  bool operator ==(Object other) =>
+      super == other && other is NfcUnknownException && code == other.code;
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, code);
+
+  @override
+  String toString() => 'NfcUnknownException($code): $message';
 }
