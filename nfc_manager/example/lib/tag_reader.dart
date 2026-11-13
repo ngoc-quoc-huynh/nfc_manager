@@ -79,14 +79,13 @@ class _TagReaderPageState extends State<TagReaderPage> {
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(.new(content: Text(message)));
+      _showMessage(context, message);
     }
   }
 
   Future<void> _onVerifyPin(BuildContext context) async {
     String message;
+
     try {
       final response = await const NfcManager().sendCommand(
         ApduCommand.verifyPin(utf8.encode(demoPin)),
@@ -97,9 +96,13 @@ class _TagReaderPageState extends State<TagReaderPage> {
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(.new(content: Text(message)));
+      _showMessage(context, message);
     }
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(.new(content: Text(message)));
   }
 }
