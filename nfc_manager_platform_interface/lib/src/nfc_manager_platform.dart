@@ -60,9 +60,7 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// is null, the platform's default applies.
   ///
   /// The stream ends when the platform's host UI detaches. Listen again after
-  /// the host UI is attached again to resume discovery. A stream that has ended
-  /// may still receive a late platform error, which the framework reports as an
-  /// uncaught error.
+  /// the host UI is attached again to resume discovery.
   ///
   /// The stream reports [NfcNotSupportedException] if the device does not
   /// support NFC, [IsoDepNotSupportedException] when a tag lacks ISO-DEP,

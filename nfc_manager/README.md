@@ -142,6 +142,9 @@ final subscription = const NfcManager().startDiscovery().listen(
 await subscription.cancel();
 ```
 
+On Android, the stream ends when the activity detaches. Listen again after the activity is attached
+again to resume discovery.
+
 #### Communicating with NFC tags
 
 Send an APDU command to the discovered tag. `ApduResponse` keeps the response `data` and the status

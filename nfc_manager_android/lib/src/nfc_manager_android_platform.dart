@@ -10,7 +10,9 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 /// [NfcUnknownException] with these codes:
 ///
 /// * `INVALID_ARGUMENTS`: the plugin received missing or mistyped arguments.
-/// * `NFC_ERROR`: the NFC reader failed unexpectedly.
+/// * `NFC_ERROR`: the NFC reader failed unexpectedly or discovery started
+///   without an attached Android activity.
+/// * `INVALID_EVENT_PAYLOAD`: discovery or HCE received a non-string event.
 /// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
 ///   version does not know; the message holds that name.
 ///
