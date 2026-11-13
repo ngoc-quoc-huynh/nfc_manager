@@ -47,17 +47,27 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Discovers ISO-DEP tags and returns a stream of their identifiers.
   ///
-  /// Discovery starts when the stream is listened to. Cancel the subscription
-  /// to stop discovery. Use one discovery stream at a time. Before starting
-  /// another, let the current stream finish or cancel its subscription.
-  /// [timeout] limits communication with a discovered tag,
-  /// not the time spent waiting for a tag.
+  /// Start discovery when the stream is listened to. Emit an identifier
+  /// after connecting to the tag. Encode each byte of the tag ID as two
+  /// uppercase hexadecimal digits, for example `04A1B2C3`. Decode the ID
+  /// with `hexToBytes`.
   ///
-  /// On Android, the stream ends when the activity detaches. After it
-  /// reattaches, call [startDiscovery] again and listen to the new stream.
+  /// Maintain one active tag connection for [sendCommand]. A new successful
+  /// connection replaces the previous one. Release the connection when
+  /// discovery ends or the subscription is cancelled. Use one discovery
+  /// subscription at a time. To restart, wait for completion or cancel the
+  /// subscription, then call [startDiscovery] and listen to the new stream.
   ///
-  /// The stream reports [IsoDepNotSupportedException] when a tag lacks ISO-DEP,
-  /// and [TagConnectionException] when connecting to a tag fails.
+  /// [timeout] applies to each APDU exchange after the tag connects. It must
+  /// be a positive whole number of milliseconds up to 2147483647. A null
+  /// value uses the platform default.
+  ///
+  /// Report [NfcNotSupportedException] and close the stream if the device
+  /// lacks NFC. Report [IsoDepNotSupportedException] for a tag without ISO-DEP
+  /// or [TagConnectionException] for a failed connection. Keep discovering
+  /// after these per-tag errors. Use [NfcUnknownException] for discovery
+  /// errors without a dedicated exception type. Close the stream if discovery
+  /// cannot start.
   Stream<String> startDiscovery({Duration? timeout}) =>
       throw UnimplementedError('startDiscovery() has not been implemented.');
 
@@ -65,11 +75,13 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   ///
   /// The [ApduResponse] keeps the response data and both status bytes.
   /// Reports [InvalidApduCommandException] if the platform rejects the
-  /// command. For example, Android rejects commands that exceed its maximum
-  /// transceive length before transmission. Card status bytes are
-  /// returned in [ApduResponse] and do not cause this exception.
-  /// Reports [TagConnectionException] if there is no connection, the tag is
-  /// lost, or the tag returns fewer than 2 bytes.
+  /// command. Card status bytes, including failure statuses, are returned in
+  /// [ApduResponse].
+  ///
+  /// [TagConnectionException] reports a missing connection, a lost tag, an
+  /// I/O failure during the exchange, or a response with fewer than 2 bytes.
+  /// [NfcUnknownException] reports native NFC errors without a dedicated
+  /// exception type.
   Future<ApduResponse> sendCommand(ApduCommand command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 
@@ -85,6 +97,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// event confirms that the configuration is stored. It does not confirm that
   /// NFC is enabled or that the device routes commands to the service.
   /// Choose the byte encoding of [pin] before calling this method.
+  ///
+  /// The stream reports [NfcUnknownException] for native HCE errors without a
+  /// dedicated exception type and for unrecognized or malformed HCE events.
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,

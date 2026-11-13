@@ -8,17 +8,21 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 ///
 /// Android native errors without a dedicated [NfcException] subtype are
 /// reported as [NfcUnknownException] with their native code and message.
+/// The Dart adapter also uses this exception for event decoding errors.
 ///
 /// * `INVALID_ARGUMENTS`: the plugin received missing, mistyped, or
 ///   out-of-range arguments.
 /// * `NFC_ERROR`: the NFC reader failed unexpectedly or discovery started
 ///   without an attached Android activity.
-///
-/// The Dart adapter also generates codes when decoding event streams:
-///
 /// * `INVALID_EVENT_PAYLOAD`: discovery or HCE received a non-string event.
 /// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
 ///   version does not know; the message holds that name.
+///
+/// An [InvalidApduCommandException] can mean the command is longer than
+/// `IsoDep.getMaxTransceiveLength` allows; the tag stays connected.
+///
+/// Flutter reports event-channel activation and cancellation failures through
+/// [FlutterError].
 final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   /// Constructs an [NfcManagerAndroidPlatform].
   NfcManagerAndroidPlatform();
@@ -57,6 +61,23 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   Future<bool> isNfcEnabled() async =>
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
+  /// The first listener starts reader mode. When the last listener cancels,
+  /// the reader stops and releases the active tag. Detaching the Android
+  /// activity ends the stream and releases the tag. To resume, call
+  /// [startDiscovery] after reattachment and listen to the new stream.
+  ///
+  /// The public `NfcManager` throws [ArgumentError] synchronously for an
+  /// invalid [timeout]. Direct calls convert the duration with
+  /// [Duration.inMilliseconds], which truncates fractional milliseconds. If
+  /// the forwarded value is outside 1–2147483647, the stream reports
+  /// [NfcUnknownException] with code `INVALID_ARGUMENTS` and ends. A null
+  /// value uses the Android default.
+  ///
+  /// If the activity is missing or enabling reader mode fails, the stream
+  /// reports [NfcUnknownException] with code `NFC_ERROR` and ends. With an
+  /// attached activity but no NFC adapter, the stream reports
+  /// [NfcNotSupportedException] and ends. Discovery continues after individual
+  /// tag errors.
   @override
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
