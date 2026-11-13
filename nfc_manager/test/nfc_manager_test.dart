@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 // ignore_for_file: discarded_futures: mocked methods have to be async.
@@ -25,14 +26,14 @@ void main() {
   tearDownAll(() => NfcManagerPlatform.instance = originalPlatform);
 
   group('NfcManager', () {
-    test('can be created as a compile-time constant.', () {
+    test('has a const constructor (compile-time check).', () {
       const first = NfcManager();
       const second = NfcManager();
 
       expect(identical(first, second), isTrue);
     });
 
-    test('can be replaced by a mocktail mock.', () async {
+    test('can be implemented by a mock (compile-time check).', () async {
       final NfcManager manager = MockNfcManager();
       when(manager.isNfcSupported).thenAnswer((_) async => true);
 
@@ -226,20 +227,18 @@ void main() {
   group('default platform', () {
     setUp(() => NfcManagerPlatform.instance = originalPlatform);
 
-    test('throws an UnimplementedError for every method.', () {
-      final calls = <Object? Function()>[
-        nfcManager.isHceSupported,
-        nfcManager.isNfcSupported,
-        nfcManager.isNfcEnabled,
-        nfcManager.startDiscovery,
-        () => nfcManager.sendCommand(command),
-        () => nfcManager.startEmulation(aid: aid, pin: pin),
-      ];
-
-      for (final call in calls) {
+    for (final (method, call) in <(String, Object? Function())>[
+      ('isHceSupported', nfcManager.isHceSupported),
+      ('isNfcSupported', nfcManager.isNfcSupported),
+      ('isNfcEnabled', nfcManager.isNfcEnabled),
+      ('startDiscovery', nfcManager.startDiscovery),
+      ('sendCommand', () => nfcManager.sendCommand(command)),
+      ('startEmulation', () => nfcManager.startEmulation(aid: aid, pin: pin)),
+    ]) {
+      test('throws an UnimplementedError for $method.', () {
         expect(call, throwsUnimplementedError);
-      }
-    });
+      });
+    }
   });
 
   group('startEmulation', () {
