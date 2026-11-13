@@ -18,6 +18,7 @@ import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.FlutterException
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
@@ -38,6 +39,7 @@ import org.mockito.kotlin.whenever
 import java.nio.ByteBuffer
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertSame
@@ -51,8 +53,9 @@ class NfcManagerPluginTest {
             tagReader = mockTagReader
         }
     private val mockResult = mock<Result>()
-    private val hceArguments = mapOf("aid" to byteArrayOf(0x01), "pin" to byteArrayOf(0x02))
-    private val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x01, 0x01)
+    private val aid = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x04)
+    private val hceArguments = mapOf("aid" to aid, "pin" to byteArrayOf(0x02))
+    private val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, aid.size.toByte()) + aid
 
     @AfterEach
     fun tearDown() {
@@ -306,6 +309,50 @@ class NfcManagerPluginTest {
 
         assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+    }
+
+    @Test
+    fun `HCE rejects an invalid AID length and accepts the next listen`() {
+        val channel = "dev.huynh/nfc_manager_android/host_card_emulation"
+        val codec = StandardMethodCodec.INSTANCE
+        val messenger = mock<BinaryMessenger>()
+        val context = mock<Context> { on { packageManager } doReturn mock<PackageManager>() }
+        val binding =
+            mock<FlutterPlugin.FlutterPluginBinding> {
+                on { applicationContext } doReturn context
+                on { binaryMessenger } doReturn messenger
+            }
+        mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
+        val handler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
+        verify(messenger).setMessageHandler(eq(channel), handler.capture())
+
+        fun listen(arguments: Map<String, ByteArray>) {
+            val message = codec.encodeMethodCall(MethodCall("listen", arguments)).apply { flip() }
+            handler.firstValue.onMessage(message) { reply ->
+                assertNull(codec.decodeEnvelope(assertNotNull(reply).apply { flip() }))
+            }
+        }
+
+        listen(hceArguments + ("aid" to ByteArray(4)))
+        assertNull(HostCardEmulationConfig.session)
+
+        listen(hceArguments)
+        kotlin.test.assertSame<EventChannel.StreamHandler?>(
+            plugin.hostCardEmulationStreamHandler,
+            assertNotNull(HostCardEmulationConfig.session).owner,
+        )
+
+        val events = argumentCaptor<ByteBuffer>()
+        verify(messenger, times(3)).send(eq(channel), events.capture())
+        val invalidArguments =
+            assertFailsWith<FlutterException> {
+                codec.decodeEnvelope(assertNotNull(events.firstValue).apply { flip() })
+            }
+        assertEquals("INVALID_ARGUMENTS", invalidArguments.code)
+        assertEquals("HCE requires an AID of 5–16 bytes and a PIN of 1–255 bytes.", invalidArguments.message)
+        assertNull(invalidArguments.details)
+        assertNull(events.allValues[1])
+        assertEquals("READY", codec.decodeEnvelope(assertNotNull(events.lastValue).apply { flip() }))
     }
 
     @Test

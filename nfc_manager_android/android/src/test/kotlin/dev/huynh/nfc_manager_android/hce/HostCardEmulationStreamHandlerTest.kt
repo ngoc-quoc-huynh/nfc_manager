@@ -1,6 +1,6 @@
 package dev.huynh.nfc_manager_android.hce
 
-import dev.huynh.nfc_manager_android.InvalidArgumentsException
+import dev.huynh.nfc_manager_android.InvalidHceArgumentsException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.AfterEach
@@ -40,6 +40,18 @@ class HostCardEmulationStreamHandlerTest {
     }
 
     @Test
+    fun `onListen accepts a 16 byte aid and a 255 byte pin`() {
+        val aid = VALID_AID.copyOf(16)
+        val pin = ByteArray(255) { it.toByte() }
+        streamHandler.onListen(mapOf("aid" to aid, "pin" to pin), mockEventSink)
+
+        val session = assertNotNull(HostCardEmulationConfig.session)
+        assertContentEquals(aid, session.aid)
+        assertContentEquals(pin, session.pin)
+        verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
+    }
+
+    @Test
     fun `onListen rejects null arguments`() = assertRejected(null)
 
     @Test
@@ -64,6 +76,18 @@ class HostCardEmulationStreamHandlerTest {
     fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to 2))
 
     @Test
+    fun `onListen rejects a short aid`() = assertRejected(mapOf("aid" to ByteArray(4), "pin" to VALID_PIN))
+
+    @Test
+    fun `onListen rejects a long aid`() = assertRejected(mapOf("aid" to ByteArray(17), "pin" to VALID_PIN))
+
+    @Test
+    fun `onListen rejects an empty pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to ByteArray(0)))
+
+    @Test
+    fun `onListen rejects a long pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to ByteArray(256)))
+
+    @Test
     fun `onCancel clears the session it owns`() {
         streamHandler.onListen(VALID_ARGUMENTS, mockEventSink)
 
@@ -82,7 +106,7 @@ class HostCardEmulationStreamHandlerTest {
     }
 
     /**
-     * Asserts that [HostCardEmulationStreamHandler.onListen] reports [InvalidArgumentsException]
+     * Asserts that [HostCardEmulationStreamHandler.onListen] reports [InvalidHceArgumentsException]
      * for [arguments] and ends the stream without starting a session.
      */
     private fun assertRejected(arguments: Any?) {
@@ -92,7 +116,7 @@ class HostCardEmulationStreamHandlerTest {
         inOrder(mockEventSink) {
             verify(mockEventSink).error(
                 "INVALID_ARGUMENTS",
-                "The arguments are missing or have the wrong type.",
+                "HCE requires an AID of 5–16 bytes and a PIN of 1–255 bytes.",
                 null,
             )
             verify(mockEventSink).endOfStream()

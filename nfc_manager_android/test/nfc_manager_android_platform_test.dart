@@ -427,26 +427,38 @@ void main() {
       },
     );
 
-    test('preserves the HCE argument error code before completing.', () async {
-      const message = 'The arguments are missing or have the wrong type.';
-      nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) => events
-          ..error(code: 'INVALID_ARGUMENTS', message: message)
-          ..endOfStream(),
-      );
+    test(
+      'forwards a short HCE AID and reports the error before done.',
+      () async {
+        final aid = Uint8List(4);
+        final pin = Uint8List(1);
+        final enDash = String.fromCharCode(0x2013);
+        final message =
+            'HCE requires an AID of 5${enDash}16 bytes '
+            'and a PIN of 1${enDash}255 bytes.';
+        nfcManager.hostCardEmulationEventChannel.setMockListener((
+          arguments,
+          events,
+        ) {
+          expect(arguments, {'aid': aid, 'pin': pin});
+          events
+            ..error(code: 'INVALID_ARGUMENTS', message: message)
+            ..endOfStream();
+        });
 
-      await expectLater(
-        nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
-        emitsInOrder([
-          emitsError(
-            isA<NfcUnknownException>()
-                .having((error) => error.code, 'code', 'INVALID_ARGUMENTS')
-                .having((error) => error.message, 'message', message),
-          ),
-          emitsDone,
-        ]),
-      );
-    });
+        await expectLater(
+          nfcManager.startEmulation(aid: aid, pin: pin),
+          emitsInOrder([
+            emitsError(
+              isA<NfcUnknownException>()
+                  .having((error) => error.code, 'code', 'INVALID_ARGUMENTS')
+                  .having((error) => error.message, 'message', message),
+            ),
+            emitsDone,
+          ]),
+        );
+      },
+    );
 
     test('emits HCE statuses and converts native errors.', () async {
       nfcManager.hostCardEmulationEventChannel.setMockStream(

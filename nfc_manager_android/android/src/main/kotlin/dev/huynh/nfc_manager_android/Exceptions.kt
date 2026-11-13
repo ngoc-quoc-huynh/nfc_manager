@@ -23,6 +23,13 @@ internal class InvalidArgumentsException :
         "The arguments are missing or have the wrong type.",
     )
 
+/** Reports the required HCE argument sizes without including the received values. */
+internal class InvalidHceArgumentsException :
+    NfcException(
+        "INVALID_ARGUMENTS",
+        "HCE requires an AID of 5–16 bytes and a PIN of 1–255 bytes.",
+    )
+
 /**
  * Exception thrown when the APDU command is shorter than 4 bytes or longer than
  * Android's transceive limit.

@@ -104,6 +104,8 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
     }
   }
 
+  /// Invalid AID or PIN lengths produce a [NfcUnknownException] with code
+  /// `INVALID_ARGUMENTS` after the stream is listened to. The stream then ends.
   @override
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,

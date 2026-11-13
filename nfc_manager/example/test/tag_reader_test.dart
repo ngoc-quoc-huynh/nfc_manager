@@ -7,6 +7,20 @@ import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/tag_reader.dart';
 
 void main() {
+  testWidgets('Shows the discovery error after the stream closes.', (
+    tester,
+  ) async {
+    final error = StateError('Discovery failed');
+    final nfcManager = _ReaderFake(Stream<String>.error(error));
+    await tester.pumpWidget(
+      MaterialApp(home: TagReaderPage(nfcManager: nfcManager)),
+    );
+    await tester.tap(find.text('Start discovery'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Received error: $error'), findsOneWidget);
+  });
+
   testWidgets('Select AID dismisses the current snackbar early.', (
     tester,
   ) async {

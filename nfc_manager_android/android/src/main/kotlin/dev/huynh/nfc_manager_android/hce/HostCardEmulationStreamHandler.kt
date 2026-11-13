@@ -1,6 +1,6 @@
 package dev.huynh.nfc_manager_android.hce
 
-import dev.huynh.nfc_manager_android.InvalidArgumentsException
+import dev.huynh.nfc_manager_android.InvalidHceArgumentsException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
@@ -18,8 +18,9 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
     /**
      * Starts an HCE session from the `aid` and `pin` byte arrays in [arguments].
      *
-     * Malformed arguments are reported as [InvalidArgumentsException]. The stream ends without
-     * starting a session.
+     * An AID must be 5–16 bytes and a PIN must be 1–255 bytes. Invalid arguments report
+     * [InvalidHceArgumentsException] and end the stream without creating a session.
+     * A session owned by another handler stays in place.
      */
     override fun onListen(
         arguments: Any?,
@@ -29,8 +30,8 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
         val map = arguments as? Map<*, *>
         val aid = map?.get("aid") as? ByteArray
         val pin = map?.get("pin") as? ByteArray
-        if (aid == null || pin == null) {
-            events.error(InvalidArgumentsException())
+        if (aid == null || aid.size !in 5..16 || pin == null || pin.size !in 1..255) {
+            events.error(InvalidHceArgumentsException())
             events.endOfStream()
             return
         }
