@@ -11,6 +11,7 @@ import dev.huynh.nfc_manager_android.hce.HostCardEmulationService
 import dev.huynh.nfc_manager_android.hce.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
+import dev.huynh.nfc_manager_android.reader.TagReader
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -318,6 +319,7 @@ class NfcManagerPluginTest {
         mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
         val handler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
         verify(messenger).setMessageHandler(eq("dev.huynh/nfc_manager_android/host_card_emulation"), handler.capture())
+
         fun deliverListen() {
             val message = StandardMethodCodec.INSTANCE.encodeMethodCall(MethodCall("listen", hceArguments))
             message.rewind()

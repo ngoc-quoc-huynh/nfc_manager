@@ -1,6 +1,5 @@
 package dev.huynh.nfc_manager_android.reader
 
-import dev.huynh.nfc_manager_android.TagReader
 import dev.huynh.nfc_manager_android.UnexpectedNfcException
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink

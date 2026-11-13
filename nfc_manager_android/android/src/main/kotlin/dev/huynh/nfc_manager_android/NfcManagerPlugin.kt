@@ -5,6 +5,7 @@ import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature.FeatureChecker
 import dev.huynh.nfc_manager_android.hce.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.reader.DiscoveryStreamHandler
+import dev.huynh.nfc_manager_android.reader.TagReader
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
@@ -17,7 +18,7 @@ import io.flutter.plugin.common.MethodChannel.Result
 
 /**
  * The main plugin class for the NFC Manager Android plugin.
- * 
+ *
  * This class handles the initialization, configuration, and management of the NFC functionality.
  */
 class NfcManagerPlugin :

@@ -1,10 +1,18 @@
-package dev.huynh.nfc_manager_android
+package dev.huynh.nfc_manager_android.reader
 
 import android.app.Activity
 import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import androidx.annotation.VisibleForTesting
+import dev.huynh.nfc_manager_android.InvalidApduCommandException
+import dev.huynh.nfc_manager_android.InvalidArgumentsException
+import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
+import dev.huynh.nfc_manager_android.IsoDepNotSupportedException
+import dev.huynh.nfc_manager_android.NfcException
+import dev.huynh.nfc_manager_android.NfcNotSupportedException
+import dev.huynh.nfc_manager_android.TagConnectionException
+import dev.huynh.nfc_manager_android.UnexpectedNfcException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.utils.error
 import dev.huynh.nfc_manager_android.utils.toHexString
@@ -209,7 +217,7 @@ internal class TagReader(
         try {
             ioExecutor.execute { connect(tag, tagIsoDep, listenSession) }
         } catch (_: RejectedExecutionException) {
-            emitUnexpectedError(listenSession)
+            emitError(listenSession, UnexpectedNfcException())
         }
     }
 
@@ -286,8 +294,7 @@ internal class TagReader(
         }
     }
 
-    private fun isCurrentSession(listenSession: Long): Boolean =
-        synchronized(stateLock) { isListening && session == listenSession }
+    private fun isCurrentSession(listenSession: Long): Boolean = synchronized(stateLock) { isListening && session == listenSession }
 
     private fun isActive(
         tag: IsoDep,
@@ -350,9 +357,6 @@ internal class TagReader(
         listenSession: Long,
         exception: NfcException,
     ) = emit(listenSession) { it.error(exception) }
-
-    private fun emitUnexpectedError(listenSession: Long) =
-        emitError(listenSession, UnexpectedNfcException())
 
     private companion object {
         fun newTagIoExecutor(): ExecutorService =

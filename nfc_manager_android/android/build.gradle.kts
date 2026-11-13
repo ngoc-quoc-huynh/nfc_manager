@@ -43,8 +43,7 @@ abstract class MockitoAgentArgumentProvider : CommandLineArgumentProvider {
     @get:PathSensitive(PathSensitivity.RELATIVE)
     abstract val agentJar: ConfigurableFileCollection
 
-    override fun asArguments(): Iterable<String> =
-        listOf("-javaagent:${agentJar.singleFile.absolutePath}")
+    override fun asArguments(): Iterable<String> = listOf("-javaagent:${agentJar.singleFile.absolutePath}")
 }
 
 android {

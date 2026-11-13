@@ -2,7 +2,7 @@ package dev.huynh.nfc_manager_android
 
 /**
  * Base class for all NFC exceptions.
- * 
+ *
  * @param code The error code.
  * @param message The error message.
  */

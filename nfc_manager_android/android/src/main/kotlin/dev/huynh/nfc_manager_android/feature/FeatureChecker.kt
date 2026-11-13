@@ -5,7 +5,7 @@ import android.nfc.NfcAdapter
 
 /**
  * Provides utility methods to check the availability and status of NFC and HCE features on the device.
- * 
+ *
  * This class allows querying whether the device hardware supports NFC, if NFC is currently enabled,
  * and whether the device supports NFC Host Card Emulation (HCE).
  */

@@ -3,6 +3,7 @@ min_version = "2026.9.16"
 [tools]
 flutter = "3.47.9"
 java = "temurin-21.0.12+8.0.LTS"
+"aqua:ktlint/ktlint" = "1.8.0"
 
 [settings]
 lockfile = true
