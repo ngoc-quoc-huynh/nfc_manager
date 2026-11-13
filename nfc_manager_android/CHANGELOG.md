@@ -2,9 +2,9 @@
 
 ### Breaking changes
 
-- Require Flutter 3.44.0 and Dart 3.12.0 or newer (was 3.35 and 3.9). Upgrade the SDK; no API change.
+- Require Flutter 3.44.0 and Dart 3.12.0 or newer (was Flutter 3.41 and Dart 3.0). Upgrade the SDK; no API change.
 - Require minSdk 24 (was 21). Apps with a lower minSdk must raise it. Apps using `flutter.minSdkVersion` need no change.
-- HCE answers commands shorter than 4 bytes with `67 00` (wrong length) instead of `6C 00`. Readers that matched `6C 00` must match `67 00`. HCE event names sent to Dart are unchanged.
+- HCE answers commands shorter than 4 bytes with `67 00` (wrong length) instead of `6C 00`. Readers that matched `6C 00` must match `67 00`. `ApduStatus.wrongLength` now means `67 00`, and `6C 00` is `wrongLeField`. HCE event names sent to Dart are unchanged.
 - Rename the HCE service in the manifest. Change `<service android:name>` from `dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation` to `dev.huynh.nfc_manager_android.hce.HostCardEmulationService`. Permission, intent filter and `apduservice.xml` meta-data are unchanged. The old name fails when Android binds the service.
 - `package:nfc_manager_android/nfc_manager_android.dart` exports only `NfcManagerAndroidPlatform`. Import shared types (`NfcManagerPlatform`, `ApduCommand`, `ApduResponse`, the `NfcException` family) from `nfc_manager_platform_interface` and add it as a dependency.
 - `sendCommand` returns `ApduResponse` and `ApduStatus` replaces the old status enum (see `nfc_manager_platform_interface` 2.0.0 for the renamed values). A tag response shorter than 2 bytes throws `TagConnectionException`.
@@ -31,7 +31,6 @@
 
 ### Other
 
-- Tag IDs are typed as such on the discovery event; Kotlin types are internal.
 
 ## 1.2.0
 

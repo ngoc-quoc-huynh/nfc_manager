@@ -2,7 +2,7 @@
 
 ### Breaking changes
 
-- Require Flutter 3.44.0 and Dart 3.12.0 or newer (was 3.35 and 3.9). Upgrade the SDK; no API change.
+- Require Flutter 3.44.0 and Dart 3.12.0 or newer (was Flutter 3.41 and Dart 3.0). Upgrade the SDK; no API change.
 - `NfcManagerPlatform` no longer carries the method channel. `MethodChannelNfcManager`, `MockNfcManagerPlatformMixin`, the `platform` constructor argument and the channel fields are removed. Platform implementations extend `NfcManagerPlatform()` and bring their own transport.
 - Rename `Command` to `ApduCommand` (`apdu_command.dart`). Constructor and factories are unchanged. Change `sendCommand(Command)` to `sendCommand(ApduCommand)` in platform implementations.
 - `ApduCommand` is final and non-const. Replace `SelectAidCommand` and `VerifyPinCommand` with `ApduCommand.selectAid` and `ApduCommand.verifyPin`. Lc is derived from the payload and the data is copied.
@@ -27,7 +27,6 @@
 ### Other
 
 - Add `checkAidLength` and `checkPinLength` for validating emulation input (5 to 16 bytes for the AID, 1 to 255 for the PIN).
-- Remove the example app; `nfc_manager/example` is the full demo.
 
 ## 1.2.0
 
