@@ -43,8 +43,8 @@ internal class TagReader(
     /**
      * Sends a command to the active tag and replies on the main thread.
      *
-     * A command exceeding Android's transceive limit is answered with [InvalidApduCommandException] and
-     * the tag stays connected.
+     * A malformed command, or one exceeding Android's transceive limit, is answered with
+     * [InvalidApduCommandException] and the tag stays connected.
      *
      * @throws NfcException if the command is invalid or no tag is connected.
      */
@@ -53,7 +53,11 @@ internal class TagReader(
         onSuccess: (ByteArray) -> Unit,
         onError: (Throwable) -> Unit,
     ) {
-        CommandApdu.fromByteArray(command)
+        try {
+            CommandApdu.fromByteArray(command)
+        } catch (_: InvalidLcDataLengthException) {
+            throw InvalidApduCommandException()
+        }
 
         val (tag, commandSession) =
             synchronized(stateLock) {

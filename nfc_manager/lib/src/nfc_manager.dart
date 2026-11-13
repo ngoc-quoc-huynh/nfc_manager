@@ -60,6 +60,11 @@ class NfcManager {
   /// Throws [UnimplementedError] if the method is not implemented for the
   /// platform.
   ///
+  /// Throws [InvalidApduCommandException] if the platform rejects [command].
+  /// For example, Android rejects commands that exceed its maximum transceive
+  /// length before transmission. Card status bytes are returned in
+  /// [ApduResponse] and do not cause this exception.
+  ///
   /// Throws [TagConnectionException] if there is no connection, the tag is
   /// lost, or the tag returns fewer than 2 bytes.
   Future<ApduResponse> sendCommand(ApduCommand command) =>

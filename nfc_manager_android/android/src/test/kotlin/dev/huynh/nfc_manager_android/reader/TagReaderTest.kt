@@ -6,7 +6,6 @@ import android.nfc.Tag
 import android.nfc.TagLostException
 import android.nfc.tech.IsoDep
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
-import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.IsoDepNotSupportedException
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
@@ -186,10 +185,21 @@ class TagReaderTest {
     }
 
     @Test
+    fun `sendCommand reports an Lc mismatch as InvalidApduCommandException`() {
+        tagReader.isoDep = mockIsoDep
+
+        assertThrows<InvalidApduCommandException> {
+            tagReader.sendCommand(byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x05, 0x01), onSuccess = {}, onError = {})
+        }
+
+        verifyNoInteractions(mockIsoDep)
+    }
+
+    @Test
     fun `sendCommand rejects a six-byte command with zero Lc before transceive`() {
         tagReader.isoDep = mockIsoDep
 
-        assertThrows<InvalidLcDataLengthException> {
+        assertThrows<InvalidApduCommandException> {
             tagReader.sendCommand(byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x00, 0x01), onSuccess = {}, onError = {})
         }
 

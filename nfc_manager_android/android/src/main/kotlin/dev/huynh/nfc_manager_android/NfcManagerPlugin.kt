@@ -138,7 +138,7 @@ class NfcManagerPlugin :
     ) {
         val command = (call.arguments as? Map<*, *>)?.get("command") as? ByteArray
         if (command == null) {
-            result.error(InvalidApduCommandException())
+            result.error(InvalidArgumentsException())
             return
         }
 

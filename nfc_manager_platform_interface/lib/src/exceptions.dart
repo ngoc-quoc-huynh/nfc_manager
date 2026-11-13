@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:nfc_manager_platform_interface/src/models/command.dart';
 
 /// Base class for all NFC exceptions.
 @immutable
@@ -19,29 +20,18 @@ sealed class NfcException implements Exception {
   int get hashCode => Object.hash(runtimeType, message);
 }
 
-/// Exception thrown when the APDU command is invalid because it must be at
-/// least 4 bytes long.
+/// Exception thrown when the platform rejected the APDU command.
+///
+/// [ApduCommand] already enforces the APDU structure, so this reports a limit
+/// of the platform or tag. For example, Android rejects commands that exceed
+/// its maximum transceive length before transmission. The tag stays connected.
 final class InvalidApduCommandException extends NfcException {
   /// Constructs an [InvalidApduCommandException].
   const InvalidApduCommandException()
-    : super('APDU command must be at least 4 bytes long.');
+    : super('The platform rejected the APDU command.');
 
   @override
   String toString() => 'InvalidApduCommandException: $message';
-}
-
-/// Exception thrown when the LC value does not match the length of the Data
-/// field in the APDU command.
-final class InvalidLcDataLengthException extends NfcException {
-  /// Constructs an [InvalidLcDataLengthException].
-  const InvalidLcDataLengthException()
-    : super(
-        'The LC value does not match the length of the Data field in the '
-        'APDU command.',
-      );
-
-  @override
-  String toString() => 'InvalidLcDataLengthException: $message';
 }
 
 /// Exception thrown when the NFC tag does not support ISO-DEP.
