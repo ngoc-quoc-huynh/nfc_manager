@@ -20,7 +20,7 @@ import io.flutter.plugin.common.MethodChannel.Result
 
 /**
  * The main plugin class for the NFC Manager Android plugin.
- * 
+ *
  * This class handles the initialization, configuration, and management of the NFC functionality.
  */
 class NfcManagerPlugin :

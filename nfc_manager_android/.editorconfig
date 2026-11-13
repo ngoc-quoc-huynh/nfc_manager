@@ -1,0 +1,6 @@
+root = true
+
+[*.{kt,kts}]
+ktlint_code_style = ktlint_official
+# Package names follow the Android namespace (dev.nfcmanager...), not ktlint.
+ktlint_standard_package-name = disabled

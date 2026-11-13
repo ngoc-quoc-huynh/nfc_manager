@@ -171,9 +171,10 @@ class TagReaderTest {
 
         val caller = Executors.newSingleThreadExecutor()
         try {
-            val commandResult = caller.submit<TagConnectionException> {
-                assertThrows<TagConnectionException> { sendCommand(command) }
-            }
+            val commandResult =
+                caller.submit<TagConnectionException> {
+                    assertThrows<TagConnectionException> { sendCommand(command) }
+                }
 
             assertTrue(transceiveStarted.await(2, TimeUnit.SECONDS))
             tagReader.onCancel(null)
@@ -674,9 +675,10 @@ class TagReaderTest {
 
         val caller = Executors.newSingleThreadExecutor()
         try {
-            val commandResult = caller.submit<TagConnectionException> {
-                assertThrows<TagConnectionException> { sendCommand(command) }
-            }
+            val commandResult =
+                caller.submit<TagConnectionException> {
+                    assertThrows<TagConnectionException> { sendCommand(command) }
+                }
 
             assertTrue(transceiveStarted.await(2, TimeUnit.SECONDS))
             tagReader.onCancel(null)

@@ -49,8 +49,10 @@ flutter pub get --no-example
 
 Then run the commands below in that package:
 
-- `make style` formats your code and analyzes it. It modifies files.
-- `make check` runs the same formatting and analysis checks as CI without modifying files.
+- `make style` formats your code and analyzes it. It modifies files. In `nfc_manager_android` it also formats Kotlin
+  with ktlint (installed by `mise install`).
+- `make check` runs the same formatting and analysis checks as CI without modifying files, including the ktlint check
+  in `nfc_manager_android`.
 - `make test` runs the tests. Pass `seed=1` to reproduce a test order.
 - `make android` runs the Android unit tests and lint. It exists in `nfc_manager_android` only and needs a local
   Android SDK (Java comes from mise).

@@ -33,7 +33,7 @@ class HostCardEmulationService : HostApduService() {
 
     /**
      * Handles the APDU command received from the NFC terminal.
-     * 
+     *
      * @param session The session snapshot used for the whole command.
      * @param commandByteArray The APDU command.
      * @return The response APDU.
@@ -46,11 +46,13 @@ class HostCardEmulationService : HostApduService() {
             val command = CommandApdu.fromByteArray(commandByteArray)
 
             when {
-                command.ins == 0xA4.toByte() && command.p1 == 0x04.toByte() ->
+                command.ins == 0xA4.toByte() && command.p1 == 0x04.toByte() -> {
                     processSelectAid(session, command.data ?: throw InvalidLcDataLengthException())
+                }
 
-                command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() ->
+                command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() -> {
                     processVerifyPin(session, command.data ?: throw InvalidLcDataLengthException())
+                }
 
                 else -> {
                     session.emit(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
@@ -67,7 +69,7 @@ class HostCardEmulationService : HostApduService() {
 
     /**
      * Processes the SELECT AID command.
-     * 
+     *
      * @param session The session snapshot used for the whole command.
      * @param data The data of the SELECT AID command.
      * @return The response APDU.
@@ -88,7 +90,7 @@ class HostCardEmulationService : HostApduService() {
      * Processes the VERIFY PIN command.
      *
      * Compares the PIN in constant time so response timing does not reveal matching bytes.
-     * 
+     *
      * @param session The session snapshot used for the whole command.
      * @param data The data of the VERIFY PIN command.
      * @return The response APDU.

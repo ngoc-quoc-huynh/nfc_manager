@@ -6,15 +6,14 @@ import io.flutter.plugin.common.MethodChannel.Result
 
 /**
  * Converts a ByteArray to a hexadecimal string.
- * 
+ *
  * @return The hexadecimal string representation of the ByteArray.
  */
-internal fun ByteArray.toHexString(): String =
-    toHexString(HexFormat { upperCase = true })
+internal fun ByteArray.toHexString(): String = toHexString(HexFormat { upperCase = true })
 
 /**
  * Emits an error status to the Flutter side.
- * 
+ *
  * @param exception The `NfcException` to emit, which contains the error code and message to be sent.
  */
 internal fun Result.error(exception: NfcException) =
@@ -26,7 +25,7 @@ internal fun Result.error(exception: NfcException) =
 
 /**
  * Emits an error status to the Flutter side.
- * 
+ *
  * @param exception The `NfcException` to emit, which contains the error code and message to be sent.
  */
 internal fun EventSink.error(exception: NfcException) =
@@ -38,7 +37,7 @@ internal fun EventSink.error(exception: NfcException) =
 
 /**
  * Converts a Byte to an unsigned integer.
- * 
+ *
  * @return The unsigned integer representation of the Byte.
  */
 internal fun Byte.toUnsignedInt(): Int = toInt() and 0xFF

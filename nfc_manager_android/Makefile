@@ -4,11 +4,13 @@ PUB_FLAGS ?=
 
 style:
 	dart format .
+	ktlint --format 'android/**/*.kt' 'android/*.kts'
 	flutter analyze $(PUB_FLAGS)
 	dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
 
 check:
 	dart format --output=none --set-exit-if-changed .
+	ktlint 'android/**/*.kt' 'android/*.kts'
 	flutter analyze $(PUB_FLAGS)
 	dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
 	cd example && dart format --output=none --set-exit-if-changed .
