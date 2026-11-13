@@ -1,5 +1,4 @@
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:apduServiceBanner="@drawable/launch_background"
     android:description="@string/service_description"
     android:requireDeviceUnlock="true">
     <aid-group

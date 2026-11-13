@@ -40,7 +40,7 @@ void main() {
   });
 
   testWidgets(
-    'sends a command before cancelling discovery after finding a tag.',
+    'sends a command before cancelling discovery and shows HCE readiness.',
     (
       tester,
     ) async {
@@ -85,6 +85,8 @@ void main() {
           'discovery/listen',
           'sendCommand',
           'discovery/cancel',
+          'host_card_emulation/listen',
+          'host_card_emulation/cancel',
         ]),
       );
       expect(find.text('startDiscovery: tag'), findsOneWidget);
@@ -93,6 +95,10 @@ void main() {
           'sendCommand: ApduResponse(data: 0 bytes, '
           'statusWord: 9000, status: success)',
         ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('startEmulation: HostCardEmulationStatus.ready'),
         findsOneWidget,
       );
       await tester.pumpWidget(const SizedBox.shrink());
