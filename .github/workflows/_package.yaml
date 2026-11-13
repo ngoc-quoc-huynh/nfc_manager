@@ -20,9 +20,10 @@ permissions:
   contents: read
 
 # `github.workflow` is the caller's name, so every package gets its own group.
+# Pull requests share a group by ref. Pushes use a separate group per run.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 defaults:
   run:
