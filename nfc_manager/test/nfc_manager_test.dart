@@ -67,7 +67,7 @@ void main() {
     test('forwards platform errors.', () async {
       when(
         mockPlatform.isHceSupported,
-      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+      ).thenAnswer((_) async => throw const NfcUnknownException(code: 'code'));
 
       await expectLater(
         nfcManager.isHceSupported(),
@@ -92,7 +92,7 @@ void main() {
     test('forwards platform errors.', () async {
       when(
         mockPlatform.isNfcSupported,
-      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+      ).thenAnswer((_) async => throw const NfcUnknownException(code: 'code'));
 
       await expectLater(
         nfcManager.isNfcSupported(),
@@ -117,7 +117,7 @@ void main() {
     test('forwards platform errors.', () async {
       when(
         mockPlatform.isNfcEnabled,
-      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+      ).thenAnswer((_) async => throw const NfcUnknownException(code: 'code'));
 
       await expectLater(
         nfcManager.isNfcEnabled(),
@@ -187,7 +187,9 @@ void main() {
     test('forwards platform stream errors.', () async {
       when(
         mockPlatform.startDiscovery,
-      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
+      ).thenAnswer(
+        (_) => Stream.error(const NfcUnknownException(code: 'code')),
+      );
 
       await expectLater(
         nfcManager.startDiscovery(),
@@ -211,7 +213,7 @@ void main() {
     test('forwards platform command errors.', () async {
       when(
         () => mockPlatform.sendCommand(command),
-      ).thenAnswer((_) async => throw const NfcUnknownException(null));
+      ).thenAnswer((_) async => throw const NfcUnknownException(code: 'code'));
 
       await expectLater(
         nfcManager.sendCommand(command),
@@ -276,7 +278,9 @@ void main() {
     test('forwards platform stream errors.', () async {
       when(
         () => mockPlatform.startEmulation(aid: aid, pin: pin),
-      ).thenAnswer((_) => Stream.error(const NfcUnknownException(null)));
+      ).thenAnswer(
+        (_) => Stream.error(const NfcUnknownException(code: 'code')),
+      );
 
       await expectLater(
         nfcManager.startEmulation(aid: aid, pin: pin),

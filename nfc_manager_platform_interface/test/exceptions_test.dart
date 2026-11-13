@@ -7,7 +7,10 @@ void main() {
       'different exception types are unequal even with the same message.',
       () {
         const exception = NfcNotSupportedException();
-        final unknown = NfcUnknownException(exception.message);
+        final unknown = NfcUnknownException(
+          code: 'NFC_NOT_SUPPORTED',
+          message: exception.message,
+        );
 
         expect(exception, isNot(unknown));
         expect(unknown, isNot(exception));
@@ -150,39 +153,57 @@ void main() {
   });
 
   group('NfcUnknownException', () {
-    test('equal messages produce equal exceptions and hash codes.', () {
-      for (final message in <String?>[null, 'message']) {
-        final exception = NfcUnknownException(message);
-        final equalException = NfcUnknownException(message);
+    test(
+      'equal codes and messages produce equal exceptions and hash codes.',
+      () {
+        for (final message in <String?>[null, 'message']) {
+          final exception = NfcUnknownException(code: 'code', message: message);
+          final equalException = NfcUnknownException(
+            code: 'code',
+            message: message,
+          );
 
-        expect(exception, equalException, reason: 'message: $message');
-        expect(
-          exception.hashCode,
-          equalException.hashCode,
-          reason: 'message: $message',
-        );
-      }
-    });
+          expect(exception, equalException, reason: 'message: $message');
+          expect(
+            exception.hashCode,
+            equalException.hashCode,
+            reason: 'message: $message',
+          );
+        }
+      },
+    );
 
     test('different messages produce unequal exceptions.', () {
       expect(
-        const NfcUnknownException('first'),
-        isNot(const NfcUnknownException('second')),
+        const NfcUnknownException(code: 'code', message: 'first'),
+        isNot(const NfcUnknownException(code: 'code', message: 'second')),
       );
       expect(
-        const NfcUnknownException(null),
-        isNot(const NfcUnknownException('')),
+        const NfcUnknownException(code: 'code'),
+        isNot(const NfcUnknownException(code: 'code', message: '')),
       );
     });
 
-    test('exposes the exception message.', () {
-      expect(const NfcUnknownException('message').message, 'message');
+    test('different codes produce unequal exceptions.', () {
+      const first = NfcUnknownException(code: 'FIRST', message: 'message');
+      const second = NfcUnknownException(code: 'SECOND', message: 'message');
+
+      expect(first, isNot(second));
     });
+
+    test('exposes the native code and message.', () {
+      const exception = NfcUnknownException(code: 'CODE', message: 'message');
+
+      expect(exception.code, 'CODE');
+      expect(exception.message, 'message');
+      expect(const NfcUnknownException(code: 'CODE').message, isNull);
+    });
+
     test(
-      'includes the exception type and message in toString.',
+      'includes the exception type, code and message in toString.',
       () => expect(
-        const NfcUnknownException('message').toString(),
-        'NfcUnknownException: message',
+        const NfcUnknownException(code: 'CODE', message: 'message').toString(),
+        'NfcUnknownException(CODE): message',
       ),
     );
   });
@@ -191,7 +212,10 @@ void main() {
     'different exception types with equal messages are unequal.',
     () {
       const known = NfcNotSupportedException();
-      final unknown = NfcUnknownException(known.message);
+      final unknown = NfcUnknownException(
+        code: 'NFC_NOT_SUPPORTED',
+        message: known.message,
+      );
 
       expect(known, isNot(unknown));
     },

@@ -46,7 +46,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
-      .cast<String>()
+      .map(_decodeStringEvent)
       .handleError(_onStreamError, test: _isPlatformException);
 
   @override
@@ -75,9 +75,13 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
     required Uint8List pin,
   }) => hostCardEmulationEventChannel
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
-      .cast<String>()
-      .map(_toHostCardEmulationStatus)
+      .map((event) => _toHostCardEmulationStatus(_decodeStringEvent(event)))
       .handleError(_onStreamError, test: _isPlatformException);
+
+  static String _decodeStringEvent(Object? event) => switch (event) {
+    final String value => value,
+    _ => throw const NfcUnknownException(code: 'INVALID_EVENT_PAYLOAD'),
+  };
 
   bool _isPlatformException(Object? error) => error is PlatformException;
 
@@ -95,7 +99,10 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         'ISO_DEP_NOT_SUPPORTED' => const IsoDepNotSupportedException(),
         'NFC_NOT_SUPPORTED' => const NfcNotSupportedException(),
         'TAG_CONNECTION_FAILED' => const TagConnectionException(),
-        _ => NfcUnknownException(exception.message),
+        _ => NfcUnknownException(
+          code: exception.code,
+          message: exception.message,
+        ),
       };
 
   /// Decodes a native HCE event name.
@@ -114,6 +121,9 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         'FUNCTION_NOT_SUPPORTED' =>
           HostCardEmulationStatus.functionNotSupported,
         'TAG_DISCONNECTED' => HostCardEmulationStatus.tagDisconnected,
-        _ => throw NfcUnknownException(status),
+        _ => throw NfcUnknownException(
+          code: 'UNKNOWN_HCE_STATUS',
+          message: status,
+        ),
       };
 }

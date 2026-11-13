@@ -77,11 +77,33 @@ final class TagConnectionException extends NfcException {
   String toString() => 'TagConnectionException: $message';
 }
 
-/// Exception thrown when the exception is unknown.
+/// Exception thrown for a platform error that has no dedicated
+/// [NfcException] subtype.
+///
+/// [code] is the platform's error code and [message] is the platform's own
+/// text, which is not translated or guaranteed to be stable. On Android the
+/// codes include:
+///
+/// * `INVALID_ARGUMENTS`: the plugin received missing or mistyped arguments.
+/// * `NFC_ERROR`: the NFC reader failed unexpectedly.
+/// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
+///   version does not know; [message] holds that name.
 final class NfcUnknownException extends NfcException {
-  /// Constructs a [NfcUnknownException].
-  const NfcUnknownException(super.message);
+  /// Constructs an [NfcUnknownException] with the platform's [code] and
+  /// optional [message].
+  const NfcUnknownException({required this.code, String? message})
+    : super(message);
+
+  /// The platform's error code.
+  final String code;
 
   @override
-  String toString() => 'NfcUnknownException: $message';
+  bool operator ==(Object other) =>
+      super == other && other is NfcUnknownException && code == other.code;
+
+  @override
+  int get hashCode => Object.hash(super.hashCode, code);
+
+  @override
+  String toString() => 'NfcUnknownException($code): $message';
 }
