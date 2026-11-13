@@ -142,8 +142,8 @@ final subscription = const NfcManager().startDiscovery().listen(
 await subscription.cancel();
 ```
 
-On Android, the stream ends when the activity detaches. Listen again after the activity is attached
-again to resume discovery.
+On Android, the stream ends when the activity detaches. To resume, call `startDiscovery()` again
+after the activity reattaches and listen to the new stream.
 
 #### Communicating with NFC tags
 
@@ -247,8 +247,9 @@ void main() {
 
 To test code that calls `const NfcManager()` directly, replace the platform implementation instead.
 `nfc_manager` does not export `NfcManagerPlatform`, so add `nfc_manager_platform_interface` and
-`plugin_platform_interface` to your `dev_dependencies`. Use the same `git` source and `ref` as for
-`nfc_manager`, with `path: nfc_manager_platform_interface`:
+`plugin_platform_interface` to your `dev_dependencies`. Pin `nfc_manager` and
+`nfc_manager_platform_interface` to the same full commit SHA. Pub resolves the platform interface
+that `nfc_manager` depends on to that commit, so a branch or tag name does not match it:
 
 ```yaml
 dev_dependencies:
@@ -256,7 +257,7 @@ dev_dependencies:
     git:
       url: https://github.com/ngoc-quoc-huynh/nfc_manager
       path: nfc_manager_platform_interface
-      ref: main # use the same ref as nfc_manager
+      ref: <full-commit-sha> # the same SHA as nfc_manager
   plugin_platform_interface: ^2.1.8
 ```
 

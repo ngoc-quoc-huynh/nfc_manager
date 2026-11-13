@@ -15,7 +15,7 @@
 
 - A 6-byte short APDU with Lc = 00 (`CLA INS P1 P2 00 XX`) is rejected. HCE answers `67 00` and reports `INVALID_LC_LENGTH` (an unsupported INS used to get `6A 81`).
 - Native discovery failures (bad arguments, `enableReaderMode` errors) arrive on the discovery stream as errors with codes `INVALID_ARGUMENTS` or `NFC_ERROR`, instead of only as `FlutterError` reports.
-- The discovery stream ends when the activity detaches. Listen again after the activity is attached again to resume.
+- The discovery stream ends when the activity detaches. To resume, call `startDiscovery()` again after the activity reattaches.
 - Malformed HCE arguments (`aid`, `pin`) are reported as `INVALID_ARGUMENTS` and leave HCE unconfigured.
 
 ### Fixes

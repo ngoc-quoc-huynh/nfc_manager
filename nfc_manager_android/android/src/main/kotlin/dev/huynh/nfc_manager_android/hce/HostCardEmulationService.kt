@@ -13,8 +13,9 @@ import java.security.MessageDigest
  * The HCE service that apps declare in their manifest; Android creates and binds it.
  *
  * It answers SELECT AID and VERIFY PIN APDUs from an NFC reader against the active
- * [HostCardEmulationConfig.Session] and emits each outcome to the session's event sink. Without a
- * session it answers `69 82` (HCE not ready).
+ * [HostCardEmulationConfig.Session] and emits the outcome of each command to the session's event
+ * sink. Without a session it answers `69 82` (HCE not ready), and without a command it answers
+ * `6A 00`; neither emits an event.
  */
 class HostCardEmulationService : HostApduService() {
     override fun processCommandApdu(

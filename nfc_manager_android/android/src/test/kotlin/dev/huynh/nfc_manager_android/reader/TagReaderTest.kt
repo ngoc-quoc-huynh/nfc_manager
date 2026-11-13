@@ -264,6 +264,7 @@ class TagReaderTest {
         tagReader.onListen(null, mockEventSink)
 
         verify(mockEventSink).error(NfcNotSupportedException())
+        verify(mockEventSink).endOfStream()
     }
 
     @Test
@@ -333,6 +334,7 @@ class TagReaderTest {
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
         verify(mockEventSink).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
         assertNull(tagReader.eventSink)
@@ -350,6 +352,7 @@ class TagReaderTest {
         assertDoesNotThrow { tagReader.onListen(mapOf("timeout" to null), mockEventSink) }
 
         verify(mockEventSink, times(1)).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         assertNull(tagReader.eventSink)
     }
@@ -790,6 +793,7 @@ class TagReaderTest {
             "The arguments are missing or have the wrong type.",
             null,
         )
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
     }
 

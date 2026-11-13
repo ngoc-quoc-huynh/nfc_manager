@@ -121,11 +121,13 @@ internal class TagReader(
                 parseTimeout(arguments)
             } catch (exception: InvalidArgumentsException) {
                 events?.error(exception)
+                events?.endOfStream()
                 return
             }
         val adapter = nfcAdapter
         if (adapter == null) {
             events?.error(NfcNotSupportedException())
+            events?.endOfStream()
             return
         }
 
@@ -153,6 +155,7 @@ internal class TagReader(
             // cancelSession clears eventSink, so report through the sink this call received.
             cancelSession(listenSession)
             events?.error(UnexpectedNfcException())
+            events?.endOfStream()
         }
     }
 

@@ -93,6 +93,7 @@ class NfcManagerPlugin :
                             val reader = tagReader
                             if (reader == null) {
                                 events.error(UnexpectedNfcException())
+                                events.endOfStream()
                             } else {
                                 reader.onListen(arguments, events)
                             }

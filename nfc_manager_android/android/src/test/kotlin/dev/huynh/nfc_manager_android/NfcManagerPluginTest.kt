@@ -50,8 +50,9 @@ class NfcManagerPluginTest {
             tagReader = mockTagReader
         }
     private val mockResult = mock<Result>()
-    private val hceArguments = mapOf("aid" to byteArrayOf(0x01), "pin" to byteArrayOf(0x02))
-    private val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x01, 0x01)
+    private val aid = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x04)
+    private val hceArguments = mapOf("aid" to aid, "pin" to byteArrayOf(0x02))
+    private val selectCommand = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, aid.size.toByte()) + aid
 
     @AfterEach
     fun tearDown() {
@@ -161,6 +162,19 @@ class NfcManagerPluginTest {
         plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to "invalid")), mockResult)
 
         verify(mockResult).error(InvalidArgumentsException())
+    }
+
+    @Test
+    fun `discovery ends when started without an activity`() {
+        val channel = DiscoveryChannel()
+        plugin.tagReader = null
+
+        assertNotNull(channel.call("listen"))
+
+        val event = argumentCaptor<ByteBuffer>()
+        verify(channel.messenger, times(2)).send(eq(channel.name), event.capture())
+        assertNotNull(event.firstValue)
+        assertNull(event.lastValue)
     }
 
     @Test

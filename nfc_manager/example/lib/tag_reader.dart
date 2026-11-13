@@ -40,7 +40,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
                 'Start the discovery to look out for NFC tags.',
               ),
               .waiting => const CircularProgressIndicator(),
-              .active when snapshot.hasError => Text(
+              .active || .done when snapshot.hasError => Text(
                 'Received error: ${snapshot.error}',
               ),
               .active => Column(

@@ -64,6 +64,18 @@ class HostCardEmulationStreamHandlerTest {
     fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to 2))
 
     @Test
+    fun `onListen rejects a short aid`() = assertRejected(mapOf("aid" to ByteArray(4), "pin" to VALID_PIN))
+
+    @Test
+    fun `onListen rejects a long aid`() = assertRejected(mapOf("aid" to ByteArray(17), "pin" to VALID_PIN))
+
+    @Test
+    fun `onListen rejects an empty pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to ByteArray(0)))
+
+    @Test
+    fun `onListen rejects a long pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to ByteArray(256)))
+
+    @Test
     fun `onCancel clears the session it owns`() {
         streamHandler.onListen(VALID_ARGUMENTS, mockEventSink)
 

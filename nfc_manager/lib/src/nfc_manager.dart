@@ -47,8 +47,9 @@ class NfcManager {
   /// to stop discovery. [timeout] limits communication with a discovered tag,
   /// not the time spent waiting for a tag.
   ///
-  /// The stream ends when the platform's host UI detaches. Listen again after
-  /// the host UI is attached again to resume discovery.
+  /// The stream ends when the platform's host UI detaches. To resume, call
+  /// [startDiscovery] again after the host UI reattaches and listen to the new
+  /// stream.
   ///
   /// Throws [UnimplementedError] if no platform implementation is registered
   /// or it does not support this method.

@@ -29,7 +29,7 @@ body:
     id: confirm-admin
     attributes:
       label: Admin confirmation
-      description: You must confirm that you are a NFC Manager administrator to proceed.
+      description: You must confirm that you are an NFC Manager administrator to proceed.
       options:
         - label: I confirm that I am an admin of NFC Manager.
           required: true

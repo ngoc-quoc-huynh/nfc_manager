@@ -20,11 +20,15 @@ depending on this package directly.
   that platform implementations extend. Methods that are not overridden throw
   `UnimplementedError`.
 - `ApduCommand` and `ApduResponse`: the APDU models exchanged with a tag.
+  `ApduStatus` names the status word of a response.
 - `HostCardEmulationStatus`: the events reported while emulating a card.
 - `NfcException` and its subclasses: the errors that implementations report.
   `NfcUnknownException` carries the platform error `code`.
-- `hexToBytes`, a `String` extension that decodes the hexadecimal tag
-  identifiers reported by `startDiscovery`.
+- `HexString.hexToBytes` and `HexBytes.toHex`: extensions that convert between
+  bytes and hexadecimal strings, such as the tag identifiers reported by
+  `startDiscovery`.
+- `checkAidLength` and `checkPinLength`: the AID and PIN length checks for
+  `startEmulation`, which throw `RangeError`.
 
 ## Implementing a platform
 

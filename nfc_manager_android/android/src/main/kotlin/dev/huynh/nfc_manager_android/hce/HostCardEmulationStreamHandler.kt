@@ -16,7 +16,8 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
     /**
      * Starts an HCE session from the `aid` and `pin` byte arrays in [arguments].
      *
-     * Malformed arguments are reported as [InvalidArgumentsException] and leave HCE unconfigured.
+     * Malformed arguments are reported as [InvalidArgumentsException] and start no session; a
+     * session that is already active stays in place.
      */
     override fun onListen(
         arguments: Any?,
@@ -25,7 +26,7 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
         val map = arguments as? Map<*, *>
         val aid = map?.get("aid") as? ByteArray
         val pin = map?.get("pin") as? ByteArray
-        if (aid == null || pin == null) {
+        if (aid == null || aid.size !in 5..16 || pin == null || pin.size !in 1..255) {
             events.error(InvalidArgumentsException())
             return
         }
