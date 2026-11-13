@@ -195,3 +195,87 @@ await subscription.cancel();
 - All other errors are subtypes of `NfcException`. `NfcUnknownException` carries the platform's
   `code`. The `message` of any `NfcException` is untrusted diagnostic text: do not parse it or rely
   on it.
+
+### Testing
+
+`NfcManager` has a `const` constructor and no state, so your code can depend on it and a test can
+substitute a mock. Add [`mocktail`](https://pub.dev/packages/mocktail) to your `dev_dependencies`.
+
+#### Mock `NfcManager`
+
+Accept an `NfcManager` in the class you test and pass `const NfcManager()` in production:
+
+```dart
+import 'package:nfc_manager/nfc_manager.dart';
+
+class NfcStatusChecker {
+  const NfcStatusChecker([this._nfcManager = const NfcManager()]);
+
+  final NfcManager _nfcManager;
+
+  Future<bool> get canScan async =>
+      await _nfcManager.isNfcSupported() && await _nfcManager.isNfcEnabled();
+}
+```
+
+Then mock it in the test:
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+import 'package:nfc_manager/nfc_manager.dart';
+
+class MockNfcManager extends Mock implements NfcManager {}
+
+void main() {
+  test('canScan is false while NFC is disabled', () async {
+    final nfcManager = MockNfcManager();
+    when(nfcManager.isNfcSupported).thenAnswer((_) async => true);
+    when(nfcManager.isNfcEnabled).thenAnswer((_) async => false);
+
+    expect(await NfcStatusChecker(nfcManager).canScan, isFalse);
+  });
+}
+```
+
+#### Fake the platform
+
+To test code that calls `const NfcManager()` directly, replace the platform implementation instead.
+`nfc_manager` does not export `NfcManagerPlatform`, so add `nfc_manager_platform_interface` and
+`plugin_platform_interface` to your `dev_dependencies`. Use the same `git` source and `ref` as for
+`nfc_manager`, with `path: nfc_manager_platform_interface`:
+
+```yaml
+dev_dependencies:
+  nfc_manager_platform_interface:
+    git:
+      url: https://github.com/ngoc-quoc-huynh/nfc_manager
+      path: nfc_manager_platform_interface
+      ref: main # use the same ref as nfc_manager
+  plugin_platform_interface: ^2.1.8
+```
+
+Extend `NfcManagerPlatform`, mix in `MockPlatformInterfaceMixin`, and assign the fake to `instance`:
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+
+class FakeNfcManagerPlatform extends NfcManagerPlatform
+    with MockPlatformInterfaceMixin {
+  @override
+  Future<bool> isNfcEnabled() async => true;
+}
+
+void main() {
+  test('reports NFC as enabled', () async {
+    NfcManagerPlatform.instance = FakeNfcManagerPlatform();
+
+    expect(await const NfcManager().isNfcEnabled(), isTrue);
+  });
+}
+```
+
+Methods the fake does not override throw `UnimplementedError`.
