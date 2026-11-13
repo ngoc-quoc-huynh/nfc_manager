@@ -82,7 +82,7 @@ class NfcManager {
   }
 
   static void _checkTimeout(Duration timeout) {
-    if (timeout <= Duration.zero ||
+    if (timeout <= .zero ||
         timeout.inMicroseconds % Duration.microsecondsPerMillisecond != 0 ||
         timeout.inMilliseconds > _maxTimeoutMilliseconds) {
       throw ArgumentError.value(
