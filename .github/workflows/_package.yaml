@@ -13,8 +13,8 @@ permissions:
 
 # `github.workflow` is the caller's name, so every package gets its own group.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ case(github.event_name == 'pull_request' && github.run_attempt == '1', github.ref, github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.run_attempt == '1' }}
 
 jobs:
   development:
