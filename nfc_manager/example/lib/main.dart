@@ -7,7 +7,10 @@ void main() {
   runApp(const NfcManagerExample());
 }
 
-class const NfcManagerExample({super.key}) extends StatelessWidget {
+class const NfcManagerExample({
+  super.key,
+  final NfcManager nfcManager = const NfcManager(),
+}) extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -25,15 +28,15 @@ class const NfcManagerExample({super.key}) extends StatelessWidget {
               children: [
                 _FeatureStatusView(
                   title: 'NFC support:',
-                  statusFuture: const NfcManager().isNfcSupported(),
+                  check: nfcManager.isNfcSupported,
                 ),
                 _FeatureStatusView(
                   title: 'NFC enabled:',
-                  statusFuture: const NfcManager().isNfcEnabled(),
+                  check: nfcManager.isNfcEnabled,
                 ),
                 _FeatureStatusView(
                   title: 'HCE support:',
-                  statusFuture: const NfcManager().isHceSupported(),
+                  check: nfcManager.isHceSupported,
                 ),
                 const Divider(),
                 FilledButton(
@@ -56,8 +59,21 @@ class const NfcManagerExample({super.key}) extends StatelessWidget {
 
 class const _FeatureStatusView({
   required final String title,
-  required final Future<bool> statusFuture,
-}) extends StatelessWidget {
+  required final Future<bool> Function() check,
+}) extends StatefulWidget {
+  @override
+  State<_FeatureStatusView> createState() => _FeatureStatusViewState();
+}
+
+class _FeatureStatusViewState extends State<_FeatureStatusView> {
+  late final Future<bool> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.check();
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -66,16 +82,24 @@ class const _FeatureStatusView({
       mainAxisAlignment: .center,
       spacing: 5,
       children: [
-        Text(title, style: textTheme.titleMedium),
-        FutureBuilder<bool>(
-          future: statusFuture,
-          builder: (context, snapshot) => switch (snapshot.hasData) {
-            false => const CircularProgressIndicator(),
-            true => Text(
-              snapshot.requireData.toString(),
-              style: textTheme.bodyLarge,
-            ),
-          },
+        Text(widget.title, style: textTheme.titleMedium),
+        Flexible(
+          child: FutureBuilder<bool>(
+            future: _future,
+            builder: (context, snapshot) => switch (snapshot) {
+              AsyncSnapshot(hasError: true) => Text(
+                'Check failed',
+                style: textTheme.bodyLarge,
+                maxLines: 2,
+                overflow: .ellipsis,
+              ),
+              AsyncSnapshot(hasData: true, :final data) => Text(
+                data.toString(),
+                style: textTheme.bodyLarge,
+              ),
+              _ => const CircularProgressIndicator(),
+            },
+          ),
         ),
       ],
     );
