@@ -26,7 +26,8 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Registers an implementation that extends [NfcManagerPlatform].
   ///
-  /// Test mocks can implement this interface with `MockPlatformInterfaceMixin`.
+  /// Test mocks can implement this interface with `MockPlatformInterfaceMixin`
+  /// from the `plugin_platform_interface` package.
   static set instance(NfcManagerPlatform instance) {
     PlatformInterface.verify(instance, _token);
     _instance = instance;

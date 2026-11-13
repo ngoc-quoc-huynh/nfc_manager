@@ -20,6 +20,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   mocktail: ^1.0.4
+  plugin_platform_interface: ^2.1.8
   test_cov_console: ^0.2.2
 
   # Linter

@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
+import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 void main() {
   final defaultPlatform = NfcManagerPlatform.instance;
