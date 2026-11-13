@@ -23,6 +23,9 @@ dependencies:
     path: ../../nfc_manager_platform_interface
 
 dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
   # Linter
   cosee_lints: ^0.16.0
   dart_code_linter: ^4.0.0

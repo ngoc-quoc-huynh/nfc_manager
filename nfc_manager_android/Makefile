@@ -20,6 +20,7 @@ check:
 test:
 	flutter test $(PUB_FLAGS) --coverage --test-randomize-ordering-seed=$(or $(seed),random)
 	dart run test_cov_console
+	cd example && flutter test $(PUB_FLAGS) --test-randomize-ordering-seed=$(or $(seed),random)
 
 android:
 	cd example/android && ./gradlew --build-cache :nfc_manager_android:testDebugUnitTest :nfc_manager_android:lintDebug
