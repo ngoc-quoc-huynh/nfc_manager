@@ -1,22 +1,18 @@
 package dev.huynh.nfc_manager_android.host_card_emulation
 
-import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import io.flutter.plugin.common.EventChannel.EventSink
+import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.verifyNoMoreInteractions
 import kotlin.test.assertContentEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertSame
 
 class HostCardEmulationTest {
     private companion object {
@@ -34,71 +30,18 @@ class HostCardEmulationTest {
     }
 
     private val mockEventSink = mock<EventSink>()
+    private val owner = mock<StreamHandler>()
     private val hostCardEmulation = HostCardEmulation()
 
     @BeforeEach
     fun setup() = startSession()
 
     @AfterEach
-    fun tearDown() = HostCardEmulationConfig.clear(hostCardEmulation)
-
-    @Test
-    fun `onListen starts a session owned by the stream handler`() {
-        HostCardEmulationConfig.clear(hostCardEmulation)
-        val aid = VALID_AID
-        val pin = VALID_PIN
-
-        hostCardEmulation.onListen(mapOf("aid" to aid, "pin" to pin), mockEventSink)
-
-        val session = assertNotNull(HostCardEmulationConfig.session)
-        assertSame(hostCardEmulation, session.owner)
-        assertContentEquals(aid, session.aid)
-        assertContentEquals(pin, session.pin)
-        assertSame(mockEventSink, session.sink)
-        verify(mockEventSink).success(HostCardEmulationStatus.READY.name)
-    }
-
-    @Test
-    fun `onListen rejects null arguments`() = assertRejected(null)
-
-    @Test
-    fun `onListen rejects arguments that are not a map`() = assertRejected(listOf(VALID_AID))
-
-    @Test
-    fun `onListen rejects a missing aid`() = assertRejected(mapOf("pin" to VALID_PIN))
-
-    @Test
-    fun `onListen rejects a missing pin`() = assertRejected(mapOf("aid" to VALID_AID))
-
-    @Test
-    fun `onListen rejects a null aid`() = assertRejected(mapOf("aid" to null, "pin" to VALID_PIN))
-
-    @Test
-    fun `onListen rejects a null pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to null))
-
-    @Test
-    fun `onListen rejects a wrongly typed aid`() = assertRejected(mapOf("aid" to "01", "pin" to VALID_PIN))
-
-    @Test
-    fun `onListen rejects a wrongly typed pin`() = assertRejected(mapOf("aid" to VALID_AID, "pin" to 2))
-
-    @Test
-    fun `onCancel clears the session it owns`() {
-        hostCardEmulation.onCancel(null)
-
-        assertNull(HostCardEmulationConfig.session)
-    }
-
-    @Test
-    fun `onCancel keeps a session owned by another stream handler`() {
-        HostCardEmulation().onCancel(null)
-
-        assertNotNull(HostCardEmulationConfig.session)
-    }
+    fun tearDown() = HostCardEmulationConfig.clear(owner)
 
     @Test
     fun `processCommandApdu emits HCE_NOT_READY when it is not configured`() {
-        HostCardEmulationConfig.clear(hostCardEmulation)
+        HostCardEmulationConfig.clear(owner)
         val response =
             hostCardEmulation.processCommandApdu(
                 commandByteArray = byteArrayOf(),
@@ -384,32 +327,11 @@ class HostCardEmulationTest {
 
     @Test
     fun `onDeactivated emits nothing when it is not configured`() {
-        HostCardEmulationConfig.clear(hostCardEmulation)
+        HostCardEmulationConfig.clear(owner)
 
         hostCardEmulation.onDeactivated(0)
 
         verifyNoInteractions(mockEventSink)
-    }
-
-    /**
-     * Asserts that [onListen] reports [InvalidArgumentsException] for [arguments] and leaves HCE
-     * unconfigured.
-     */
-    private fun assertRejected(arguments: Any?) {
-        HostCardEmulationConfig.clear(hostCardEmulation)
-
-        hostCardEmulation.onListen(arguments, mockEventSink)
-
-        assertNull(HostCardEmulationConfig.session)
-        inOrder(mockEventSink) {
-            verify(mockEventSink).error(
-                "INVALID_ARGUMENTS",
-                "The arguments are missing or have the wrong type.",
-                null,
-            )
-            verify(mockEventSink).endOfStream()
-        }
-        verifyNoMoreInteractions(mockEventSink)
     }
 
     private fun startSession(
@@ -417,7 +339,7 @@ class HostCardEmulationTest {
         pin: ByteArray = VALID_PIN,
     ) = HostCardEmulationConfig.start(
         HostCardEmulationConfig.Session(
-            owner = hostCardEmulation,
+            owner = owner,
             aid = aid,
             pin = pin,
             sink = mockEventSink,

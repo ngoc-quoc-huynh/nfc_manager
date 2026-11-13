@@ -3,7 +3,7 @@ package dev.huynh.nfc_manager_android
 import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
 import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
-import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
+import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.reader.DiscoveryStreamHandler
 import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
@@ -60,7 +60,7 @@ class NfcManagerPlugin :
      * The stream handler for HCE events. It owns the HCE session it starts.
      */
     @VisibleForTesting
-    internal var hostCardEmulationStreamHandler: HostCardEmulation? = null
+    internal var hostCardEmulationStreamHandler: HostCardEmulationStreamHandler? = null
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         val context = flutterPluginBinding.applicationContext
@@ -83,13 +83,13 @@ class NfcManagerPlugin :
                 // Keep the channel registered so Flutter can cancel after a reader ends its stream.
                 setStreamHandler(DiscoveryStreamHandler { tagReader })
             }
-        val hostCardEmulation = HostCardEmulation()
-        hostCardEmulationStreamHandler = hostCardEmulation
+        val streamHandler = HostCardEmulationStreamHandler()
+        hostCardEmulationStreamHandler = streamHandler
         hostCardEmulationEventChannel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
                 "dev.huynh/nfc_manager_android/host_card_emulation",
-            ).apply { setStreamHandler(hostCardEmulation) }
+            ).apply { setStreamHandler(streamHandler) }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {

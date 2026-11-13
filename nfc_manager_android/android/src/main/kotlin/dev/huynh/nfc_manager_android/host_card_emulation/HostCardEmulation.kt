@@ -3,31 +3,20 @@ package dev.huynh.nfc_manager_android.host_card_emulation
 import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
-import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
-import dev.huynh.nfc_manager_android.utils.error
-import io.flutter.plugin.common.EventChannel.EventSink
-import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.security.MessageDigest
 
 /**
- * The HostCardEmulation is responsible for handling APDU (Application Protocol Data Unit) commands
- * received from NFC terminals.
+ * The HCE service that apps declare in their manifest; Android creates and binds it.
  *
- * It manages the NFC Host Card Emulation (HCE) configuration and processes commands based on the
- * current configuration.
- * 
- * The class also interfaces with a Flutter application via EventChannel, allowing it to send
- * status updates and responses back to the Flutter side.
- *
- * This integration facilitates the dynamic handling of NFC operations and event-driven communication.
+ * It answers SELECT AID and VERIFY PIN APDUs from an NFC reader against the active
+ * [HostCardEmulationConfig.Session] and emits each outcome to the session's event sink. Without a
+ * session it answers `69 82` (HCE not ready).
  */
-class HostCardEmulation :
-    HostApduService(),
-    StreamHandler {
+class HostCardEmulation : HostApduService() {
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
@@ -119,52 +108,4 @@ class HostCardEmulation :
     override fun onDeactivated(reason: Int) {
         HostCardEmulationConfig.session?.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
     }
-
-    private var closed = false
-
-    /**
-     * Starts an HCE session from the `aid` and `pin` byte arrays in [arguments].
-     *
-     * Malformed arguments are reported as [InvalidArgumentsException]. The stream ends without
-     * starting a session.
-     */
-    override fun onListen(
-        arguments: Any?,
-        events: EventSink,
-    ) {
-        check(!closed) { "The HCE stream handler is detached from the engine." }
-        val map = arguments as? Map<*, *>
-        val aid = map?.get("aid") as? ByteArray
-        val pin = map?.get("pin") as? ByteArray
-        if (aid == null || pin == null) {
-            events.error(InvalidArgumentsException())
-            events.endOfStream()
-            return
-        }
-        val session =
-            HostCardEmulationConfig.Session(
-                owner = this,
-                aid = aid,
-                pin = pin,
-                sink = events,
-            )
-        HostCardEmulationConfig.start(session)
-        session.emit(HostCardEmulationStatus.READY)
-    }
-
-    override fun onCancel(arguments: Any?) = clearSession()
-
-    internal fun close() {
-        closed = true
-        clearSession()
-    }
-
-    private fun clearSession() = HostCardEmulationConfig.clear(owner = this)
-
-    /**
-     * Emits a success status to the Flutter side.
-     * 
-     * @param status The status to emit.
-     */
-    private fun HostCardEmulationConfig.Session.emit(status: HostCardEmulationStatus) = sink.success(status.name)
 }
