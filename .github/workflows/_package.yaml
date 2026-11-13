@@ -50,24 +50,14 @@ jobs:
             flutter pub get --enforce-lockfile
           fi
 
-      - name: Format code
-        run: dart format --set-exit-if-changed lib test
-      - name: Analyze code
-        run: flutter analyze --no-pub lib test
-      - name: Run code metrics
-        run: dart run dart_code_linter:metrics analyze lib test --set-exit-on-violation-level=warning
+      - name: Check code
+        run: make check-dart PUB_FLAGS=--no-pub
       - name: Run tests
-        run: |
-          flutter test --no-pub --coverage --test-randomize-ordering-seed=random
-          dart run test_cov_console
-
+        run: make test PUB_FLAGS=--no-pub
       - name: Check example
         run: |
           if [ -d example ]; then
-            cd example
-            dart format --set-exit-if-changed .
-            flutter analyze --no-pub
-            dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
+            make check-example
           fi
 
   legacy:
