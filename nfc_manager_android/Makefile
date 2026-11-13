@@ -1,4 +1,4 @@
-.PHONY: style test
+.PHONY: style test android
 
 style:
 	dart format .
@@ -8,3 +8,6 @@ style:
 test:
 	flutter test --coverage --test-randomize-ordering-seed=$(or $(seed),random)
 	dart run test_cov_console
+
+android:
+	cd example/android && ./gradlew --build-cache :nfc_manager_android:testDebugUnitTest :nfc_manager_android:lintDebug
