@@ -180,30 +180,101 @@ void main() {
     );
   });
 
-  group('startEmulation', () {
-    test('continues after an unknown HCE event name.', () async {
-      nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) => events
-          ..success('UNKNOWN_EVENT')
-          ..success('READY')
-          ..endOfStream(),
-      );
+  group('native errors', () {
+    for (final (code, message, expected) in <(String, String?, NfcException)>[
+      ('INVALID_APDU_COMMAND', null, const InvalidApduCommandException()),
+      ('INVALID_LC_DATA_LENGTH', null, const InvalidLcDataLengthException()),
+      ('ISO_DEP_NOT_SUPPORTED', null, const IsoDepNotSupportedException()),
+      ('NFC_NOT_SUPPORTED', null, const NfcNotSupportedException()),
+      ('TAG_CONNECTION_FAILED', null, const TagConnectionException()),
+      ('', null, const NfcUnknownException(null)),
+      ('unknown', 'native text', const NfcUnknownException('native text')),
+    ]) {
+      test('sendCommand maps "$code" to $expected.', () async {
+        methodChannel.setMockCallHandler(
+          (_) async => throw PlatformException(code: code, message: message),
+        );
 
-      await expectLater(
-        nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
-        emitsInOrder([
-          emitsError(
-            isA<ArgumentError>().having(
-              (error) => error.invalidValue,
-              'invalidValue',
-              'UNKNOWN_EVENT',
-            ),
-          ),
-          HostCardEmulationStatus.ready,
-          emitsDone,
-        ]),
-      );
-    });
+        await expectLater(
+          nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
+          throwsA(expected),
+        );
+      });
+
+      test('startDiscovery maps "$code" to $expected.', () async {
+        nfcManager.discoveryEventChannel.setMockStream(
+          (events) => events
+            ..error(code: code, message: message)
+            ..endOfStream(),
+        );
+
+        await expectLater(
+          nfcManager.startDiscovery(),
+          emitsInOrder([emitsError(expected), emitsDone]),
+        );
+      });
+
+      test('startEmulation maps "$code" to $expected.', () async {
+        nfcManager.hostCardEmulationEventChannel.setMockStream(
+          (events) => events
+            ..error(code: code, message: message)
+            ..endOfStream(),
+        );
+
+        await expectLater(
+          nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+          emitsInOrder([emitsError(expected), emitsDone]),
+        );
+      });
+    }
+  });
+
+  group('startEmulation', () {
+    for (final (name, status) in [
+      ('READY', HostCardEmulationStatus.ready),
+      ('INVALID_COMMAND', HostCardEmulationStatus.invalidCommand),
+      ('INVALID_LC_LENGTH', HostCardEmulationStatus.invalidLcLength),
+      ('AID_SELECTED', HostCardEmulationStatus.aidSelected),
+      ('INVALID_AID', HostCardEmulationStatus.invalidAid),
+      ('PIN_VERIFIED', HostCardEmulationStatus.pinVerified),
+      ('WRONG_PIN', HostCardEmulationStatus.wrongPin),
+      ('FUNCTION_NOT_SUPPORTED', HostCardEmulationStatus.functionNotSupported),
+      ('TAG_DISCONNECTED', HostCardEmulationStatus.tagDisconnected),
+    ]) {
+      test('maps the native event $name to $status.', () async {
+        nfcManager.hostCardEmulationEventChannel.setMockStream(
+          (events) => events
+            ..success(name)
+            ..endOfStream(),
+        );
+
+        await expectLater(
+          nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+          emitsInOrder([status, emitsDone]),
+        );
+      });
+    }
+
+    test(
+      'reports an unknown HCE event name as NfcUnknownException and continues.',
+      () async {
+        nfcManager.hostCardEmulationEventChannel.setMockStream(
+          (events) => events
+            ..success('UNKNOWN_EVENT')
+            ..success('READY')
+            ..endOfStream(),
+        );
+
+        await expectLater(
+          nfcManager.startEmulation(aid: Uint8List(5), pin: Uint8List(1)),
+          emitsInOrder([
+            emitsError(const NfcUnknownException('UNKNOWN_EVENT')),
+            HostCardEmulationStatus.ready,
+            emitsDone,
+          ]),
+        );
+      },
+    );
 
     for (final payload in <Object?>[null, 42, <String, Object>{}]) {
       test('continues after a non-string HCE event: $payload.', () async {

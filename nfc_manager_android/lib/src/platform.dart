@@ -65,10 +65,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
 
       return ApduResponse.fromUint8List(response);
     } on PlatformException catch (e, stackTrace) {
-      Error.throwWithStackTrace(
-        NfcException.fromPlatformException(e),
-        stackTrace,
-      );
+      Error.throwWithStackTrace(_toNfcException(e), stackTrace);
     }
   }
 
@@ -79,14 +76,44 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   }) => hostCardEmulationEventChannel
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
       .cast<String>()
-      .map(HostCardEmulationStatus.fromString)
+      .map(_toHostCardEmulationStatus)
       .handleError(_onStreamError, test: _isPlatformException);
 
   bool _isPlatformException(Object? error) => error is PlatformException;
 
   Never _onStreamError(Object error, StackTrace stackTrace) =>
       Error.throwWithStackTrace(
-        NfcException.fromPlatformException(error as PlatformException),
+        _toNfcException(error as PlatformException),
         stackTrace,
       );
+
+  /// Decodes a native error into its [NfcException].
+  static NfcException _toNfcException(PlatformException exception) =>
+      switch (exception.code) {
+        'INVALID_APDU_COMMAND' => const InvalidApduCommandException(),
+        'INVALID_LC_DATA_LENGTH' => const InvalidLcDataLengthException(),
+        'ISO_DEP_NOT_SUPPORTED' => const IsoDepNotSupportedException(),
+        'NFC_NOT_SUPPORTED' => const NfcNotSupportedException(),
+        'TAG_CONNECTION_FAILED' => const TagConnectionException(),
+        _ => NfcUnknownException(exception.message),
+      };
+
+  /// Decodes a native HCE event name.
+  ///
+  /// Throws [NfcUnknownException] for an unrecognized name, so the stream
+  /// reports it as an error and continues.
+  static HostCardEmulationStatus _toHostCardEmulationStatus(String status) =>
+      switch (status) {
+        'READY' => HostCardEmulationStatus.ready,
+        'INVALID_COMMAND' => HostCardEmulationStatus.invalidCommand,
+        'INVALID_LC_LENGTH' => HostCardEmulationStatus.invalidLcLength,
+        'AID_SELECTED' => HostCardEmulationStatus.aidSelected,
+        'INVALID_AID' => HostCardEmulationStatus.invalidAid,
+        'PIN_VERIFIED' => HostCardEmulationStatus.pinVerified,
+        'WRONG_PIN' => HostCardEmulationStatus.wrongPin,
+        'FUNCTION_NOT_SUPPORTED' =>
+          HostCardEmulationStatus.functionNotSupported,
+        'TAG_DISCONNECTED' => HostCardEmulationStatus.tagDisconnected,
+        _ => throw NfcUnknownException(status),
+      };
 }
