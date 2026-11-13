@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager_android/nfc_manager_android.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 /// Minimal host app that calls each platform method once.
 ///

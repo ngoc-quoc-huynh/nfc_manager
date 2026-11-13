@@ -267,7 +267,7 @@ packages:
     source: path
     version: "1.2.0"
   nfc_manager_platform_interface:
-    dependency: transitive
+    dependency: "direct main"
     description:
       path: "../../nfc_manager_platform_interface"
       relative: true
