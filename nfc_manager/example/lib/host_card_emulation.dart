@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_example/demo_credentials.dart';
 
 class const HostCardEmulationPage({super.key}) extends StatefulWidget {
   @override
@@ -10,9 +11,6 @@ class const HostCardEmulationPage({super.key}) extends StatefulWidget {
 
 class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
   Stream<HostCardEmulationStatus>? _stream;
-
-  static const _aid = 'F000000001';
-  static const _pin = '1234';
 
   @override
   Widget build(BuildContext context) {
@@ -24,8 +22,8 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
             null => FilledButton(
               onPressed: () => setState(
                 () => _stream = const NfcManager().startEmulation(
-                  aid: _aid.hexToBytes(),
-                  pin: utf8.encode(_pin),
+                  aid: demoAid.hexToBytes(),
+                  pin: utf8.encode(demoPin),
                 ),
               ),
               child: const Text('Start emulation'),
