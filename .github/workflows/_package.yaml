@@ -25,14 +25,14 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-defaults:
-  run:
-    working-directory: ./${{ inputs.package }}
-
 jobs:
   development:
     name: Checks
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./${{ inputs.package }}
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -51,6 +51,7 @@ jobs:
           path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-${{ github.workflow }}-${{ hashFiles('mise.lock') }}-${{ hashFiles('**/pubspec.yaml', '**/example/pubspec.lock') }}
           restore-keys: ${{ runner.os }}-flutter-${{ github.workflow }}-${{ hashFiles('mise.lock') }}-
+
       - name: Install dependencies
         run: flutter pub get --no-example
       - name: Install example dependencies
@@ -79,6 +80,11 @@ jobs:
   legacy:
     name: Minimum Flutter analysis
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./${{ inputs.package }}
+
     env:
       # Latest patch of the minimum supported Flutter minor (see pubspec.yaml).
       MISE_FLUTTER_VERSION: '3.44.9'
