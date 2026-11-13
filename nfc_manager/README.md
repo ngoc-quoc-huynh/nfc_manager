@@ -128,7 +128,9 @@ subscription. Each event is the tag ID as uppercase hexadecimal, for example `04
 
 ```dart
 final subscription = const NfcManager().startDiscovery().listen(
-  (tagId) => print('Found tag $tagId'),
+  (tagId) {
+    // Use the tag ID, for example to start an APDU exchange.
+  },
   onError: (Object error) {
     if (error is IsoDepNotSupportedException) {
       // The tag does not support ISO-DEP.
@@ -153,9 +155,9 @@ try {
     ApduCommand.selectAid(aid.hexToBytes()),
   );
   if (response.isSuccess) {
-    print('Selected, data: ${response.data.toHex()}');
+    // Process response.data.
   } else {
-    print('Status ${response.status.name}: ${response.statusWord.toRadixString(16)}');
+    // Handle response.status, or read response.sw1 and response.sw2.
   }
 } on TagConnectionException {
   // There is no connection, the tag was lost, or it returned fewer than 2 bytes.

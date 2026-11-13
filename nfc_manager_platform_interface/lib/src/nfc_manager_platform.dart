@@ -59,10 +59,10 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// 2147483647); implementations may throw [ArgumentError] otherwise. When it
   /// is null, the platform's default applies.
   ///
-  /// The stream ends when the platform's host, such as an Android activity,
-  /// detaches. Listen again after the activity is attached again to resume
-  /// discovery. A stream that has ended may still receive a late platform
-  /// error, which the framework reports as an uncaught error.
+  /// The stream ends when the platform's host UI detaches. Listen again after
+  /// the host UI is attached again to resume discovery. A stream that has ended
+  /// may still receive a late platform error, which the framework reports as an
+  /// uncaught error.
   ///
   /// The stream reports [NfcNotSupportedException] if the device does not
   /// support NFC, [IsoDepNotSupportedException] when a tag lacks ISO-DEP,
@@ -86,9 +86,10 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// Emulation starts when the stream is listened to. Cancel the subscription
   /// to stop emulation. Use one active emulation subscription at a time.
   ///
-  /// On Android, [aid] must also be registered for the HCE service. A ready
-  /// event confirms that the configuration is stored. It does not confirm that
-  /// NFC is enabled or that the device routes commands to the service.
+  /// The platform may require [aid] to be registered with the operating system
+  /// as well. A ready event confirms that the configuration is stored. It does
+  /// not confirm that NFC is enabled or that the device routes commands to the
+  /// service.
   /// Choose the byte encoding of [pin] before calling this method.
   ///
   /// The stream reports [NfcUnknownException] for a platform error or an event
