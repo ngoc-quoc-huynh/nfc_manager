@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/demo_credentials.dart';
 
-class const TagReaderPage({super.key}) extends StatefulWidget {
+class const TagReaderPage({
+  super.key,
+  final NfcManager nfcManager = const NfcManager(),
+}) extends StatefulWidget {
   @override
   State<TagReaderPage> createState() => _TagReaderPageState();
 }
@@ -22,7 +25,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
           switch (_stream) {
             null => FilledButton(
               onPressed: () =>
-                  setState(() => _stream = const NfcManager().startDiscovery()),
+                  setState(() => _stream = widget.nfcManager.startDiscovery()),
               child: const Text('Start discovery'),
             ),
             Stream<String>() => FilledButton(
@@ -48,12 +51,24 @@ class _TagReaderPageState extends State<TagReaderPage> {
                   Text('Found tag: ${snapshot.requireData}'),
                   const SizedBox(height: 10),
                   FilledButton(
-                    onPressed: () => unawaited(_onSelectAid(context)),
+                    onPressed: () => unawaited(
+                      _send(
+                        context,
+                        'Select AID',
+                        ApduCommand.selectAid(demoAid.hexToBytes()),
+                      ),
+                    ),
                     child: const Text('Select aid'),
                   ),
                   const SizedBox(height: 10),
                   FilledButton(
-                    onPressed: () => unawaited(_onVerifyPin(context)),
+                    onPressed: () => unawaited(
+                      _send(
+                        context,
+                        'Verify PIN',
+                        ApduCommand.verifyPin(utf8.encode(demoPin)),
+                      ),
+                    ),
                     child: const Text('Verify pin'),
                   ),
                 ],
@@ -66,40 +81,28 @@ class _TagReaderPageState extends State<TagReaderPage> {
     );
   }
 
-  Future<void> _onSelectAid(BuildContext context) async {
+  Future<void> _send(
+    BuildContext context,
+    String label,
+    ApduCommand command,
+  ) async {
     String message;
 
     try {
-      final response = await const NfcManager().sendCommand(
-        ApduCommand.selectAid(demoAid.hexToBytes()),
-      );
-      message = 'Select AID response: $response';
+      final response = await widget.nfcManager.sendCommand(command);
+      message = '$label response: $response';
     } on NfcException catch (e) {
       message = e.toString();
     }
 
     if (context.mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(.new(content: Text(message)));
+      _showMessage(context, message);
     }
   }
 
-  Future<void> _onVerifyPin(BuildContext context) async {
-    String message;
-    try {
-      final response = await const NfcManager().sendCommand(
-        ApduCommand.verifyPin(utf8.encode(demoPin)),
-      );
-      message = 'Verify PIN response: $response';
-    } on NfcException catch (e) {
-      message = e.toString();
-    }
-
-    if (context.mounted) {
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(.new(content: Text(message)));
-    }
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(.new(content: Text(message)));
   }
 }
