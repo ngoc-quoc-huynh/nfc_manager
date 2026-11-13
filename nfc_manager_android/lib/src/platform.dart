@@ -52,7 +52,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Future<ApduResponse> sendCommand(ApduCommand command) async {
     try {
-      final response = await methodChannel.invokeListMethod<int>(
+      final response = await methodChannel.invokeMethod<Uint8List>(
         'sendCommand',
         {'command': command.toUint8List()},
       );
@@ -61,7 +61,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         throw const TagConnectionException();
       }
 
-      return ApduResponse.fromUint8List(Uint8List.fromList(response));
+      return ApduResponse.fromUint8List(response);
     } on PlatformException catch (e, stackTrace) {
       Error.throwWithStackTrace(
         NfcException.fromPlatformException(e),

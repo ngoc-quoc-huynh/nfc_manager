@@ -2,8 +2,8 @@ import 'dart:typed_data';
 
 import 'package:nfc_manager_platform_interface/src/exceptions.dart';
 import 'package:nfc_manager_platform_interface/src/models/apdu_command.dart';
+import 'package:nfc_manager_platform_interface/src/models/apdu_response.dart';
 import 'package:nfc_manager_platform_interface/src/models/host_card_emulation_status.dart';
-import 'package:nfc_manager_platform_interface/src/models/response.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 /// The interface for platform-specific NFC implementations.
@@ -60,8 +60,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Sends an APDU command to the connected tag and returns its response.
   ///
-  /// See [ApduResponse] for the supported response format. Reports
-  /// [TagConnectionException] if there is no connection or the tag is lost.
+  /// The [ApduResponse] keeps the response data and both status bytes.
+  /// Reports [TagConnectionException] if there is no connection or the tag
+  /// is lost, and [FormatException] if the tag returns fewer than 2 bytes.
   Future<ApduResponse> sendCommand(ApduCommand command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 
