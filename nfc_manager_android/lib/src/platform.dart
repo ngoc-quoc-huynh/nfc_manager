@@ -52,16 +52,18 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Future<ApduResponse> sendCommand(ApduCommand command) async {
     try {
-      final response = await methodChannel.invokeListMethod<int>(
+      final response = await methodChannel.invokeMethod<Uint8List>(
         'sendCommand',
         {'command': command.toUint8List()},
       );
 
-      if (response == null) {
+      // A response without both status bytes comes from the tag, so report it
+      // as a failed exchange rather than a decoder FormatException.
+      if (response == null || response.length < 2) {
         throw const TagConnectionException();
       }
 
-      return ApduResponse.fromUint8List(Uint8List.fromList(response));
+      return ApduResponse.fromUint8List(response);
     } on PlatformException catch (e, stackTrace) {
       Error.throwWithStackTrace(
         NfcException.fromPlatformException(e),

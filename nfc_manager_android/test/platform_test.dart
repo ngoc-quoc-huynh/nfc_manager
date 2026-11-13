@@ -153,14 +153,46 @@ void main() {
           return Uint8List.fromList([0x90, 0]);
         });
 
-        expect(
-          await nfcManager.sendCommand(
-            ApduCommand.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-          ),
-          ApduResponse.ok,
+        final response = await nfcManager.sendCommand(
+          ApduCommand.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
         );
+
+        expect(response.data, isEmpty);
+        expect(response.status, ApduStatus.success);
       },
     );
+
+    test('keeps the response data and both status bytes.', () async {
+      methodChannel.setMockResponse(
+        Uint8List.fromList([0x6F, 0x02, 0x84, 0x00, 0x6C, 0x10]),
+      );
+
+      final response = await nfcManager.sendCommand(
+        ApduCommand(cla: 0, ins: 0xB0, p1: 0, p2: 0, le: 0),
+      );
+
+      expect(response.data, [0x6F, 0x02, 0x84, 0x00]);
+      expect(response.sw1, 0x6C);
+      expect(response.sw2, 0x10);
+      expect(response.status, ApduStatus.wrongLeField);
+    });
+
+    for (final bytes in <List<int>>[
+      [],
+      [0x90],
+    ]) {
+      test(
+        'throws TagConnectionException for the response $bytes.',
+        () async {
+          methodChannel.setMockResponse(Uint8List.fromList(bytes));
+
+          await expectLater(
+            nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
+            throwsA(const TagConnectionException()),
+          );
+        },
+      );
+    }
 
     test('throws TagConnectionException for a null native response.', () async {
       methodChannel.setMockResponse(null);

@@ -62,8 +62,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Sends an APDU command to the connected tag and returns its response.
   ///
-  /// See [ApduResponse] for the supported response format. Reports
-  /// [TagConnectionException] if there is no connection or the tag is lost.
+  /// The [ApduResponse] keeps the response data and both status bytes.
+  /// Reports [TagConnectionException] if there is no connection, the tag is
+  /// lost, or the tag returns fewer than 2 bytes.
   Future<ApduResponse> sendCommand(ApduCommand command) =>
       throw UnimplementedError('sendCommand() has not been implemented.');
 

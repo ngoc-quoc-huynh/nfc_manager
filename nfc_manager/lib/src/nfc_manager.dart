@@ -60,8 +60,8 @@ class NfcManager {
   /// Throws [UnimplementedError] if the method is not implemented for the
   /// platform.
   ///
-  /// Throws [TagConnectionException] if there is no connection or the tag is
-  /// lost.
+  /// Throws [TagConnectionException] if there is no connection, the tag is
+  /// lost, or the tag returns fewer than 2 bytes.
   Future<ApduResponse> sendCommand(ApduCommand command) =>
       _platform.sendCommand(command);
 

@@ -216,11 +216,14 @@ void main() {
 
   group('sendCommand', () {
     test('forwards the command and returns the platform response.', () async {
+      final response = ApduResponse.fromUint8List(
+        Uint8List.fromList([0x6F, 0x00, 0x90, 0x00]),
+      );
       when(
         () => mockPlatform.sendCommand(command),
-      ).thenAnswer((_) async => ApduResponse.ok);
+      ).thenAnswer((_) async => response);
 
-      expect(await nfcManager.sendCommand(command), ApduResponse.ok);
+      expect(await nfcManager.sendCommand(command), same(response));
     });
 
     test('forwards platform command errors.', () async {
