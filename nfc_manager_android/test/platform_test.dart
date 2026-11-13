@@ -137,14 +137,22 @@ void main() {
       expect(response.status, ApduStatus.unknown);
     });
 
-    test('throws FormatException for a response under 2 bytes.', () async {
-      methodChannel.setMockResponse(Uint8List.fromList([0x90]));
+    for (final bytes in <List<int>>[
+      [],
+      [0x90],
+    ]) {
+      test(
+        'throws TagConnectionException for the response $bytes.',
+        () async {
+          methodChannel.setMockResponse(Uint8List.fromList(bytes));
 
-      await expectLater(
-        nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
-        throwsFormatException,
+          await expectLater(
+            nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
+            throwsA(const TagConnectionException()),
+          );
+        },
       );
-    });
+    }
 
     test('throws TagConnectionException for a null native response.', () async {
       methodChannel.setMockResponse(null);

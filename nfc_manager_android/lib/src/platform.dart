@@ -57,7 +57,9 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         {'command': command.toUint8List()},
       );
 
-      if (response == null) {
+      // A response without both status bytes comes from the tag, so report it
+      // as a failed exchange rather than a decoder FormatException.
+      if (response == null || response.length < 2) {
         throw const TagConnectionException();
       }
 
