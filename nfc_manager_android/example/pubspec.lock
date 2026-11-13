@@ -204,14 +204,14 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.2.0"
+    version: "2.0.0"
   nfc_manager_platform_interface:
     dependency: "direct main"
     description:
       path: "../../nfc_manager_platform_interface"
       relative: true
     source: path
-    version: "1.2.0"
+    version: "2.0.0"
   package_config:
     dependency: transitive
     description:
