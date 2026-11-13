@@ -6,6 +6,7 @@ on:
     paths: &ci_paths
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_platform_interface.yaml'
+      - '.github/workflows/_package.yaml'
       - 'mise.toml'
       - 'mise.lock'
   pull_request:
@@ -14,74 +15,8 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
-  development:
-    name: Latest Flutter checks
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./nfc_manager_platform_interface
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-      - name: Setup mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
-        with:
-          version: "2026.10.5"
-          install_args: "flutter"
-
-      - name: Cache flutter dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
-        with:
-          path: ~/.pub-cache
-          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/example/pubspec.lock') }}
-          restore-keys: ${{ runner.os }}-flutter-
-      - name: Install dependencies
-        run: flutter pub get --no-example
-
-      - name: Format code
-        run: dart format --set-exit-if-changed lib test
-      - name: Analyze code
-        run: flutter analyze --no-pub lib test
-      - name: Run code metrics
-        run: dart run dart_code_linter:metrics analyze lib test --set-exit-on-violation-level=warning
-      - name: Run tests
-        run: |
-          flutter test --no-pub --coverage --test-randomize-ordering-seed=random
-          dart run test_cov_console
-
-  legacy:
-    name: Minimum Flutter analysis
-    runs-on: ubuntu-latest
-    env:
-      # Minimum supported Flutter version (see pubspec.yaml).
-      MISE_FLUTTER_VERSION: '3.44.0'
-
-    defaults:
-      run:
-        working-directory: ./nfc_manager_platform_interface
-
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-
-      - name: Setup mise
-        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c
-        with:
-          version: "2026.10.5"
-          install: false
-          install_args: "flutter"
-
-      - name: Log Flutter version
-        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter --version
-
-      - name: Install dependencies
-        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter pub get --no-example
-      # Compile compatibility only: the repo lint set needs a newer Dart.
-      - name: Analyze code
-        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib test
+  ci:
+    uses: ./.github/workflows/_package.yaml
+    with:
+      package: nfc_manager_platform_interface
