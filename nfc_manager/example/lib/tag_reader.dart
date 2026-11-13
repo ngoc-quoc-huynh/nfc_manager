@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_example/demo_credentials.dart';
 
 class const TagReaderPage({super.key}) extends StatefulWidget {
   @override
@@ -11,9 +12,6 @@ class const TagReaderPage({super.key}) extends StatefulWidget {
 
 class _TagReaderPageState extends State<TagReaderPage> {
   Stream<String>? _stream;
-
-  static const _aid = 'F000000001';
-  static const _pin = '1234';
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +71,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
 
     try {
       final response = await const NfcManager().sendCommand(
-        ApduCommand.selectAid(_aid.hexToBytes()),
+        ApduCommand.selectAid(demoAid.hexToBytes()),
       );
       message = 'Select AID response: $response';
     } on NfcException catch (e) {
@@ -91,7 +89,7 @@ class _TagReaderPageState extends State<TagReaderPage> {
     String message;
     try {
       final response = await const NfcManager().sendCommand(
-        ApduCommand.verifyPin(utf8.encode(_pin)),
+        ApduCommand.verifyPin(utf8.encode(demoPin)),
       );
       message = 'Verify PIN response: $response';
     } on NfcException catch (e) {
