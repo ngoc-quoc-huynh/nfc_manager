@@ -32,8 +32,14 @@ dependencies:
 
 ### Android HCE setup
 
-To use the `nfc_manager` plugin on Android, you need to configure your `AndroidManifest.xml` and
-create an `apduservice.xml` file in the `xml` directory under `res`.
+Host Card Emulation (HCE) needs an Android service declaration and an AID configuration in your app.
+The plugin provides the service, `dev.huynh.nfc_manager_android.hce.HostCardEmulationService`. You
+declare it in `AndroidManifest.xml` and create an `apduservice.xml` file in the `xml` directory under
+`res`. Android routes commands to the service only when all three requirements hold:
+
+1. The service is declared with `android:exported="true"`.
+2. The service requires the permission `android.permission.BIND_NFC_SERVICE`.
+3. `apduservice.xml` contains an `aid-filter` for every AID you emulate.
 
 #### Update `AndroidManifest.xml`
 
@@ -41,12 +47,16 @@ Locate your `AndroidManifest.xml` file typically found in `src/main/`. Add the f
 declaration inside the `<application>` tag:
 
 ```xml
-<service android:name="dev.huynh.nfc_manager_android.hce.HostCardEmulationService"
-    android:exported="true" android:permission="android.permission.BIND_NFC_SERVICE">
+<service
+    android:name="dev.huynh.nfc_manager_android.hce.HostCardEmulationService"
+    android:exported="true"
+    android:permission="android.permission.BIND_NFC_SERVICE">
     <intent-filter>
         <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
     </intent-filter>
-    <meta-data android:name="android.nfc.cardemulation.host_apdu_service"
+
+    <meta-data
+        android:name="android.nfc.cardemulation.host_apdu_service"
         android:resource="@xml/apduservice" />
 </service>
 ```
@@ -58,14 +68,21 @@ it. Then, add the following content to a new file named `apduservice.xml`:
 
 ```xml
 <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:apduServiceBanner="@drawable/launch_background"
-    android:description="@string/service_description" android:requireDeviceUnlock="true">
-    <aid-group android:category="other" android:description="@string/aid_group_description">
-        <!-- This AID can be customized as needed -->
+    android:description="@string/service_description"
+    android:requireDeviceUnlock="true">
+    <aid-group
+        android:category="other"
+        android:description="@string/aid_group_description">
+        <!-- Use the AID you pass to startEmulation. -->
         <aid-filter android:name="F000000001" />
     </aid-group>
 </host-apdu-service>
 ```
+
+The AID in `aid-filter` must match the AID you pass to `startEmulation`. The
+`android:apduServiceBanner` attribute is only needed for an aid group with
+`android:category="payment"`, which Android lists in its payment settings. Do not add a banner for
+the `other` category.
 
 #### Define Resource Strings
 
@@ -77,9 +94,6 @@ Ensure these strings are defined in your `strings.xml` file located in `res/valu
     <string name="aid_group_description">Custom AID group for NFC Manager Android</string>
 </resources>
 ```
-
-This setup ensures that your Android application is prepared to handle NFC card emulation via the
-`nfc_manager` plugin. 
 
 ### Platform support
 
