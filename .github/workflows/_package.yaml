@@ -34,16 +34,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: "2026.10.5"
           install_args: ${{ (inputs.android || inputs.apk) && 'flutter java' || 'flutter' }}
 
       - name: Cache flutter dependencies
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.pub-cache
           key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/example/pubspec.lock') }}
@@ -64,7 +64,7 @@ jobs:
 
       - name: Setup Gradle
         if: inputs.android || inputs.apk
-        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
       - name: Run Android tests and lint
         if: inputs.android
         run: make android
@@ -81,12 +81,12 @@ jobs:
       MISE_FLUTTER_VERSION: '3.44.9'
 
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       # `mise x` installs the pinned minimum Flutter on demand, so skip the
       # default install of the repo's current Flutter.
       - name: Setup mise
-        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca # v5.1.1
         with:
           version: "2026.10.5"
           install: false
