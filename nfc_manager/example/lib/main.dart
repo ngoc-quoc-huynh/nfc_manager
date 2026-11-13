@@ -25,15 +25,15 @@ class const NfcManagerExample({super.key}) extends StatelessWidget {
               children: [
                 _FeatureStatusView(
                   title: 'NFC support:',
-                  statusFuture: const NfcManager().isNfcSupported(),
+                  check: const NfcManager().isNfcSupported,
                 ),
                 _FeatureStatusView(
                   title: 'NFC enabled:',
-                  statusFuture: const NfcManager().isNfcEnabled(),
+                  check: const NfcManager().isNfcEnabled,
                 ),
                 _FeatureStatusView(
                   title: 'HCE support:',
-                  statusFuture: const NfcManager().isHceSupported(),
+                  check: const NfcManager().isHceSupported,
                 ),
                 const Divider(),
                 FilledButton(
@@ -56,8 +56,15 @@ class const NfcManagerExample({super.key}) extends StatelessWidget {
 
 class const _FeatureStatusView({
   required final String title,
-  required final Future<bool> statusFuture,
-}) extends StatelessWidget {
+  required final Future<bool> Function() check,
+}) extends StatefulWidget {
+  @override
+  State<_FeatureStatusView> createState() => _FeatureStatusViewState();
+}
+
+class _FeatureStatusViewState extends State<_FeatureStatusView> {
+  late final Future<bool> _future = widget.check();
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -66,15 +73,19 @@ class const _FeatureStatusView({
       mainAxisAlignment: .center,
       spacing: 5,
       children: [
-        Text(title, style: textTheme.titleMedium),
+        Text(widget.title, style: textTheme.titleMedium),
         FutureBuilder<bool>(
-          future: statusFuture,
-          builder: (context, snapshot) => switch (snapshot.hasData) {
-            false => const CircularProgressIndicator(),
-            true => Text(
-              snapshot.requireData.toString(),
+          future: _future,
+          builder: (context, snapshot) => switch (snapshot) {
+            AsyncSnapshot(hasError: true, :final error) => Text(
+              'Error: $error',
               style: textTheme.bodyLarge,
             ),
+            AsyncSnapshot(hasData: true, :final data) => Text(
+              data.toString(),
+              style: textTheme.bodyLarge,
+            ),
+            _ => const CircularProgressIndicator(),
           },
         ),
       ],
