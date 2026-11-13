@@ -39,13 +39,21 @@ from the repository root:
 mise install
 ```
 
-Run the commands below inside the package you changed (`nfc_manager`, `nfc_manager_android` or
-`nfc_manager_platform_interface`):
+In the package you changed (`nfc_manager`, `nfc_manager_android` or `nfc_manager_platform_interface`), install its
+dependencies first, as CI does:
+
+```sh
+flutter pub get --no-example
+(cd example && flutter pub get --enforce-lockfile)  # packages with an example only
+```
+
+Then run the commands below in that package:
 
 - `make style` formats your code and analyzes it. It modifies files.
 - `make check` runs the same formatting and analysis checks as CI without modifying files.
 - `make test` runs the tests. Pass `seed=1` to reproduce a test order.
-- `make android` runs the Android unit tests and lint. It exists in `nfc_manager_android` only.
+- `make android` runs the Android unit tests and lint. It exists in `nfc_manager_android` only and needs a local
+  Android SDK (Java comes from mise).
 
 Run these from the package directory with `mise exec -- make check` if mise is not activated in your shell.
 

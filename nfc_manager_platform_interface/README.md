@@ -71,7 +71,10 @@ class NfcManagerExamplePlatform extends NfcManagerPlatform {
       final bytes = await _channel.invokeMethod<Uint8List>('sendCommand', {
         'command': command.toUint8List(),
       });
-      return ApduResponse.fromUint8List(bytes!);
+      if (bytes == null || bytes.length < 2) {
+        throw const TagConnectionException();
+      }
+      return ApduResponse.fromUint8List(bytes);
     } on PlatformException catch (e, stackTrace) {
       Error.throwWithStackTrace(_toNfcException(e), stackTrace);
     }
