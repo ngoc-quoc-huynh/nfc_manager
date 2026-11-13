@@ -1,4 +1,4 @@
-package dev.huynh.nfc_manager_android.host_card_emulation
+package dev.huynh.nfc_manager_android.hce
 
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import io.flutter.plugin.common.EventChannel.EventSink
@@ -7,7 +7,7 @@ import io.flutter.plugin.common.EventChannel.StreamHandler
 /**
  * Holds the active NFC Host Card Emulation (HCE) session.
  *
- * Android creates the [HostCardEmulation] service and the plugin creates the
+ * Android creates the [HostCardEmulationService] and the plugin creates the
  * [HostCardEmulationStreamHandler], so they share the session through this object.
  */
 internal object HostCardEmulationConfig {

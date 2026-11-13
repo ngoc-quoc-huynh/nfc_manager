@@ -5,10 +5,10 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import dev.huynh.nfc_manager_android.reader.TagReader
-import dev.huynh.nfc_manager_android.feature_checker.FeatureChecker
-import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation
-import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationConfig
-import dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulationStreamHandler
+import dev.huynh.nfc_manager_android.feature.FeatureChecker
+import dev.huynh.nfc_manager_android.hce.HostCardEmulationConfig
+import dev.huynh.nfc_manager_android.hce.HostCardEmulationService
+import dev.huynh.nfc_manager_android.hce.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
 import dev.huynh.nfc_manager_android.utils.error
@@ -279,7 +279,7 @@ class NfcManagerPluginTest {
         streamHandler.onListen(hceArguments, mockEventSink)
 
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
-        val response = HostCardEmulation().processCommandApdu(selectCommand, null)
+        val response = HostCardEmulationService().processCommandApdu(selectCommand, null)
 
         assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), response)
         assertNull(plugin.hostCardEmulationStreamHandler)
@@ -295,7 +295,7 @@ class NfcManagerPluginTest {
         HostCardEmulationStreamHandler().onListen(hceArguments, mockEventSink)
 
         plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
-        val response = HostCardEmulation().processCommandApdu(selectCommand, null)
+        val response = HostCardEmulationService().processCommandApdu(selectCommand, null)
 
         assertContentEquals(ResponseApdu.OK.toByteArray(), response)
         verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)

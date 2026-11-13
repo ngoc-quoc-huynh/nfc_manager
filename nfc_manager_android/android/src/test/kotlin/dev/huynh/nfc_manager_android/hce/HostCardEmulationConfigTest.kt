@@ -1,4 +1,4 @@
-package dev.huynh.nfc_manager_android.host_card_emulation
+package dev.huynh.nfc_manager_android.hce
 
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler

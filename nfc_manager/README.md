@@ -41,7 +41,7 @@ Locate your `AndroidManifest.xml` file typically found in `src/main/`. Add the f
 declaration inside the `<application>` tag:
 
 ```xml
-<service android:name="dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation"
+<service android:name="dev.huynh.nfc_manager_android.hce.HostCardEmulationService"
     android:exported="true" android:permission="android.permission.BIND_NFC_SERVICE">
     <intent-filter>
         <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
