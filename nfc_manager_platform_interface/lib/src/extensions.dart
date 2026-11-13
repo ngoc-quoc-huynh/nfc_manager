@@ -46,8 +46,8 @@ extension HexBytes on Uint8List {
   String toHex() {
     final buffer = StringBuffer();
     for (final byte in this) {
-      buffer.write(byte.toRadixString(16).padLeft(2, '0').toUpperCase());
+      buffer.write(byte.toRadixString(16).padLeft(2, '0'));
     }
-    return buffer.toString();
+    return buffer.toString().toUpperCase();
   }
 }
