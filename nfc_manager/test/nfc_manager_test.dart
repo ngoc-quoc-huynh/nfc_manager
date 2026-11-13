@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:nfc_manager/nfc_manager.dart';
+import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
 // ignore_for_file: discarded_futures: mocked methods have to be async.
