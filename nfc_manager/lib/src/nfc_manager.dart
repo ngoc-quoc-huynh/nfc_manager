@@ -44,8 +44,10 @@ class NfcManager {
   /// byte, for example `04A1B2C3`. Decode it with `hexToBytes`.
   ///
   /// Discovery starts when the stream is listened to. Cancel the subscription
-  /// to stop discovery. [timeout] limits communication with a discovered tag,
-  /// not the time spent waiting for a tag.
+  /// to stop discovery. Use one active discovery subscription at a time; a new
+  /// one stops the previous one, which then receives no further events.
+  /// [timeout] limits communication with a discovered tag, not the time spent
+  /// waiting for a tag.
   ///
   /// The stream ends when the platform's host UI detaches. To resume, call
   /// [startDiscovery] again after the host UI reattaches and listen to the new
