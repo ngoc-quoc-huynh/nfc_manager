@@ -266,6 +266,12 @@ void main() {
   group('startEmulation', () {
     for (final (description, invalidAid, invalidPin, name) in [
       ('an AID shorter than 5 bytes', Uint8List(4), pin, 'aid.length'),
+      (
+        'a short AID and an empty PIN',
+        Uint8List(4),
+        Uint8List(0),
+        'aid.length',
+      ),
       ('an AID longer than 16 bytes', Uint8List(17), pin, 'aid.length'),
       ('an empty PIN', aid, Uint8List(0), 'pin.length'),
       ('a PIN longer than 255 bytes', aid, Uint8List(256), 'pin.length'),
@@ -286,16 +292,27 @@ void main() {
       });
     }
 
-    test('forwards configuration and platform HCE events.', () async {
-      when(
-        () => mockPlatform.startEmulation(aid: aid, pin: pin),
-      ).thenAnswer((_) => Stream.value(HostCardEmulationStatus.ready));
+    for (final (aidLength, pinLength) in [(5, 1), (16, 255)]) {
+      test(
+        'forwards an AID of $aidLength bytes and a PIN of $pinLength bytes.',
+        () async {
+          final validAid = Uint8List(aidLength);
+          final validPin = Uint8List(pinLength);
+          when(
+            () => mockPlatform.startEmulation(aid: validAid, pin: validPin),
+          ).thenAnswer((_) => Stream.value(HostCardEmulationStatus.ready));
 
-      await expectLater(
-        nfcManager.startEmulation(aid: aid, pin: pin),
-        emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
+          await expectLater(
+            nfcManager.startEmulation(aid: validAid, pin: validPin),
+            emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
+          );
+
+          verify(
+            () => mockPlatform.startEmulation(aid: validAid, pin: validPin),
+          ).called(1);
+        },
       );
-    });
+    }
 
     test('forwards platform stream errors.', () async {
       final error = _platformError(

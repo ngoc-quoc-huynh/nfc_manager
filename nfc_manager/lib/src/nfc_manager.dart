@@ -140,8 +140,11 @@ class NfcManager {
   /// Throws [UnimplementedError] synchronously if there is no registered
   /// implementation for this method.
   ///
-  /// Throws [RangeError] synchronously if [aid] is outside 5–16 bytes or
-  /// [pin] is outside 1–255 bytes. Both ranges are inclusive.
+  /// Throws [RangeError] synchronously, before delegating to the platform, if
+  /// [aid] is not between 5 and 16 bytes inclusive or [pin] is not between 1
+  /// and 255 bytes inclusive. The error is named `aid.length` or `pin.length`,
+  /// respectively. [aid] is validated first, so its error is thrown if both
+  /// lengths are invalid.
   ///
   /// On Android, native errors without a dedicated subtype arrive as
   /// [NfcUnknownException] stream errors. An invalid event payload or an
