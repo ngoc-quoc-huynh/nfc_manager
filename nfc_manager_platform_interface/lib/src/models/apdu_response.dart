@@ -51,15 +51,15 @@ final class ApduResponse {
   bool get isSuccess => statusWord == 0x9000;
 
   /// The classification of [statusWord], or [ApduStatus.unknown].
-  ApduStatus get status => switch (statusWord) {
-    0x9000 => .success,
-    0x6300 => .verificationFailed,
-    0x6700 => .wrongLength,
-    0x6982 => .securityStatusNotSatisfied,
-    0x6A00 => .wrongParameters,
-    0x6A81 => .functionNotSupported,
-    0x6A82 => .fileOrApplicationNotFound,
-    0x6C00 => .wrongLeField,
+  ApduStatus get status => switch ((sw1, sw2)) {
+    (0x90, 0x00) => .success,
+    (0x63, 0x00) || (0x63, >= 0xC0 && <= 0xCF) => .verificationFailed,
+    (0x67, 0x00) => .wrongLength,
+    (0x69, 0x82) => .securityStatusNotSatisfied,
+    (0x6A, 0x00) => .wrongParameters,
+    (0x6A, 0x81) => .functionNotSupported,
+    (0x6A, 0x82) => .fileOrApplicationNotFound,
+    (0x6C, _) => .wrongLeField,
     _ => .unknown,
   };
 
@@ -86,16 +86,15 @@ final class ApduResponse {
 
 /// The ISO/IEC 7816-4 status words that [ApduResponse.status] recognizes.
 ///
-/// Each value matches one exact status word. Any other word, including a
-/// recognized SW1 with a different SW2, is [unknown]; read
-/// [ApduResponse.sw1] and [ApduResponse.sw2] for those.
+/// Each value matches the status words listed on it. Any other word is
+/// [unknown]; read [ApduResponse.sw1] and [ApduResponse.sw2] for those.
 enum ApduStatus {
   /// `90 00`: normal processing, no further qualification.
   success,
 
-  /// `63 00`: warning, no information given. Cards commonly return it when
-  /// verification, such as a PIN check, fails. This plugin's card emulation
-  /// returns it for a wrong PIN.
+  /// `63 00` or `63 CX`: verification, such as a PIN check, failed. In
+  /// `63 CX`, X is the number of retries left. This plugin's card emulation
+  /// returns `63 00` for a wrong PIN.
   verificationFailed,
 
   /// `67 00`: wrong length, no further indication. This plugin's card
@@ -117,9 +116,8 @@ enum ApduStatus {
   /// `6A 82`: file or application not found, for example an unknown AID.
   fileOrApplicationNotFound,
 
-  /// `6C 00`: wrong Le field; SW2 `00` means 256 bytes are available.
-  ///
-  /// Other `6C XX` words are [unknown]; their SW2 is the exact length.
+  /// `6C XX`: wrong Le field. SW2 is the exact length available, and `00`
+  /// means 256 bytes.
   wrongLeField,
 
   /// Any status word not listed above.

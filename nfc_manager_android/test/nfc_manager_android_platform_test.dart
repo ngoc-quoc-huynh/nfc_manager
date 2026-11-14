@@ -153,7 +153,7 @@ void main() {
       expect(response.data, [0x6F, 0x02, 0x84, 0x00]);
       expect(response.sw1, 0x6C);
       expect(response.sw2, 0x10);
-      expect(response.status, ApduStatus.unknown);
+      expect(response.status, ApduStatus.wrongLeField);
     });
 
     for (final bytes in <List<int>>[

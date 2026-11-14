@@ -86,10 +86,25 @@ void main() {
       }
     });
 
+    test('classifies the 63 CX and 6C XX families and keeps SW2.', () {
+      for (final (bytes, status) in [
+        ([0x63, 0xC0], ApduStatus.verificationFailed),
+        ([0x63, 0xC2], ApduStatus.verificationFailed),
+        ([0x63, 0xCF], ApduStatus.verificationFailed),
+        ([0x6C, 0x10], ApduStatus.wrongLeField),
+        ([0x6C, 0xFF], ApduStatus.wrongLeField),
+      ]) {
+        final response = _decode(bytes);
+
+        expect(response.status, status, reason: '$bytes');
+        expect(response.sw2, bytes[1], reason: '$bytes');
+      }
+    });
+
     test('returns unknown for near misses and keeps SW2.', () {
       for (final (bytes, sw2) in [
-        ([0x6C, 0x10], 0x10),
-        ([0x63, 0xC2], 0xC2),
+        ([0x63, 0x01], 0x01),
+        ([0x63, 0xD0], 0xD0),
         ([0x90, 0x01], 0x01),
         ([0x61, 0x10], 0x10),
       ]) {
