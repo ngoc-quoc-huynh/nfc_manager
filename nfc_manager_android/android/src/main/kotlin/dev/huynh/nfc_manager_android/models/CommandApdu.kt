@@ -41,12 +41,6 @@ internal class CommandApdu(
      */
     val le: Byte? = null,
 ) {
-    /**
-     * The length (Lc) of the command data field, or null when the command has no data.
-     */
-    val lc: Int?
-        get() = data?.size
-
     companion object {
         /**
          * Creates a [CommandApdu] from a byte array.
@@ -73,38 +67,22 @@ internal class CommandApdu(
             var data: ByteArray? = null
             var le: Byte? = null
 
-            when (command.size) {
-                4 -> {
-                    Unit
+            if (command.size == 5) {
+                le = command[4]
+            } else if (command.size > 5) {
+                // ISO/IEC 7816-4 short APDUs disallow Lc = 00.
+                val lcLength = command[4].toUnsignedInt()
+                val dataEndIndex = lcLength + 5
+                val isLePresent = command.size == dataEndIndex + 1
+
+                if (lcLength == 0 || (command.size != dataEndIndex && !isLePresent)) {
+                    throw InvalidLcDataLengthException()
                 }
 
-                5 -> {
-                    le = command[4]
-                }
+                data = command.sliceArray(5 until dataEndIndex)
 
-                6 -> {
-                    // Only Lc = 01 with one data byte fits; ISO/IEC 7816-4 short APDUs disallow Lc = 00.
-                    if (command[4].toUnsignedInt() != 1) {
-                        throw InvalidLcDataLengthException()
-                    }
-
-                    data = command.sliceArray(5 until 6)
-                }
-
-                else -> {
-                    val lcLength = command[4].toUnsignedInt()
-                    val dataEndIndex = lcLength + 5
-                    val isLePresent = command.size == dataEndIndex + 1
-
-                    if (command.size != dataEndIndex && !isLePresent) {
-                        throw InvalidLcDataLengthException()
-                    }
-
-                    data = command.sliceArray(5 until dataEndIndex)
-
-                    if (isLePresent) {
-                        le = command[dataEndIndex]
-                    }
+                if (isLePresent) {
+                    le = command[dataEndIndex]
                 }
             }
 

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
-import kotlin.test.assertNull
 
 class CommandApduTest {
     @Test
@@ -161,27 +160,6 @@ class CommandApduTest {
         assertCommand(command, data = byteArrayOf(0x00), le = 0x00)
     }
 
-    @Test
-    fun `lc is the data length`() {
-        val command =
-            CommandApdu(
-                cla = 0x00,
-                ins = 0x00,
-                p1 = 0x00,
-                p2 = 0x00,
-                data = ByteArray(255),
-            )
-
-        assertEquals(255, command.lc)
-    }
-
-    @Test
-    fun `lc is null without data`() {
-        val command = CommandApdu(cla = 0x00, ins = 0x00, p1 = 0x00, p2 = 0x00, le = 0x00)
-
-        assertNull(command.lc)
-    }
-
     /**
      * Asserts every field of [command]; [header] holds the expected CLA, INS, P1 and P2.
      */
@@ -192,7 +170,6 @@ class CommandApduTest {
         le: Byte? = null,
     ) {
         assertContentEquals(header, byteArrayOf(command.cla, command.ins, command.p1, command.p2))
-        assertEquals(data?.size, command.lc)
         assertContentEquals(data, command.data)
         assertEquals(le, command.le)
     }
