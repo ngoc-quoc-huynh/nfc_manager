@@ -64,10 +64,16 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   Future<bool> isNfcEnabled() async =>
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
-  /// The first listener starts reader mode. When the last listener cancels,
-  /// the reader stops and releases the active tag. Detaching the Android
-  /// activity ends the stream and releases the tag. To resume, call
-  /// [startDiscovery] after reattachment and listen to the new stream.
+  /// Callers must keep at most one subscription active across all calls to
+  /// [startDiscovery]. Subscriptions to the same returned broadcast stream
+  /// share a reader session. When the last listener cancels, the reader stops
+  /// and releases the active tag. Separately returned streams use the same
+  /// platform event channel and can interrupt one another.
+  ///
+  /// After a stream completes, or after awaiting cancellation, call
+  /// [startDiscovery] again and listen to the new stream to restart. Detaching
+  /// the Android activity ends the stream and releases the tag. Wait for
+  /// reattachment before restarting.
   ///
   /// The public `NfcManager` throws [ArgumentError] synchronously for an
   /// invalid [timeout]. Direct calls convert the duration with

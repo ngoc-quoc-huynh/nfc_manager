@@ -57,11 +57,14 @@ class NfcManager {
   /// Each identifier is the tag ID as two uppercase hexadecimal digits per
   /// byte, for example `04A1B2C3`. Decode it with [HexString.hexToBytes].
   ///
-  /// Discovery starts when the stream is listened to. Cancel the subscription
-  /// to stop discovery. Use one discovery stream at a time. Before starting
-  /// another, let the current stream finish or cancel its subscription.
-  /// On Android, [timeout] applies to each APDU exchange after connection.
-  /// Tag discovery and connection are outside this timeout.
+  /// Discovery starts when the stream is listened to. Keep only one active
+  /// discovery subscription across all calls to [startDiscovery]. To stop
+  /// discovery early, cancel the subscription. To restart, wait for the stream
+  /// to finish or await cancellation, then call [startDiscovery] and listen
+  /// to the new stream.
+  ///
+  /// On Android, [timeout] applies to each APDU exchange after the tag
+  /// connects. Tag discovery and connection are outside this timeout.
   ///
   /// On Android, detaching the host UI (the activity) ends the stream. To
   /// resume, call [startDiscovery] after reattachment and listen to the new

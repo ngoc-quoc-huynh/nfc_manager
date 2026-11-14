@@ -54,9 +54,11 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   ///
   /// Maintain one active tag connection for [sendCommand]. A new successful
   /// connection replaces the previous one. Release the connection when
-  /// discovery ends or the subscription is cancelled. Use one discovery
-  /// subscription at a time. To restart, wait for completion or cancel the
-  /// subscription, then call [startDiscovery] and listen to the new stream.
+  /// discovery ends or the subscription is cancelled.
+  ///
+  /// Callers must keep only one active discovery subscription across all calls
+  /// to [startDiscovery]. To restart, wait for the stream to finish or await
+  /// cancellation, then call [startDiscovery] and listen to the new stream.
   ///
   /// [timeout] applies to each APDU exchange after the tag connects. It must
   /// be a positive whole number of milliseconds up to 2147483647. A null
