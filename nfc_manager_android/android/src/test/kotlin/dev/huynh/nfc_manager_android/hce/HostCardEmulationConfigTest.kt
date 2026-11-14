@@ -1,10 +1,12 @@
 package dev.huynh.nfc_manager_android.hce
 
+import dev.huynh.nfc_manager_android.PinBlockedException
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.verifyNoInteractions
 import kotlin.test.assertNull
 import kotlin.test.assertSame
 
@@ -49,5 +51,24 @@ class HostCardEmulationConfigTest {
         HostCardEmulationConfig.clear(mock<StreamHandler>())
 
         assertSame(session, HostCardEmulationConfig.session)
+    }
+
+    @Test
+    fun `end of a stale session does not clear or notify its replacement`() {
+        val replacementSink = mock<EventSink>()
+        val replacement =
+            HostCardEmulationConfig.Session(
+                owner = owner,
+                aid = byteArrayOf(),
+                pin = byteArrayOf(),
+                sink = replacementSink,
+            )
+        HostCardEmulationConfig.start(session)
+        HostCardEmulationConfig.start(replacement)
+
+        HostCardEmulationConfig.end(session, PinBlockedException())
+
+        assertSame(replacement, HostCardEmulationConfig.session)
+        verifyNoInteractions(session.sink, replacementSink)
     }
 }

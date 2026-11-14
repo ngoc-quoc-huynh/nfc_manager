@@ -196,6 +196,18 @@ void main() {
       expect(response.status, ApduStatus.wrongLeField);
     });
 
+    test('returns 69 83 as a blocked authentication method.', () async {
+      methodChannel.setMockResponse(Uint8List.fromList([0x69, 0x83]));
+
+      final response = await nfcManager.sendCommand(
+        .verifyPin(Uint8List.fromList([1])),
+      );
+
+      expect(response.statusWord, 0x6983);
+      expect(response.status, ApduStatus.authenticationMethodBlocked);
+      expect(response.isSuccess, isFalse);
+    });
+
     for (final bytes in <List<int>>[
       [],
       [0x90],
@@ -480,6 +492,68 @@ void main() {
           emitsDone,
         ]),
       );
+    });
+
+    test('ends after PIN_BLOCKED and restarts only on a new call.', () async {
+      var listenCount = 0;
+      final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
+      final pin = Uint8List.fromList([1, 2, 3, 4]);
+      final cancelled = Completer<void>();
+      nfcManager.hostCardEmulationEventChannel.setMockListener(
+        (
+          arguments,
+          events,
+        ) {
+          expect(arguments, {'aid': aid, 'pin': pin});
+          listenCount++;
+          if (listenCount == 1) {
+            events
+              ..error(
+                code: 'PIN_BLOCKED',
+                message: 'Card emulation ended after too many wrong PINs.',
+              )
+              ..endOfStream();
+          }
+        },
+        onCancel: (_) {
+          if (!cancelled.isCompleted) {
+            cancelled.complete();
+          }
+        },
+      );
+
+      final firstSession = nfcManager.startEmulation(aid: aid, pin: pin);
+      await expectLater(
+        firstSession,
+        emitsInOrder([
+          emitsError(
+            isA<NfcUnknownException>()
+                .having((error) => error.code, 'code', 'PIN_BLOCKED')
+                .having(
+                  (error) => error.message,
+                  'message',
+                  'Card emulation ended after too many wrong PINs.',
+                ),
+          ),
+          emitsDone,
+        ]),
+      );
+      expect(listenCount, 1);
+      await cancelled.future;
+
+      nfcManager.hostCardEmulationEventChannel.setMockStream(
+        (events) {
+          listenCount++;
+          events
+            ..success('READY')
+            ..endOfStream();
+        },
+      );
+      await expectLater(
+        nfcManager.startEmulation(aid: aid, pin: pin),
+        emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
+      );
+      expect(listenCount, 2);
     });
   });
 }

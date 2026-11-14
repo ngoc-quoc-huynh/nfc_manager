@@ -17,6 +17,9 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 /// * `INVALID_EVENT_PAYLOAD`: discovery or HCE received a non-string event.
 /// * `UNKNOWN_HCE_STATUS`: the HCE stream received an event name this
 ///   version does not know; the message holds that name.
+/// * `PIN_BLOCKED`: the reader sent 3 wrong PINs in a row. The HCE stream
+///   reports this error and ends, and further commands are answered with
+///   `69 82` until emulation starts again.
 ///
 /// An [InvalidApduCommandException] can mean the command is longer than
 /// `IsoDep.getMaxTransceiveLength` allows; the tag stays connected.

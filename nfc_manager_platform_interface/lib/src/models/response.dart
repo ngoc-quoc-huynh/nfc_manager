@@ -56,6 +56,7 @@ final class ApduResponse {
     (0x63, 0x00) || (0x63, >= 0xC0 && <= 0xCF) => .verificationFailed,
     (0x67, 0x00) => .wrongLength,
     (0x69, 0x82) => .securityStatusNotSatisfied,
+    (0x69, 0x83) => .authenticationMethodBlocked,
     (0x6A, 0x00) => .wrongParameters,
     (0x6A, 0x81) => .functionNotSupported,
     (0x6A, 0x82) => .fileOrApplicationNotFound,
@@ -94,7 +95,7 @@ enum ApduStatus {
 
   /// `63 00` or `63 CX`: verification, such as a PIN check, failed. In
   /// `63 CX`, X is the number of retries left. This plugin's card emulation
-  /// returns `63 00` for a wrong PIN.
+  /// returns `63 00` for each of the first two consecutive wrong PINs.
   verificationFailed,
 
   /// `67 00`: wrong length, no further indication. This plugin's card
@@ -105,6 +106,10 @@ enum ApduStatus {
   /// `69 82`: security status not satisfied. This plugin's card emulation
   /// returns it when emulation is not configured.
   securityStatusNotSatisfied,
+
+  /// `69 83`: authentication method blocked. This plugin's card emulation
+  /// returns it when the third consecutive wrong PIN blocks the session.
+  authenticationMethodBlocked,
 
   /// `6A 00`: wrong parameters P1-P2, no information given. This plugin's
   /// card emulation returns it when Android delivers no command.

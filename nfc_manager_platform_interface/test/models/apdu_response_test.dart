@@ -63,6 +63,7 @@ void main() {
         ([0x63, 0x00], ApduStatus.verificationFailed),
         ([0x67, 0x00], ApduStatus.wrongLength),
         ([0x69, 0x82], ApduStatus.securityStatusNotSatisfied),
+        ([0x69, 0x83], ApduStatus.authenticationMethodBlocked),
         ([0x6A, 0x00], ApduStatus.wrongParameters),
         ([0x6A, 0x81], ApduStatus.functionNotSupported),
         ([0x6A, 0x82], ApduStatus.fileOrApplicationNotFound),

@@ -7,7 +7,12 @@ import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.inOrder
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
@@ -319,6 +324,63 @@ class HostCardEmulationServiceTest {
     }
 
     @Test
+    fun `processCommandApdu blocks the PIN then ends the stream without stale events`() {
+        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
+
+        repeat(2) {
+            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
+        }
+        val blocked = service.processCommandApdu(wrongPin, null)
+
+        assertContentEquals(byteArrayOf(0x69, 0x83.toByte()), blocked)
+        inOrder(mockEventSink) {
+            verify(mockEventSink, times(2)).success(HostCardEmulationStatus.WRONG_PIN.name)
+            verify(mockEventSink).error(
+                "PIN_BLOCKED",
+                "Card emulation ended after too many wrong PINs.",
+                null,
+            )
+            verify(mockEventSink).endOfStream()
+        }
+        service.onDeactivated(0)
+        assertContentEquals(
+            ResponseApdu.HCE_NOT_READY.toByteArray(),
+            service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null),
+        )
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `processCommandApdu keeps the wrong PIN count across deactivation and reselection`() {
+        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
+
+        repeat(2) { service.processCommandApdu(wrongPin, null) }
+        service.onDeactivated(0)
+        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+        val blocked = service.processCommandApdu(wrongPin, null)
+
+        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), blocked)
+        verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+        verify(mockEventSink).error(eq("PIN_BLOCKED"), any(), isNull())
+        verify(mockEventSink).endOfStream()
+    }
+
+    @Test
+    fun `processCommandApdu resets the wrong PIN count after a correct PIN`() {
+        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
+
+        repeat(2) { service.processCommandApdu(wrongPin, null) }
+        service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
+        repeat(2) {
+            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
+        }
+
+        verify(mockEventSink, times(4)).success(HostCardEmulationStatus.WRONG_PIN.name)
+        verify(mockEventSink, never()).endOfStream()
+    }
+
+    @Test
     fun `onDeactivated emits TAG_DISCONNECTED`() {
         service.onDeactivated(0)
 
@@ -337,12 +399,40 @@ class HostCardEmulationServiceTest {
     private fun startSession(
         aid: ByteArray = VALID_AID,
         pin: ByteArray = VALID_PIN,
+        sink: EventSink = mockEventSink,
     ) = HostCardEmulationConfig.start(
         HostCardEmulationConfig.Session(
             owner = owner,
             aid = aid,
             pin = pin,
-            sink = mockEventSink,
+            sink = sink,
         ),
     )
+
+    @Test
+    fun `new session after lockout receives a full wrong PIN budget`() {
+        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
+        repeat(2) {
+            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
+        }
+        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), service.processCommandApdu(wrongPin, null))
+
+        val restartedSink = mock<EventSink>()
+        startSession(sink = restartedSink)
+        repeat(2) {
+            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
+        }
+        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), service.processCommandApdu(wrongPin, null))
+
+        inOrder(restartedSink) {
+            verify(restartedSink, times(2)).success(HostCardEmulationStatus.WRONG_PIN.name)
+            verify(restartedSink).error(
+                "PIN_BLOCKED",
+                "Card emulation ended after too many wrong PINs.",
+                null,
+            )
+            verify(restartedSink).endOfStream()
+        }
+        verifyNoMoreInteractions(restartedSink)
+    }
 }

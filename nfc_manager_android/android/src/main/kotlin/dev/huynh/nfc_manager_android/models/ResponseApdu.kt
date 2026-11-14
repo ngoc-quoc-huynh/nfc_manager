@@ -35,6 +35,11 @@ internal enum class ResponseApdu(
     OK(byteArrayOf(0x90.toByte(), 0x00)),
 
     /**
+     * 69 83: authentication method blocked, sent when too many wrong PINs end the session.
+     */
+    PIN_BLOCKED(byteArrayOf(0x69, 0x83.toByte())),
+
+    /**
      * Indicates that the command is too short or its Lc does not match its data length.
      */
     WRONG_LENGTH(byteArrayOf(0x67, 0x00)),

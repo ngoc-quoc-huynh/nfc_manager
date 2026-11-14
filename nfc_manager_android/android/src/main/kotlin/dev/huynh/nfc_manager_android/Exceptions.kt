@@ -52,6 +52,15 @@ internal class InvalidLcDataLengthException :
     )
 
 /**
+ * Exception thrown when card emulation ends after too many wrong PINs in a row.
+ */
+internal class PinBlockedException :
+    NfcException(
+        "PIN_BLOCKED",
+        "Card emulation ended after too many wrong PINs.",
+    )
+
+/**
  * Exception thrown when the NFC tag does not support ISO-DEP.
  */
 internal class IsoDepNotSupportedException :

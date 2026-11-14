@@ -10,7 +10,8 @@ import io.flutter.plugin.common.EventChannel.StreamHandler
  * Starts and stops the HCE session for the plugin's HCE event channel.
  *
  * Listening starts a session that this handler owns; cancelling clears it. The
- * [HostCardEmulationService] reads the session to answer APDUs.
+ * [HostCardEmulationService] reads the session to answer APDUs. Flutter invokes the stream
+ * callbacks on the platform thread, where session changes and sink callbacks must stay.
  */
 internal class HostCardEmulationStreamHandler : StreamHandler {
     private var closed = false
@@ -20,7 +21,8 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
      *
      * An AID must be 5–16 bytes and a PIN must be 1–255 bytes. Invalid arguments report
      * [InvalidHceArgumentsException] and end the stream without creating a session.
-     * A session owned by another handler stays in place.
+     * A session owned by another handler stays in place. Flutter invokes this callback on the
+     * platform thread.
      */
     override fun onListen(
         arguments: Any?,
@@ -46,9 +48,7 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
         session.emit(HostCardEmulationStatus.READY)
     }
 
-    /**
-     * Clears the HCE session if this handler started it.
-     */
+    /** Clears the HCE session if this handler started it, on Flutter's platform thread. */
     override fun onCancel(arguments: Any?) = clearSession()
 
     fun close() {

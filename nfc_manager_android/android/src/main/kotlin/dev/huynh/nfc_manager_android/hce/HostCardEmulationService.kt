@@ -4,10 +4,10 @@ import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
+import dev.huynh.nfc_manager_android.PinBlockedException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
-import java.security.MessageDigest
 
 /**
  * The HCE service that apps declare in their manifest; Android creates and binds it.
@@ -15,7 +15,9 @@ import java.security.MessageDigest
  * It answers SELECT AID and VERIFY PIN APDUs from an NFC reader against the active
  * [HostCardEmulationConfig.Session] and emits the outcome of each command to the session's event
  * sink. Without a session it answers `69 82` (HCE not ready), and without a command it answers
- * `6A 00`; neither emits an event.
+ * `6A 00`; neither emits an event. Too many wrong PINs in a row answer `69 83` and end the
+ * session. Android invokes the HCE callbacks on the main thread, so session access and sink events
+ * stay on that thread.
  */
 class HostCardEmulationService : HostApduService() {
     override fun processCommandApdu(
@@ -90,8 +92,8 @@ class HostCardEmulationService : HostApduService() {
     /**
      * Processes the VERIFY PIN command.
      *
-     * Compares equal-length PINs across all bytes, even after a mismatch.
-     *
+     * The session counts consecutive wrong PINs and ends with [PinBlockedException] at the third
+     * attempt. A correct PIN resets the count; stream callbacks run after the state transition.
      * @param session The session snapshot used for the whole command.
      * @param data The data of the VERIFY PIN command.
      * @return The response APDU.
@@ -100,12 +102,21 @@ class HostCardEmulationService : HostApduService() {
         session: HostCardEmulationConfig.Session,
         data: ByteArray,
     ): ResponseApdu =
-        if (MessageDigest.isEqual(data, session.pin)) {
-            session.emit(HostCardEmulationStatus.PIN_VERIFIED)
-            ResponseApdu.OK
-        } else {
-            session.emit(HostCardEmulationStatus.WRONG_PIN)
-            ResponseApdu.WRONG_PIN
+        when (session.verifyPin(data)) {
+            HostCardEmulationConfig.Session.PinVerificationResult.VERIFIED -> {
+                session.emit(HostCardEmulationStatus.PIN_VERIFIED)
+                ResponseApdu.OK
+            }
+
+            HostCardEmulationConfig.Session.PinVerificationResult.WRONG_PIN -> {
+                session.emit(HostCardEmulationStatus.WRONG_PIN)
+                ResponseApdu.WRONG_PIN
+            }
+
+            HostCardEmulationConfig.Session.PinVerificationResult.BLOCKED -> {
+                HostCardEmulationConfig.end(session, PinBlockedException())
+                ResponseApdu.PIN_BLOCKED
+            }
         }
 
     override fun onDeactivated(reason: Int) {

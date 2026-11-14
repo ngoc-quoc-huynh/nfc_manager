@@ -117,16 +117,22 @@ class NfcManager {
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.
   ///
-  /// Emulation starts when the stream is listened to. Cancel the subscription
-  /// to stop emulation. Use one active emulation subscription at a time. The
-  /// platform may need [aid] to be registered as well; on Android, declare it
-  /// in the HCE service configuration.
+  /// Listening to a new stream starts emulation with a fresh PIN retry budget.
+  /// Cancel the subscription to stop emulation. Finish or cancel the existing
+  /// subscription before listening to a new stream. The platform may need [aid]
+  /// to be registered as well; on Android, declare it in the HCE service
+  /// configuration.
   /// [HostCardEmulationStatus.ready] confirms that the configuration is stored.
   /// Use [isHceSupported] and [isNfcEnabled] to check device capabilities and
   /// NFC state separately. Routing depends on the Android service setup.
   ///
   /// Encode the [pin] text before calling this method, for example with
   /// `utf8.encode`.
+  ///
+  /// On Android, 3 wrong PINs in a row end the stream with an
+  /// [NfcUnknownException] whose code is `PIN_BLOCKED`. The count
+  /// carries over when the reader disconnects or selects the [aid] again. A
+  /// correct PIN resets it. Offer the user a restart after `PIN_BLOCKED`.
   ///
   /// Throws [UnimplementedError] synchronously if there is no registered
   /// implementation for this method.
