@@ -211,6 +211,17 @@ class TagReaderTest {
     }
 
     @Test
+    fun `sendCommand reports an Lc mismatch as InvalidApduCommandException`() {
+        tagReader.isoDep = mockIsoDep
+
+        assertThrows<InvalidApduCommandException> {
+            tagReader.sendCommand(byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x05, 0x01), onSuccess = {}, onError = {})
+        }
+
+        verifyNoInteractions(mockIsoDep)
+    }
+
+    @Test
     fun `sendCommand rejects a command longer than maxTransceiveLength and keeps the tag connected`() {
         val oversizedCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00)
         val lengthReadThread = AtomicReference<String>()

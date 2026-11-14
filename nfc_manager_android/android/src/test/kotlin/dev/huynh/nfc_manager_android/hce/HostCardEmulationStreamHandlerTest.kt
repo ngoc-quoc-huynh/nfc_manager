@@ -95,13 +95,14 @@ class HostCardEmulationStreamHandlerTest {
 
     /**
      * Asserts that [HostCardEmulationStreamHandler.onListen] reports [InvalidArgumentsException]
-     * for [arguments] and leaves HCE unconfigured.
+     * for [arguments], ends the stream, and leaves HCE unconfigured.
      */
     private fun assertRejected(arguments: Any?) {
         streamHandler.onListen(arguments, mockEventSink)
 
         assertNull(HostCardEmulationConfig.session)
         verify(mockEventSink).error(InvalidArgumentsException())
+        verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
     }
 }
