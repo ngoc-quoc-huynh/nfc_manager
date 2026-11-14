@@ -95,6 +95,13 @@ class NfcManager {
   /// Encode the [pin] text before calling this method, for example with
   /// `utf8.encode`.
   ///
+  /// Each call starts a new emulation session with its own PIN retry budget.
+  /// On Android, 3 wrong PINs in a row end the stream with an
+  /// [NfcUnknownException] whose code is `PIN_BLOCKED`. The count carries
+  /// over when the reader disconnects or selects the [aid] again, and only a
+  /// correct PIN or a new call resets it. Do not restart emulation
+  /// automatically after `PIN_BLOCKED`; let the user decide.
+  ///
   /// Throws [UnimplementedError] if no platform implementation is registered
   /// or it does not support this method.
   ///

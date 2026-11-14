@@ -4,6 +4,7 @@ import android.nfc.cardemulation.HostApduService
 import android.os.Bundle
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
+import dev.huynh.nfc_manager_android.PinBlockedException
 import dev.huynh.nfc_manager_android.models.CommandApdu
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.models.ResponseApdu
@@ -15,7 +16,8 @@ import java.security.MessageDigest
  * It answers SELECT AID and VERIFY PIN APDUs from an NFC reader against the active
  * [HostCardEmulationConfig.Session] and emits the outcome of each command to the session's event
  * sink. Without a session it answers `69 82` (HCE not ready), and without a command it answers
- * `6A 00`; neither emits an event.
+ * `6A 00`; neither emits an event. Too many wrong PINs in a row answer `69 83` and end the
+ * session.
  */
 class HostCardEmulationService : HostApduService() {
     override fun processCommandApdu(
@@ -90,7 +92,9 @@ class HostCardEmulationService : HostApduService() {
     /**
      * Processes the VERIFY PIN command.
      *
-     * Compares the PIN in constant time so response timing does not reveal matching bytes.
+     * Compares the PIN in constant time so response timing does not reveal matching bytes. After
+     * [MAX_PIN_ATTEMPTS] wrong PINs in a row, the session ends with [PinBlockedException] so a
+     * reader cannot guess the PIN by brute force. A correct PIN resets the count.
      *
      * @param session The session snapshot used for the whole command.
      * @param data The data of the VERIFY PIN command.
@@ -99,16 +103,28 @@ class HostCardEmulationService : HostApduService() {
     private fun processVerifyPin(
         session: HostCardEmulationConfig.Session,
         data: ByteArray,
-    ): ResponseApdu =
+    ): ResponseApdu {
         if (MessageDigest.isEqual(data, session.pin)) {
+            session.failedPinAttempts = 0
             session.emit(HostCardEmulationStatus.PIN_VERIFIED)
-            ResponseApdu.OK
-        } else {
-            session.emit(HostCardEmulationStatus.WRONG_PIN)
-            ResponseApdu.WRONG_PIN
+            return ResponseApdu.OK
         }
+
+        session.failedPinAttempts += 1
+        if (session.failedPinAttempts >= MAX_PIN_ATTEMPTS) {
+            HostCardEmulationConfig.end(session, PinBlockedException())
+            return ResponseApdu.PIN_BLOCKED
+        }
+        session.emit(HostCardEmulationStatus.WRONG_PIN)
+        return ResponseApdu.WRONG_PIN
+    }
 
     override fun onDeactivated(reason: Int) {
         HostCardEmulationConfig.session?.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
+    }
+
+    private companion object {
+        /** Wrong PINs in a row that end the session, matching the usual card retry limit. */
+        const val MAX_PIN_ATTEMPTS = 3
     }
 }

@@ -1,6 +1,8 @@
 package dev.huynh.nfc_manager_android.hce
 
+import dev.huynh.nfc_manager_android.NfcException
 import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
+import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 
@@ -25,6 +27,11 @@ internal object HostCardEmulationConfig {
         val pin: ByteArray,
         val sink: EventSink,
     ) {
+        /**
+         * Wrong PINs in a row. Only the main thread, which runs the service, reads and writes it.
+         */
+        var failedPinAttempts = 0
+
         /**
          * Sends [status] to the Flutter side.
          */
@@ -52,5 +59,21 @@ internal object HostCardEmulationConfig {
     @Synchronized
     fun clear(owner: StreamHandler) {
         if (session?.owner === owner) session = null
+    }
+
+    /**
+     * Clears [session] if it is still active, then reports [exception] and ends its stream.
+     */
+    fun end(
+        session: Session,
+        exception: NfcException,
+    ) {
+        val wasActive =
+            synchronized(this) {
+                (this.session === session).also { if (it) this.session = null }
+            }
+        if (!wasActive) return
+        session.sink.error(exception)
+        session.sink.endOfStream()
     }
 }

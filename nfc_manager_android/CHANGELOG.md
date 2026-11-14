@@ -17,6 +17,7 @@
 - Native discovery failures (bad arguments, `enableReaderMode` errors) arrive on the discovery stream as errors with codes `INVALID_ARGUMENTS` or `NFC_ERROR`, instead of only as `FlutterError` reports.
 - The discovery stream ends when the activity detaches. To resume, call `startDiscovery()` again after the activity reattaches.
 - Malformed HCE arguments (`aid`, `pin`) are reported as `INVALID_ARGUMENTS` and leave HCE unconfigured.
+- HCE ends the session after 3 wrong PINs in a row, so readers cannot brute-force the PIN. The third wrong VERIFY is answered with `69 83`, and the HCE stream reports `NfcUnknownException` with code `PIN_BLOCKED` and then ends. The count survives reader disconnects and reselection; a correct PIN resets it. Start emulation again to accept PINs.
 
 ### Fixes
 
