@@ -381,10 +381,64 @@ class HostCardEmulationServiceTest {
     }
 
     @Test
-    fun `onDeactivated emits TAG_DISCONNECTED`() {
+    fun `onDeactivated emits TAG_DISCONNECTED once for an active session that handled an APDU`() {
+        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+
+        service.onDeactivated(0)
         service.onDeactivated(0)
 
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
         verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `onDeactivated emits nothing when the active session has not handled an APDU`() {
+        service.onDeactivated(0)
+
+        verifyNoInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `onDeactivated emits nothing after only a null command`() {
+        service.processCommandApdu(null, null)
+
+        service.onDeactivated(0)
+
+        verifyNoInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `onDeactivated emits TAG_DISCONNECTED after a malformed APDU`() {
+        service.processCommandApdu(byteArrayOf(), null)
+
+        service.onDeactivated(0)
+
+        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_COMMAND.name)
+        verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `onDeactivated does not emit TAG_DISCONNECTED when the session is replaced after an APDU`() {
+        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+        startSession(aid = OTHER_AID)
+
+        service.onDeactivated(0)
+
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+        verifyNoMoreInteractions(mockEventSink)
+    }
+
+    @Test
+    fun `onDeactivated does not emit TAG_DISCONNECTED after the session is cancelled`() {
+        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+        HostCardEmulationConfig.clear(owner)
+
+        service.onDeactivated(0)
+
+        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+        verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test

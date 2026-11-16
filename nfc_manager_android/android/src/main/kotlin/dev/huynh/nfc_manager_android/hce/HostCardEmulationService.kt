@@ -20,11 +20,16 @@ import dev.huynh.nfc_manager_android.models.ResponseApdu
  * stay on that thread.
  */
 class HostCardEmulationService : HostApduService() {
+    private var sessionUsedForCurrentLink: HostCardEmulationConfig.Session? = null
+
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
     ): ByteArray {
         val session = HostCardEmulationConfig.session
+        if (session != null && commandByteArray != null) {
+            sessionUsedForCurrentLink = session
+        }
         val response =
             when {
                 session == null -> ResponseApdu.HCE_NOT_READY
@@ -120,6 +125,10 @@ class HostCardEmulationService : HostApduService() {
         }
 
     override fun onDeactivated(reason: Int) {
-        HostCardEmulationConfig.session?.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
+        val session = sessionUsedForCurrentLink
+        sessionUsedForCurrentLink = null
+        if (session != null && HostCardEmulationConfig.session === session) {
+            session.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
+        }
     }
 }

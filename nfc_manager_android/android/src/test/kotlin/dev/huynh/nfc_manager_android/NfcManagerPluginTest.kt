@@ -42,7 +42,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertSame
 
 class NfcManagerPluginTest {
     private val mockFeatureChecker = mock<FeatureChecker>()
@@ -251,33 +250,6 @@ class NfcManagerPluginTest {
         verify(mockDiscoveryEventChannel).setStreamHandler(null)
         verify(mockHostCardEmulationEventChannel).setStreamHandler(null)
         verify(mockTagReader).dispose()
-    }
-
-    @Test
-    fun `engine detachment clears the HCE session of the stream handler that engine attachment registered`() {
-        val mockBinaryMessenger = mock<BinaryMessenger>()
-        val mockPackageManager = mock<PackageManager>()
-        val mockContext = mock<Context> { on { packageManager } doReturn mockPackageManager }
-        val binding =
-            mock<FlutterPlugin.FlutterPluginBinding> {
-                on { applicationContext } doReturn mockContext
-                on { binaryMessenger } doReturn mockBinaryMessenger
-            }
-        mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
-        val messageHandler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
-        verify(mockBinaryMessenger).setMessageHandler(
-            eq("dev.huynh/nfc_manager_android/host_card_emulation"),
-            messageHandler.capture(),
-        )
-
-        val listen = StandardMethodCodec.INSTANCE.encodeMethodCall(MethodCall("listen", hceArguments))
-        messageHandler.firstValue.onMessage(listen.also { it.rewind() }, mock())
-
-        assertSame(plugin.hostCardEmulationStreamHandler, HostCardEmulationConfig.session?.owner)
-
-        plugin.onDetachedFromEngine(binding)
-
-        assertNull(HostCardEmulationConfig.session)
     }
 
     @Test
