@@ -22,6 +22,11 @@ import dev.huynh.nfc_manager_android.models.ResponseApdu
 class HostCardEmulationService : HostApduService() {
     private var sessionUsedForCurrentLink: HostCardEmulationConfig.Session? = null
 
+    /**
+     * The session whose AID the reader selected on the current link, or null.
+     */
+    private var selectedSession: HostCardEmulationConfig.Session? = null
+
     override fun processCommandApdu(
         commandByteArray: ByteArray?,
         extras: Bundle?,
@@ -59,7 +64,12 @@ class HostCardEmulationService : HostApduService() {
                 }
 
                 command.ins == 0x20.toByte() && command.p1 == 0x00.toByte() -> {
-                    processVerifyPin(session, command.data ?: throw InvalidLcDataLengthException())
+                    val pin = command.data ?: throw InvalidLcDataLengthException()
+                    if (selectedSession === session) {
+                        processVerifyPin(session, pin)
+                    } else {
+                        ResponseApdu.AID_NOT_SELECTED
+                    }
                 }
 
                 else -> {
@@ -87,9 +97,11 @@ class HostCardEmulationService : HostApduService() {
         data: ByteArray,
     ): ResponseApdu =
         if (data.contentEquals(session.aid)) {
+            selectedSession = session
             session.emit(HostCardEmulationStatus.AID_SELECTED)
             ResponseApdu.OK
         } else {
+            selectedSession = null
             session.emit(HostCardEmulationStatus.INVALID_AID)
             ResponseApdu.INVALID_AID
         }
@@ -127,6 +139,7 @@ class HostCardEmulationService : HostApduService() {
     override fun onDeactivated(reason: Int) {
         val session = sessionUsedForCurrentLink
         sessionUsedForCurrentLink = null
+        selectedSession = null
         if (session != null && HostCardEmulationConfig.session === session) {
             session.emit(HostCardEmulationStatus.TAG_DISCONNECTED)
         }

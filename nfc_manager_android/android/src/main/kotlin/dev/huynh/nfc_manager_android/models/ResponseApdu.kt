@@ -10,6 +10,12 @@ internal enum class ResponseApdu(
     private val statusWord: ByteArray,
 ) {
     /**
+     * 69 85: conditions of use not satisfied, sent when VERIFY arrives before
+     * the configured AID is selected.
+     */
+    AID_NOT_SELECTED(byteArrayOf(0x69, 0x85.toByte())),
+
+    /**
      * Indicates that the function is not supported.
      */
     FUNCTION_NOT_SUPPORTED(byteArrayOf(0x6A, 0x81.toByte())),
