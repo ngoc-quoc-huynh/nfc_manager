@@ -382,5 +382,27 @@ void main() {
 
       expect(command.toUint8List(), expected);
     });
+
+    test('uses the given P2 reference.', () {
+      final command = ApduCommand.verifyPin(
+        Uint8List.fromList([0x31]),
+        p2: 0x80,
+      );
+
+      expect(command.p2, 0x80);
+      expect(command.toUint8List(), [0x00, 0x20, 0x00, 0x80, 0x01, 0x31]);
+    });
+
+    test('rejects P2 outside 0-255.', () {
+      for (final p2 in [-1, 256]) {
+        expect(
+          () => ApduCommand.verifyPin(Uint8List(1), p2: p2),
+          throwsA(
+            isA<RangeError>().having((error) => error.name, 'name', 'p2'),
+          ),
+          reason: 'P2: $p2',
+        );
+      }
+    });
   });
 }

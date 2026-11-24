@@ -51,15 +51,17 @@ final class ApduCommand {
   /// Creates a VERIFY command carrying a Personal Identification Number
   /// (PIN).
   ///
-  /// Uses the header `00 20 00 00`, includes [pin] as the payload, and omits
-  /// [le]. The PIN must contain 1–255 bytes and use the encoding expected by
-  /// the target card. The payload is copied.
+  /// Uses the header `00 20 00 <p2>` with [pin] as the payload and no Le.
   ///
-  /// Throws [RangeError] named `pin.length` if the PIN length is outside
-  /// that range.
-  factory ApduCommand.verifyPin(Uint8List pin) {
+  /// [p2] selects which PIN the card checks. The default `00` means no
+  /// reference is given; many cards need a specific one, such as `80`.
+  /// The PIN must contain 1–255 bytes and use the encoding expected by the
+  /// target card.
+  ///
+  /// Throws [RangeError] if [pin] is not 1–255 bytes or [p2] is not 0–255.
+  factory ApduCommand.verifyPin(Uint8List pin, {int p2 = 0x00}) {
     checkPinLength(pin);
-    return ApduCommand(cla: 0x00, ins: 0x20, p1: 0x00, p2: 0x00, data: pin);
+    return ApduCommand(cla: 0x00, ins: 0x20, p1: 0x00, p2: p2, data: pin);
   }
 
   /// The command class byte (CLA).
