@@ -64,10 +64,13 @@ void main() {
         ([0x67, 0x00], ApduStatus.wrongLength),
         ([0x69, 0x82], ApduStatus.securityStatusNotSatisfied),
         ([0x69, 0x83], ApduStatus.authenticationMethodBlocked),
+        ([0x69, 0x85], ApduStatus.conditionsOfUseNotSatisfied),
         ([0x6A, 0x00], ApduStatus.wrongParameters),
+        ([0x6A, 0x86], ApduStatus.wrongParameters),
         ([0x6A, 0x81], ApduStatus.functionNotSupported),
         ([0x6A, 0x82], ApduStatus.fileOrApplicationNotFound),
         ([0x6C, 0x00], ApduStatus.wrongLeField),
+        ([0x6D, 0x00], ApduStatus.instructionNotSupported),
       ]) {
         expect(_decode(bytes).status, status, reason: '$bytes');
       }
@@ -81,14 +84,17 @@ void main() {
       for (final bytes in <List<int>>[
         [0x00, 0x00],
         [0x01, 0x02],
-        [0x6D, 0x00],
+        [0x6E, 0x00],
       ]) {
         expect(_decode(bytes).status, ApduStatus.unknown, reason: '$bytes');
       }
     });
 
-    test('classifies the 63 CX and 6C XX families and keeps SW2.', () {
+    test('classifies the 61 XX, 63 CX and 6C XX families and keeps SW2.', () {
       for (final (bytes, status) in [
+        ([0x61, 0x00], ApduStatus.moreDataAvailable),
+        ([0x61, 0x10], ApduStatus.moreDataAvailable),
+        ([0x61, 0xFF], ApduStatus.moreDataAvailable),
         ([0x63, 0xC0], ApduStatus.verificationFailed),
         ([0x63, 0xC2], ApduStatus.verificationFailed),
         ([0x63, 0xCF], ApduStatus.verificationFailed),
@@ -99,6 +105,7 @@ void main() {
 
         expect(response.status, status, reason: '$bytes');
         expect(response.sw2, bytes[1], reason: '$bytes');
+        expect(response.isSuccess, isFalse, reason: '$bytes');
       }
     });
 
@@ -107,7 +114,8 @@ void main() {
         ([0x63, 0x01], 0x01),
         ([0x63, 0xD0], 0xD0),
         ([0x90, 0x01], 0x01),
-        ([0x61, 0x10], 0x10),
+        ([0x6A, 0x87], 0x87),
+        ([0x6D, 0x01], 0x01),
       ]) {
         final response = _decode(bytes);
 

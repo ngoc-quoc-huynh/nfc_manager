@@ -53,14 +53,17 @@ final class ApduResponse {
   /// The classification of [statusWord], or [ApduStatus.unknown].
   ApduStatus get status => switch ((sw1, sw2)) {
     (0x90, 0x00) => .success,
+    (0x61, _) => .moreDataAvailable,
     (0x63, 0x00) || (0x63, >= 0xC0 && <= 0xCF) => .verificationFailed,
     (0x67, 0x00) => .wrongLength,
     (0x69, 0x82) => .securityStatusNotSatisfied,
     (0x69, 0x83) => .authenticationMethodBlocked,
-    (0x6A, 0x00) => .wrongParameters,
+    (0x69, 0x85) => .conditionsOfUseNotSatisfied,
+    (0x6A, 0x00) || (0x6A, 0x86) => .wrongParameters,
     (0x6A, 0x81) => .functionNotSupported,
     (0x6A, 0x82) => .fileOrApplicationNotFound,
     (0x6C, _) => .wrongLeField,
+    (0x6D, 0x00) => .instructionNotSupported,
     _ => .unknown,
   };
 
@@ -93,6 +96,10 @@ enum ApduStatus {
   /// `90 00`: normal processing, no further qualification.
   success,
 
+  /// `61 XX`: normal processing, more response data is available. SW2 is the
+  /// number of bytes left; read them with GET RESPONSE (`00 C0 00 00 XX`).
+  moreDataAvailable,
+
   /// `63 00` or `63 CX`: verification, such as a PIN check, failed. In
   /// `63 CX`, X is the number of retries left. This plugin's card emulation
   /// returns `63 00` for each of the first two consecutive wrong PINs.
@@ -111,8 +118,13 @@ enum ApduStatus {
   /// returns it when the third consecutive wrong PIN blocks the session.
   authenticationMethodBlocked,
 
-  /// `6A 00`: wrong parameters P1-P2, no information given. This plugin's
-  /// card emulation returns it when Android delivers no command.
+  /// `69 85`: conditions of use not satisfied. This plugin's card emulation
+  /// returns it for VERIFY before the reader selects the configured AID.
+  conditionsOfUseNotSatisfied,
+
+  /// `6A 00` or `6A 86`: wrong parameters P1-P2, with no information given
+  /// or incorrect P1-P2. This plugin's card emulation returns `6A 00` when
+  /// Android delivers no command.
   wrongParameters,
 
   /// `6A 81`: function not supported.
@@ -124,6 +136,9 @@ enum ApduStatus {
   /// `6C XX`: wrong Le field. SW2 is the exact length available, and `00`
   /// means 256 bytes.
   wrongLeField,
+
+  /// `6D 00`: instruction code not supported or invalid.
+  instructionNotSupported,
 
   /// Any status word not listed above.
   unknown,
