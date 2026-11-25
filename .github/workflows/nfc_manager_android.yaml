@@ -7,7 +7,6 @@ on:
       - 'nfc_manager_android/**'
       - 'nfc_manager_platform_interface/**'
       - '.github/workflows/nfc_manager_android.yaml'
-      - '.github/workflows/_package.yaml'
       - 'mise.toml'
       - 'mise.lock'
   pull_request:
@@ -16,8 +15,130 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  ci:
-    uses: ./.github/workflows/_package.yaml
-    with:
-      package: nfc_manager_android
+  development:
+    name: Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: ./nfc_manager_android
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.5"
+          install_args: flutter
+
+      - name: Cache flutter dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-flutter-
+
+      - name: Install dependencies
+        run: flutter pub get --no-example
+      - name: Install example dependencies
+        working-directory: ./nfc_manager_android/example
+        run: flutter pub get --enforce-lockfile
+
+      - name: Check formatting
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze code
+        run: flutter analyze --no-pub
+      - name: Check metrics
+        run: dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
+
+      - name: Run tests
+        run: |
+          flutter test --no-pub --coverage --test-randomize-ordering-seed=random
+          dart run test_cov_console
+      - name: Run example tests
+        working-directory: ./nfc_manager_android/example
+        run: flutter test --no-pub --test-randomize-ordering-seed=random
+
+  legacy:
+    name: Minimum Flutter analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: ./nfc_manager_android
+
+    env:
+      # Minimum supported Flutter version (see pubspec.yaml).
+      MISE_FLUTTER_VERSION: '3.44.0'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      # `mise x` installs the pinned minimum Flutter on demand, so skip the
+      # default install of the repo's current Flutter.
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.5"
+          install: false
+
+      - name: Log Flutter version
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter --version
+
+      - name: Install dependencies
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter pub get --no-example
+      # Compile compatibility only: the repo lint set needs a newer Dart.
+      - name: Analyze code
+        run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter analyze --no-pub --no-fatal-infos --no-fatal-warnings lib test
+
+  android:
+    name: Android tests and lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        working-directory: ./nfc_manager_android
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - name: Setup mise
+        uses: jdx/mise-action@2d8d4cafcbd33be2ea37d2b6f5ad595363d1f1ca
+        with:
+          version: "2026.10.5"
+          install_args: flutter java aqua:ktlint/ktlint
+
+      - name: Cache flutter dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-flutter-
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6
+
+      - name: Check Kotlin formatting
+        run: ktlint 'android/**/*.{kt,kts}' 'example/android/**/*.{kt,kts}' '!**/build/**' '!**/.gradle/**'
+      - name: Install example dependencies
+        working-directory: ./nfc_manager_android/example
+        run: flutter pub get --enforce-lockfile
+      # The example's Gradle build includes this plugin as a subproject.
+      - name: Run Android tests and lint
+        working-directory: ./nfc_manager_android/example/android
+        run: ./gradlew :nfc_manager_android:testDebugUnitTest :nfc_manager_android:lintDebug
