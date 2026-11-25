@@ -90,10 +90,7 @@ class NfcManager {
   /// [NfcUnknownException]. Flutter reports event-channel activation and
   /// cancellation failures through `FlutterError`.
   Stream<String> startDiscovery({Duration? timeout}) {
-    if (timeout != null) {
-      _checkTimeout(timeout);
-    }
-
+    _checkTimeout(timeout);
     return _platform.startDiscovery(timeout: timeout);
   }
 
@@ -161,10 +158,11 @@ class NfcManager {
     return _platform.startEmulation(aid: aid, pin: pin);
   }
 
-  static void _checkTimeout(Duration timeout) {
-    if (timeout <= .zero ||
-        timeout.inMicroseconds % Duration.microsecondsPerMillisecond != 0 ||
-        timeout.inMilliseconds > _maxTimeoutMilliseconds) {
+  static void _checkTimeout(Duration? timeout) {
+    if (timeout != null &&
+        (timeout <= .zero ||
+            timeout.inMicroseconds % Duration.microsecondsPerMillisecond != 0 ||
+            timeout.inMilliseconds > _maxTimeoutMilliseconds)) {
       throw ArgumentError.value(
         timeout,
         'timeout',
