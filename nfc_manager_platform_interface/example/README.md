@@ -1,3 +1,6 @@
-# nfc_manager_platform_interface_example
+# Register a platform implementation
 
-Demonstrates how to use the nfc_manager_platform_interface plugin.
+Shows how to register a simulated NFC implementation.
+
+See the [Android implementation](../../nfc_manager_android/lib/src/platform.dart)
+for a hardware-backed example.
