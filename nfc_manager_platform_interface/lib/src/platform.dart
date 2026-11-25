@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:nfc_manager_platform_interface/src/exceptions.dart';
 import 'package:nfc_manager_platform_interface/src/models/command.dart';
-import 'package:nfc_manager_platform_interface/src/models/host_card_emulation_status.dart';
+import 'package:nfc_manager_platform_interface/src/models/hce_status.dart';
 import 'package:nfc_manager_platform_interface/src/models/response.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
