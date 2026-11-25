@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager_example/demo_credentials.dart';
+import 'package:nfc_manager_example/demo_card.dart';
 
 class const HostCardEmulationPage({
   super.key,
@@ -15,16 +15,22 @@ class const HostCardEmulationPage({
 class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
   Stream<HostCardEmulationStatus>? _stream;
 
-  Stream<HostCardEmulationStatus> _emulate() async* {
-    yield* widget.nfcManager.startEmulation(
+  void _start() => setState(
+    () => _stream = widget.nfcManager.startEmulation(
       aid: demoAid.hexToBytes(),
       pin: utf8.encode(demoPin),
-    );
-  }
-
-  void _start() => setState(() => _stream = _emulate());
+    ),
+  );
 
   void _stop() => setState(() => _stream = null);
+
+  // Shows the error code, not the native message, which is untrusted.
+  static String _errorText(Object? error) => switch (error) {
+    NfcUnknownException(code: 'PIN_BLOCKED') =>
+      'PIN blocked after 3 wrong attempts. Restart to try again.',
+    NfcUnknownException(:final code) => 'Emulation failed: $code',
+    _ => 'Emulation failed.',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +39,7 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
       body: StreamBuilder(
         stream: _stream,
         builder: (context, snapshot) => Column(
+          spacing: 10,
           children: [
             switch (snapshot.connectionState) {
               .none => FilledButton(
@@ -48,20 +55,16 @@ class _HostCardEmulationPageState extends State<HostCardEmulationPage> {
                 child: const Text('Stop emulation'),
               ),
             },
-            const SizedBox(height: 10),
             const Divider(),
-            const SizedBox(height: 10),
             switch (snapshot.connectionState) {
               .none => const Text(
                 'Start the emulation to check the HCE status.',
               ),
               .waiting => const CircularProgressIndicator(),
               .active || .done when snapshot.hasError => Text(
-                'Received error: ${snapshot.error}',
+                _errorText(snapshot.error),
               ),
-              .active => Text(
-                snapshot.requireData.toString(),
-              ),
+              .active => Text(snapshot.requireData.name),
               .done => const Text('Emulation ended.'),
             },
           ],

@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:nfc_manager/nfc_manager.dart';
-import 'package:nfc_manager_example/demo_credentials.dart';
+import 'package:nfc_manager_example/demo_card.dart';
 
 class const TagReaderPage({
   super.key,
@@ -16,67 +16,73 @@ class const TagReaderPage({
 class _TagReaderPageState extends State<TagReaderPage> {
   Stream<String>? _stream;
 
+  void _start() => setState(() => _stream = widget.nfcManager.startDiscovery());
+
+  void _stop() => setState(() => _stream = null);
+
+  // Shows the error type or code, not the native message, which is untrusted.
+  static String _errorText(Object? error) => switch (error) {
+    NfcNotSupportedException() => 'This device has no NFC.',
+    IsoDepNotSupportedException() => 'This tag is not ISO-DEP. Try another.',
+    TagConnectionException() => 'Tag lost. Hold it still and try again.',
+    InvalidApduCommandException() => 'The command is too long for this tag.',
+    NfcUnknownException(:final code) => 'NFC failed: $code',
+    _ => 'NFC failed.',
+  };
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Tag Reader')),
-      body: Column(
-        children: [
-          switch (_stream) {
-            null => FilledButton(
-              onPressed: () =>
-                  setState(() => _stream = widget.nfcManager.startDiscovery()),
-              child: const Text('Start discovery'),
-            ),
-            Stream<String>() => FilledButton(
-              onPressed: () => setState(() => _stream = null),
-              child: const Text('Stop discovery'),
-            ),
-          },
-          const SizedBox(height: 10),
-          const Divider(),
-          const SizedBox(height: 10),
-          StreamBuilder<String>(
-            stream: _stream,
-            builder: (context, snapshot) => switch (snapshot.connectionState) {
+      appBar: AppBar(
+        title: const Text('Tag Reader'),
+      ),
+      body: StreamBuilder(
+        stream: _stream,
+        builder: (context, snapshot) => Column(
+          spacing: 10,
+          children: [
+            switch (snapshot.connectionState) {
+              .none => FilledButton(
+                onPressed: _start,
+                child: const Text('Start discovery'),
+              ),
+              .done => FilledButton(
+                onPressed: _start,
+                child: const Text('Restart discovery'),
+              ),
+              .waiting || .active => FilledButton(
+                onPressed: _stop,
+                child: const Text('Stop discovery'),
+              ),
+            },
+            const Divider(),
+            switch (snapshot.connectionState) {
               .none => const Text(
                 'Start the discovery to look out for NFC tags.',
               ),
               .waiting => const CircularProgressIndicator(),
               .active || .done when snapshot.hasError => Text(
-                'Received error: ${snapshot.error}',
+                _errorText(snapshot.error),
               ),
               .active => Column(
+                spacing: 10,
                 children: [
                   Text('Found tag: ${snapshot.requireData}'),
-                  const SizedBox(height: 10),
-                  FilledButton(
-                    onPressed: () => unawaited(
-                      _send(
-                        context,
-                        'Select AID',
-                        ApduCommand.selectAid(demoAid.hexToBytes()),
-                      ),
+                  for (final (label, command) in [
+                    ('Select AID', ApduCommand.selectAid(demoAid.hexToBytes())),
+                    ('Verify PIN', ApduCommand.verifyPin(utf8.encode(demoPin))),
+                  ])
+                    FilledButton(
+                      onPressed: () =>
+                          unawaited(_send(context, label, command)),
+                      child: Text(label),
                     ),
-                    child: const Text('Select aid'),
-                  ),
-                  const SizedBox(height: 10),
-                  FilledButton(
-                    onPressed: () => unawaited(
-                      _send(
-                        context,
-                        'Verify PIN',
-                        ApduCommand.verifyPin(utf8.encode(demoPin)),
-                      ),
-                    ),
-                    child: const Text('Verify pin'),
-                  ),
                 ],
               ),
-              .done => const Text('Done'),
+              .done => const Text('Discovery ended.'),
             },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -87,22 +93,17 @@ class _TagReaderPageState extends State<TagReaderPage> {
     ApduCommand command,
   ) async {
     String message;
-
     try {
       final response = await widget.nfcManager.sendCommand(command);
       message = '$label response: $response';
     } on NfcException catch (e) {
-      message = e.toString();
+      message = _errorText(e);
     }
 
     if (context.mounted) {
-      _showMessage(context, message);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(.new(content: Text(message)));
     }
-  }
-
-  void _showMessage(BuildContext context, String message) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(.new(content: Text(message)));
   }
 }

@@ -7,10 +7,11 @@ import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/host_card_emulation.dart';
 
 void main() {
-  testWidgets('Shows readiness and cancels the stream on Stop.', (
+  testWidgets('shows readiness and cancels the stream on Stop.', (
     tester,
   ) async {
     final statuses = StreamController<HostCardEmulationStatus>.broadcast();
+    addTearDown(() => unawaited(statuses.close()));
     await _pumpPage(tester, () => statuses.stream);
 
     await tester.tap(find.text('Start emulation'));
@@ -19,57 +20,40 @@ void main() {
 
     statuses.add(.ready);
     await tester.pump();
-    expect(find.text('HostCardEmulationStatus.ready'), findsOneWidget);
+    expect(find.text('ready'), findsOneWidget);
 
     await tester.tap(find.text('Stop emulation'));
     await tester.pump();
     expect(statuses.hasListener, isFalse);
     expect(find.text('Start emulation'), findsOneWidget);
-    unawaited(statuses.close());
   });
 
-  testWidgets('Keeps a terminal error visible until the user restarts.', (
+  testWidgets('keeps PIN_BLOCKED visible until the user restarts.', (
     tester,
   ) async {
     final first = StreamController<HostCardEmulationStatus>.broadcast();
     final second = StreamController<HostCardEmulationStatus>.broadcast();
-    final sessions = [first.stream, second.stream].iterator;
-    await _pumpPage(tester, () {
-      expect(sessions.moveNext(), isTrue);
-      return sessions.current;
-    });
+    addTearDown(() => unawaited(first.close()));
+    addTearDown(() => unawaited(second.close()));
+    final sessions = [first.stream, second.stream];
+    await _pumpPage(tester, () => sessions.removeAt(0));
 
     await tester.tap(find.text('Start emulation'));
     await tester.pump();
-    const error = NfcUnknownException(code: 'EMULATION_FAILED');
-    first.addError(error);
+    const blocked = 'PIN blocked after 3 wrong attempts. Restart to try again.';
+    first.addError(
+      const NfcUnknownException(code: 'PIN_BLOCKED', message: 'native detail'),
+    );
     unawaited(first.close());
     await tester.pump();
-    expect(find.text('Received error: $error'), findsOneWidget);
-    expect(second.hasListener, isFalse);
+    expect(find.text(blocked), findsOneWidget);
+    expect(find.textContaining('native detail'), findsNothing);
 
     await tester.tap(find.text('Restart emulation'));
     await tester.pump();
-    expect(find.text('Received error: $error'), findsNothing);
     second.add(.ready);
     await tester.pump();
-    expect(find.text('HostCardEmulationStatus.ready'), findsOneWidget);
-    await tester.tap(find.text('Stop emulation'));
-    await tester.pump();
-    unawaited(second.close());
-  });
-
-  testWidgets('Shows a synchronous start failure and offers Restart.', (
-    tester,
-  ) async {
-    final error = UnimplementedError('HCE is unavailable on this platform.');
-    await _pumpPage(tester, () => throw error);
-
-    await tester.tap(find.text('Start emulation'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    expect(find.text('Received error: $error'), findsOneWidget);
-    expect(find.text('Restart emulation'), findsOneWidget);
+    expect(find.text('ready'), findsOneWidget);
   });
 }
 

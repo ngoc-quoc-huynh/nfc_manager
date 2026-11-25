@@ -9,17 +9,19 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 /// Minimal host app that calls each platform method once.
 ///
 /// The full demo lives in `nfc_manager/example`.
-void main() {
-  runApp(const MaterialApp(home: NfcExample()));
-}
+void main() => runApp(
+  const MaterialApp(
+    home: NfcExample(),
+  ),
+);
 
 /// Runs the Android plugin smoke checks.
 class const NfcExample({super.key}) extends StatefulWidget {
   @override
-  State<NfcExample> createState() => _CallsState();
+  State<NfcExample> createState() => _NfcExampleState();
 }
 
-class _CallsState extends State<NfcExample> {
+class _NfcExampleState extends State<NfcExample> {
   late final Future<List<String>> _calls;
 
   @override
@@ -61,6 +63,7 @@ Future<List<String>> _callEachMethod() async {
   final pin = utf8.encode('1234');
   // Cancelling discovery closes the tag, so keep it open until sendCommand.
   final discovery = StreamIterator(
+    // The transceive timeout for each command.
     platform.startDiscovery(timeout: const Duration(seconds: 5)),
   );
 
@@ -70,10 +73,7 @@ Future<List<String>> _callEachMethod() async {
     'isHceSupported: ${await platform.isHceSupported()}',
   ];
   try {
-    final tag = await _run(() async {
-      final found = await discovery.moveNext().timeout(_eventTimeout);
-      return found ? discovery.current : 'ended';
-    });
+    final tag = await _run(() => _nextTag(discovery));
     lines.add('startDiscovery: $tag');
     final response = await _run(
       () => platform.sendCommand(ApduCommand.selectAid(aid)),
@@ -84,8 +84,17 @@ Future<List<String>> _callEachMethod() async {
   }
 
   final emulation = platform.startEmulation(aid: aid, pin: pin);
+  // Takes the first status, then cancels, which stops emulation.
   final status = await _run(() => emulation.timeout(_eventTimeout).first);
-  return [...lines, 'startEmulation: $status'];
+  lines.add('startEmulation: $status');
+  return lines;
+}
+
+/// Waits for the first tag ID, or returns `ended` if discovery finished
+/// without a tag.
+Future<String> _nextTag(StreamIterator<String> discovery) async {
+  final found = await discovery.moveNext().timeout(_eventTimeout);
+  return found ? discovery.current : 'ended';
 }
 
 Future<String> _run<T>(Future<T> Function() call) async {

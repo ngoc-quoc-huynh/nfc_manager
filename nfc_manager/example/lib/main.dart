@@ -3,9 +3,7 @@ import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/host_card_emulation.dart';
 import 'package:nfc_manager_example/tag_reader.dart';
 
-void main() {
-  runApp(const NfcManagerExample());
-}
+void main() => runApp(const NfcManagerExample());
 
 class const NfcManagerExample({
   super.key,
@@ -15,12 +13,10 @@ class const NfcManagerExample({
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'NFC Manager Example',
-      routes: {
-        'host-card-emulation': (_) => const HostCardEmulationPage(),
-        'tag-reader': (_) => const TagReaderPage(),
-      },
       home: Scaffold(
-        appBar: AppBar(title: const Text('NFC Manager Example')),
+        appBar: AppBar(
+          title: const Text('NFC Manager Example'),
+        ),
         body: Center(
           child: Builder(
             builder: (context) => Column(
@@ -40,12 +36,20 @@ class const NfcManagerExample({
                 ),
                 const Divider(),
                 FilledButton(
-                  onPressed: () =>
-                      Navigator.pushNamed(context, 'host-card-emulation'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) =>
+                          HostCardEmulationPage(nfcManager: nfcManager),
+                    ),
+                  ),
                   child: const Text('Host Card Emulation'),
                 ),
                 FilledButton(
-                  onPressed: () => Navigator.pushNamed(context, 'tag-reader'),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => TagReaderPage(nfcManager: nfcManager),
+                    ),
+                  ),
                   child: const Text('Tag Reader'),
                 ),
               ],
@@ -90,8 +94,6 @@ class _FeatureStatusViewState extends State<_FeatureStatusView> {
               AsyncSnapshot(hasError: true) => Text(
                 'Check failed',
                 style: textTheme.bodyLarge,
-                maxLines: 2,
-                overflow: .ellipsis,
               ),
               AsyncSnapshot(hasData: true, :final data) => Text(
                 data.toString(),

@@ -1,4 +1,4 @@
 <resources>
-    <string name="service_description">NFC Manager Android Example</string>
-    <string name="aid_group_description">Example demonstrating NFC Manager Android functionality</string>
+    <string name="service_description">NFC Manager Example</string>
+    <string name="aid_group_description">Demo card</string>
 </resources>
