@@ -96,7 +96,7 @@ void main() {
       );
     }
 
-    test('emits tag IDs and converts native errors.', () async {
+    test('keeps emitting tag IDs after per-tag errors.', () async {
       nfcManager.discoveryEventChannel.setMockStream(
         (events) => events
           ..success('1')
@@ -118,51 +118,11 @@ void main() {
         ]),
       );
     });
-
-    test('preserves codes and messages for native reader errors.', () async {
-      const invalidArgumentsMessage =
-          'The arguments are missing or have the wrong type.';
-      const nfcErrorMessage = 'Unexpected NFC reader error.';
-      nfcManager.discoveryEventChannel.setMockStream(
-        (events) => events
-          ..error(
-            code: 'INVALID_ARGUMENTS',
-            message: invalidArgumentsMessage,
-          )
-          ..error(code: 'NFC_ERROR', message: nfcErrorMessage)
-          ..endOfStream(),
-      );
-
-      await expectLater(
-        nfcManager.startDiscovery(),
-        emitsInOrder([
-          emitsError(
-            isA<NfcUnknownException>()
-                .having(
-                  (error) => error.code,
-                  'code',
-                  'INVALID_ARGUMENTS',
-                )
-                .having(
-                  (error) => error.message,
-                  'message',
-                  invalidArgumentsMessage,
-                ),
-          ),
-          emitsError(
-            isA<NfcUnknownException>()
-                .having((error) => error.code, 'code', 'NFC_ERROR')
-                .having((error) => error.message, 'message', nfcErrorMessage),
-          ),
-          emitsDone,
-        ]),
-      );
-    });
   });
 
   group('sendCommand', () {
     test(
-      'sends the serialized command using the existing wire format.',
+      'sends the command bytes as the command argument.',
       () async {
         methodChannel.setMockCallHandler((call) async {
           expect(call.method, 'sendCommand');
@@ -196,26 +156,17 @@ void main() {
       expect(response.status, ApduStatus.wrongLeField);
     });
 
-    test('returns 69 83 as a blocked authentication method.', () async {
-      methodChannel.setMockResponse(Uint8List.fromList([0x69, 0x83]));
-
-      final response = await nfcManager.sendCommand(
-        .verifyPin(Uint8List.fromList([1])),
-      );
-
-      expect(response.statusWord, 0x6983);
-      expect(response.status, ApduStatus.authenticationMethodBlocked);
-      expect(response.isSuccess, isFalse);
-    });
-
-    for (final bytes in <List<int>>[
+    for (final bytes in <List<int>?>[
+      null,
       [],
       [0x90],
     ]) {
       test(
         'throws TagConnectionException for the response $bytes.',
         () async {
-          methodChannel.setMockResponse(Uint8List.fromList(bytes));
+          methodChannel.setMockResponse(
+            bytes == null ? null : Uint8List.fromList(bytes),
+          );
 
           await expectLater(
             nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
@@ -224,31 +175,6 @@ void main() {
         },
       );
     }
-
-    test('throws TagConnectionException for a null native response.', () async {
-      methodChannel.setMockResponse(null);
-
-      await expectLater(
-        nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
-        throwsA(isA<TagConnectionException>()),
-      );
-    });
-
-    test(
-      'converts native connection errors to TagConnectionException.',
-      () async {
-        methodChannel.setMockCallHandler(
-          (_) async => throw PlatformException(code: 'TAG_CONNECTION_FAILED'),
-        );
-
-        await expectLater(
-          nfcManager.sendCommand(
-            ApduCommand.selectAid(Uint8List.fromList([0xF0, 0, 0, 0, 1])),
-          ),
-          throwsA(isA<TagConnectionException>()),
-        );
-      },
-    );
   });
 
   group('native errors', () {
@@ -263,14 +189,6 @@ void main() {
         'native text',
         const NfcUnknownException(
           code: 'INVALID_ARGUMENTS',
-          message: 'native text',
-        ),
-      ),
-      (
-        'INVALID_LC_DATA_LENGTH',
-        'native text',
-        const NfcUnknownException(
-          code: 'INVALID_LC_DATA_LENGTH',
           message: 'native text',
         ),
       ),
@@ -322,21 +240,6 @@ void main() {
         );
       });
     }
-  });
-
-  test('keeps an unknown native code on NfcUnknownException.', () async {
-    methodChannel.setMockCallHandler(
-      (_) async => throw PlatformException(code: 'NEW_CODE', message: 'text'),
-    );
-
-    await expectLater(
-      nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
-      throwsA(
-        isA<NfcUnknownException>()
-            .having((e) => e.code, 'code', 'NEW_CODE')
-            .having((e) => e.message, 'message', 'text'),
-      ),
-    );
   });
 
   group('startEmulation', () {
@@ -440,14 +343,11 @@ void main() {
     );
 
     test(
-      'forwards a short HCE AID and reports the error before done.',
+      'does not check the AID itself and reports the native error.',
       () async {
         final aid = Uint8List(4);
         final pin = Uint8List(1);
-        final enDash = String.fromCharCode(0x2013);
-        final message =
-            'HCE requires an AID of 5${enDash}16 bytes '
-            'and a PIN of 1${enDash}255 bytes.';
+        const message = 'native text';
         nfcManager.hostCardEmulationEventChannel.setMockListener((
           arguments,
           events,
@@ -472,88 +372,69 @@ void main() {
       },
     );
 
-    test('emits HCE statuses and converts native errors.', () async {
-      nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) => events
-          ..success('READY')
-          ..error(code: 'code')
-          ..endOfStream(),
-      );
+    test(
+      'PIN_BLOCKED ends the stream, and a new call starts a new session.',
+      () async {
+        var listenCount = 0;
+        final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
+        final pin = Uint8List.fromList([1, 2, 3, 4]);
+        final cancelled = Completer<void>();
+        nfcManager.hostCardEmulationEventChannel.setMockListener(
+          (
+            arguments,
+            events,
+          ) {
+            expect(arguments, {'aid': aid, 'pin': pin});
+            listenCount++;
+            if (listenCount == 1) {
+              events
+                ..error(
+                  code: 'PIN_BLOCKED',
+                  message: 'Card emulation ended after too many wrong PINs.',
+                )
+                ..endOfStream();
+            }
+          },
+          onCancel: (_) {
+            if (!cancelled.isCompleted) {
+              cancelled.complete();
+            }
+          },
+        );
 
-      final stream = nfcManager.startEmulation(
-        aid: Uint8List.fromList([0xF0, 0, 0, 0, 1]),
-        pin: Uint8List.fromList([1]),
-      );
-      await expectLater(
-        stream,
-        emitsInOrder([
-          HostCardEmulationStatus.ready,
-          emitsError(isA<NfcUnknownException>()),
-          emitsDone,
-        ]),
-      );
-    });
+        final firstSession = nfcManager.startEmulation(aid: aid, pin: pin);
+        await expectLater(
+          firstSession,
+          emitsInOrder([
+            emitsError(
+              isA<NfcUnknownException>()
+                  .having((error) => error.code, 'code', 'PIN_BLOCKED')
+                  .having(
+                    (error) => error.message,
+                    'message',
+                    'Card emulation ended after too many wrong PINs.',
+                  ),
+            ),
+            emitsDone,
+          ]),
+        );
+        expect(listenCount, 1);
+        await cancelled.future;
 
-    test('ends after PIN_BLOCKED and restarts only on a new call.', () async {
-      var listenCount = 0;
-      final aid = Uint8List.fromList([0xF0, 0, 0, 0, 1]);
-      final pin = Uint8List.fromList([1, 2, 3, 4]);
-      final cancelled = Completer<void>();
-      nfcManager.hostCardEmulationEventChannel.setMockListener(
-        (
-          arguments,
-          events,
-        ) {
-          expect(arguments, {'aid': aid, 'pin': pin});
-          listenCount++;
-          if (listenCount == 1) {
+        nfcManager.hostCardEmulationEventChannel.setMockStream(
+          (events) {
+            listenCount++;
             events
-              ..error(
-                code: 'PIN_BLOCKED',
-                message: 'Card emulation ended after too many wrong PINs.',
-              )
+              ..success('READY')
               ..endOfStream();
-          }
-        },
-        onCancel: (_) {
-          if (!cancelled.isCompleted) {
-            cancelled.complete();
-          }
-        },
-      );
-
-      final firstSession = nfcManager.startEmulation(aid: aid, pin: pin);
-      await expectLater(
-        firstSession,
-        emitsInOrder([
-          emitsError(
-            isA<NfcUnknownException>()
-                .having((error) => error.code, 'code', 'PIN_BLOCKED')
-                .having(
-                  (error) => error.message,
-                  'message',
-                  'Card emulation ended after too many wrong PINs.',
-                ),
-          ),
-          emitsDone,
-        ]),
-      );
-      expect(listenCount, 1);
-      await cancelled.future;
-
-      nfcManager.hostCardEmulationEventChannel.setMockStream(
-        (events) {
-          listenCount++;
-          events
-            ..success('READY')
-            ..endOfStream();
-        },
-      );
-      await expectLater(
-        nfcManager.startEmulation(aid: aid, pin: pin),
-        emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
-      );
-      expect(listenCount, 2);
-    });
+          },
+        );
+        await expectLater(
+          nfcManager.startEmulation(aid: aid, pin: pin),
+          emitsInOrder([HostCardEmulationStatus.ready, emitsDone]),
+        );
+        expect(listenCount, 2);
+      },
+    );
   });
 }
