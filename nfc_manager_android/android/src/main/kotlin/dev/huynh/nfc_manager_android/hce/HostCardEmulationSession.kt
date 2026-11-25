@@ -27,7 +27,7 @@ internal class HostCardEmulationSession(
     private var failedPinAttempts = 0
 
     /** PIN attempts left. A wrong PIN on the last attempt ends the session. */
-    private val pinAttemptsLeft: Int get() = MAX_PIN_ATTEMPTS - failedPinAttempts
+    val pinAttemptsLeft: Int get() = MAX_PIN_ATTEMPTS - failedPinAttempts
 
     /** Whether [candidate] is the session's AID. */
     fun matchesAid(candidate: ByteArray): Boolean = candidate.contentEquals(aid)

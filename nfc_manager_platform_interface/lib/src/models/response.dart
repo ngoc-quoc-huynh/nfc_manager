@@ -102,7 +102,7 @@ enum ApduStatus {
 
   /// `63 00` or `63 CX`: verification, such as a PIN check, failed. In
   /// `63 CX`, X is the number of retries left. This plugin's card emulation
-  /// returns `63 00` for each of the first two consecutive wrong PINs.
+  /// returns `63 C2`, then `63 C1`, for the first two consecutive wrong PINs.
   verificationFailed,
 
   /// `67 00`: wrong length, no further indication. This plugin's card

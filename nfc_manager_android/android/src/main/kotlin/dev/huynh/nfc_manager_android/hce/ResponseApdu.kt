@@ -27,13 +27,19 @@ internal class ResponseApdu private constructor(
         /** `6A 00`: Android passed no command. */
         val NULL_COMMAND = ResponseApdu(0x6A, 0x00)
 
-        /** `6A 81`: the command is not SELECT by name or VERIFY. */
+        /** `6A 81`: SELECT or VERIFY with a P1 other than SELECT by name or VERIFY. */
         val FUNCTION_NOT_SUPPORTED = ResponseApdu(0x6A, 0x81)
+
+        /** `6D 00`: the instruction is not SELECT or VERIFY. */
+        val INSTRUCTION_NOT_SUPPORTED = ResponseApdu(0x6D, 0x00)
 
         /** `6A 82`: the selected AID is not the configured one. */
         val INVALID_AID = ResponseApdu(0x6A, 0x82)
 
-        /** `63 00`: wrong PIN. */
-        val WRONG_PIN = ResponseApdu(0x63, 0x00)
+        /** `63 CX`: wrong PIN, with [attemptsLeft] (1–15) attempts left. */
+        fun wrongPin(attemptsLeft: Int): ResponseApdu {
+            require(attemptsLeft in 1..15) { "attemptsLeft must be 1–15." }
+            return ResponseApdu(0x63, 0xC0 or attemptsLeft)
+        }
     }
 }

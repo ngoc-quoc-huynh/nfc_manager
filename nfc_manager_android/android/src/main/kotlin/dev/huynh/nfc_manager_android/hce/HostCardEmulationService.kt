@@ -16,8 +16,9 @@ import dev.huynh.nfc_manager_android.hce.HostCardEmulationSession.PinVerificatio
  * * No session: `69 82`. No command: `6A 00`. Neither emits an event.
  * * VERIFY before the configured AID is selected on the current link: `69 85`, no event, and it
  *   does not count as a wrong PIN.
- * * A wrong PIN: `63 00`. The third in a row answers `69 83` and ends the session.
- * * Any other command: `6A 81`.
+ * * A wrong PIN: `63 CX` with X attempts left. The third in a row answers `69 83` and ends the
+ *   session.
+ * * Another instruction: `6D 00`. SELECT or VERIFY with another P1: `6A 81`.
  *
  * Android calls it on the main thread, which is also where the session changes.
  */
@@ -72,7 +73,11 @@ class HostCardEmulationService : HostApduService() {
 
                 else -> {
                     session.emit(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED)
-                    ResponseApdu.FUNCTION_NOT_SUPPORTED
+                    if (command.ins == INS_SELECT || command.ins == INS_VERIFY) {
+                        ResponseApdu.FUNCTION_NOT_SUPPORTED
+                    } else {
+                        ResponseApdu.INSTRUCTION_NOT_SUPPORTED
+                    }
                 }
             }
         } catch (_: InvalidApduCommandException) {
@@ -109,7 +114,7 @@ class HostCardEmulationService : HostApduService() {
 
             PinVerificationResult.WRONG_PIN -> {
                 session.emit(HostCardEmulationStatus.WRONG_PIN)
-                ResponseApdu.WRONG_PIN
+                ResponseApdu.wrongPin(session.pinAttemptsLeft)
             }
 
             PinVerificationResult.BLOCKED -> {

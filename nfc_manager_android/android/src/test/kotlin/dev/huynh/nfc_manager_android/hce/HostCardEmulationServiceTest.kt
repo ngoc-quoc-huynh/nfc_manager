@@ -71,7 +71,7 @@ class HostCardEmulationServiceTest {
         }
 
     @Test
-    fun `VERIFY with another PIN answers 63 00 and emits WRONG_PIN`() =
+    fun `VERIFY with another PIN answers 63 C2 and emits WRONG_PIN`() =
         listOf(
             // Every byte differs, only the last byte differs, a prefix, and a long PIN followed by Le.
             VALID_PIN to WRONG_PIN_COMMAND,
@@ -83,7 +83,7 @@ class HostCardEmulationServiceTest {
             startSession(pin = pin, sink = sink)
             selectConfiguredAid()
 
-            assertResponse(ResponseApdu.WRONG_PIN, process(command), command.contentToString())
+            assertResponse(ResponseApdu.wrongPin(2), process(command), command.contentToString())
             verify(sink).success(HostCardEmulationStatus.WRONG_PIN.name)
         }
 
@@ -121,10 +121,10 @@ class HostCardEmulationServiceTest {
     }
 
     @Test
-    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED and answers 6A 81 for unsupported commands`() =
+    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED and answers 6D 00 or 6A 81 for unsupported commands`() =
         listOf(
             // An unknown instruction, then SELECT by file ID and VERIFY with P1 01.
-            byteArrayOf(0x00, 0x00, 0x00, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
+            byteArrayOf(0x00, 0x00, 0x00, 0x00) to ResponseApdu.INSTRUCTION_NOT_SUPPORTED,
             byteArrayOf(0x00, 0xA4.toByte(), 0x00, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
             byteArrayOf(0x00, 0x20, 0x01, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
         ).forEach { (command, expected) ->
@@ -139,7 +139,7 @@ class HostCardEmulationServiceTest {
     fun `processCommandApdu blocks the PIN then ends the stream without stale events`() {
         selectConfiguredAid()
 
-        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        repeat(2) { assertResponse(ResponseApdu.wrongPin(2 - it), process(WRONG_PIN_COMMAND)) }
         assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
 
         inOrder(mockEventSink) {
@@ -173,7 +173,7 @@ class HostCardEmulationServiceTest {
 
         repeat(2) { process(WRONG_PIN_COMMAND) }
         process(verifyCommand(VALID_PIN))
-        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        repeat(2) { assertResponse(ResponseApdu.wrongPin(2 - it), process(WRONG_PIN_COMMAND)) }
 
         verify(mockEventSink, times(4)).success(HostCardEmulationStatus.WRONG_PIN.name)
         verify(mockEventSink, never()).endOfStream()
@@ -182,13 +182,13 @@ class HostCardEmulationServiceTest {
     @Test
     fun `new session after lockout receives a full wrong PIN budget`() {
         selectConfiguredAid()
-        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        repeat(2) { assertResponse(ResponseApdu.wrongPin(2 - it), process(WRONG_PIN_COMMAND)) }
         assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
 
         val restartedSink = mock<EventSink>()
         startSession(sink = restartedSink)
         selectConfiguredAid()
-        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        repeat(2) { assertResponse(ResponseApdu.wrongPin(2 - it), process(WRONG_PIN_COMMAND)) }
         assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
 
         inOrder(restartedSink) {
@@ -211,7 +211,7 @@ class HostCardEmulationServiceTest {
         repeat(3) { process(WRONG_PIN_COMMAND) }
 
         selectConfiguredAid()
-        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        repeat(2) { assertResponse(ResponseApdu.wrongPin(2 - it), process(WRONG_PIN_COMMAND)) }
         verify(mockEventSink, never()).endOfStream()
     }
 

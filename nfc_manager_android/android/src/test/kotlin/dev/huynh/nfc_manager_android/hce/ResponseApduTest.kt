@@ -2,6 +2,7 @@ package dev.huynh.nfc_manager_android.hce
 
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertFailsWith
 
 class ResponseApduTest {
     @Test
@@ -15,8 +16,20 @@ class ResponseApduTest {
             ResponseApdu.NULL_COMMAND to byteArrayOf(0x6A, 0x00),
             ResponseApdu.FUNCTION_NOT_SUPPORTED to byteArrayOf(0x6A, 0x81.toByte()),
             ResponseApdu.INVALID_AID to byteArrayOf(0x6A, 0x82.toByte()),
-            ResponseApdu.WRONG_PIN to byteArrayOf(0x63, 0x00),
+            ResponseApdu.INSTRUCTION_NOT_SUPPORTED to byteArrayOf(0x6D, 0x00),
         ).forEach { (response, bytes) -> assertContentEquals(bytes, response.toByteArray()) }
+
+    @Test
+    fun `wrongPin encodes the attempts left as 63 CX`() =
+        listOf(15 to 0xCF, 2 to 0xC2, 1 to 0xC1).forEach { (attemptsLeft, sw2) ->
+            assertContentEquals(byteArrayOf(0x63, sw2.toByte()), ResponseApdu.wrongPin(attemptsLeft).toByteArray())
+        }
+
+    @Test
+    fun `wrongPin rejects attempts outside 1 to 15`() =
+        listOf(0, 16).forEach { attemptsLeft ->
+            assertFailsWith<IllegalArgumentException> { ResponseApdu.wrongPin(attemptsLeft) }
+        }
 
     @Test
     fun `toByteArray returns a new array that callers cannot use to change the status word`() {
