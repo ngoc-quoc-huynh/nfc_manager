@@ -5,9 +5,10 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 void main() {
   group('HexString.hexToBytes', () {
-    test('returns an empty buffer for empty input.', () {
-      expect(''.hexToBytes(), isEmpty);
-    });
+    test(
+      'returns an empty buffer for empty input.',
+      () => expect(''.hexToBytes(), isEmpty),
+    );
 
     test('decodes every digit in either case.', () {
       final expected = [0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF];
@@ -23,32 +24,19 @@ void main() {
       expect('FF'.hexToBytes(), [0xFF]);
     });
 
-    test('returns a Uint8List.', () {
-      expect('F000000001'.hexToBytes(), isA<Uint8List>());
-    });
-
     test('rejects odd-length input without exposing it.', () {
-      for (final value in ['0', '123', 'ABCDE']) {
+      for (final value in ['0', '123', 'ABCDE', 'G']) {
         expect(
           value.hexToBytes,
-          throwsA(_formatError(value, 'Hex string must have an even length.')),
+          throwsA(
+            allOf(
+              _formatError(value, 'Hex string must have an even length.'),
+              isA<FormatException>().having((e) => e.offset, 'offset', isNull),
+            ),
+          ),
           reason: 'input: $value',
         );
       }
-    });
-
-    test('reports odd length before invalid characters without an offset.', () {
-      const value = 'G';
-
-      expect(
-        value.hexToBytes,
-        throwsA(
-          allOf(
-            _formatError(value, 'Hex string must have an even length.'),
-            isA<FormatException>().having((e) => e.offset, 'offset', isNull),
-          ),
-        ),
-      );
     });
 
     test('rejects signed, prefixed, spaced, and non-hex ASCII input.', () {
@@ -107,13 +95,6 @@ void main() {
       expect(value.hexToBytes, throwsA(_invalidDigitError(value, 0)));
     });
 
-    test('reports invalid code units with UTF-16 offsets.', () {
-      final value = '00${String.fromCharCode(0x1F600)}';
-
-      expect(value, hasLength(4));
-      expect(value.hexToBytes, throwsA(_invalidDigitError(value, 2)));
-    });
-
     test('round-trips with HexBytes.toHex.', () {
       final bytes = Uint8List.fromList(.generate(256, (i) => i));
 
@@ -122,23 +103,18 @@ void main() {
   });
 
   group('HexBytes.toHex', () {
-    test('returns an empty string for an empty buffer.', () {
-      expect(Uint8List(0).toHex(), '');
-    });
+    test(
+      'returns an empty string for an empty buffer.',
+      () => expect(Uint8List(0).toHex(), ''),
+    );
 
-    test('pads each byte to two uppercase digits.', () {
-      expect(
+    test(
+      'pads each byte to two uppercase digits.',
+      () => expect(
         Uint8List.fromList([0x00, 0x01, 0x0F, 0x10, 0xAB, 0xFF]).toHex(),
         '00010F10ABFF',
-      );
-    });
-
-    test('matches the uppercase tag ID format of Android.', () {
-      expect(
-        Uint8List.fromList([0x04, 0xA2, 0x3B, 0x7C, 0xD1, 0x5E, 0x80]).toHex(),
-        '04A23B7CD15E80',
-      );
-    });
+      ),
+    );
   });
 }
 

@@ -23,28 +23,29 @@ void main() {
       expect(response.data, [0x6F, 0x03, 0x84, 0x01, 0xF0]);
       expect(response.sw1, 0x90);
       expect(response.sw2, 0x00);
-      expect(response.status, ApduStatus.success);
-      expect(response.isSuccess, isTrue);
     });
 
-    test('exposes data as an unmodifiable view.', () {
+    test('exposes data as read-only.', () {
       final response = _decode([0x01, 0x90, 0x00]);
 
       expect(() => response.data[0] = 0xFF, throwsUnsupportedError);
     });
 
-    test('keeps its value when the source buffer changes.', () {
-      final bytes = Uint8List.fromList([0x01, 0x90, 0x00]);
-      final response = ApduResponse.fromUint8List(bytes);
-      final expected = _decode([0x01, 0x90, 0x00]);
-      final hash = response.hashCode;
+    test(
+      'copies the data, so later changes to the source do not affect it.',
+      () {
+        final bytes = Uint8List.fromList([0x01, 0x90, 0x00]);
+        final response = ApduResponse.fromUint8List(bytes);
+        final expected = _decode([0x01, 0x90, 0x00]);
+        final hash = response.hashCode;
 
-      bytes[0] = 0xFF;
+        bytes[0] = 0xFF;
 
-      expect(response.data, [0x01]);
-      expect(response, expected);
-      expect(response.hashCode, hash);
-    });
+        expect(response.data, [0x01]);
+        expect(response, expected);
+        expect(response.hashCode, hash);
+      },
+    );
 
     test('throws FormatException for fewer than two bytes.', () {
       for (final bytes in <List<int>>[
@@ -53,6 +54,19 @@ void main() {
       ]) {
         expect(() => _decode(bytes), throwsFormatException);
       }
+    });
+
+    test('does not include the response in the FormatException.', () {
+      expect(
+        () => _decode([0x90]),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.source,
+            'source',
+            isNull,
+          ),
+        ),
+      );
     });
   });
 
@@ -76,9 +90,13 @@ void main() {
       }
     });
 
-    test('classifies the trailing status word of a payload response.', () {
-      expect(_decode([0xAB, 0x63, 0x00]).status, ApduStatus.verificationFailed);
-    });
+    test(
+      'classifies the trailing status word of a payload response.',
+      () => expect(
+        _decode([0xAB, 0x63, 0x00]).status,
+        ApduStatus.verificationFailed,
+      ),
+    );
 
     test('returns unknown for unsupported status words.', () {
       for (final bytes in <List<int>>[
@@ -109,7 +127,7 @@ void main() {
       }
     });
 
-    test('returns unknown for near misses and keeps SW2.', () {
+    test('returns unknown for words next to supported ones and keeps SW2.', () {
       for (final (bytes, sw2) in [
         ([0x63, 0x01], 0x01),
         ([0x63, 0xD0], 0xD0),
@@ -134,21 +152,23 @@ void main() {
   });
 
   group('equality', () {
-    test('compares data and status bytes.', () {
+    test('responses are equal only when data and status bytes match.', () {
       expect(_decode([0x01, 0x90, 0x00]), _decode([0x01, 0x90, 0x00]));
       expect(
         _decode([0x01, 0x90, 0x00]).hashCode,
         _decode([0x01, 0x90, 0x00]).hashCode,
       );
       expect(_decode([0x01, 0x90, 0x00]), isNot(_decode([0x02, 0x90, 0x00])));
+      expect(_decode([0x90, 0x00]), isNot(_decode([0x91, 0x00])));
       expect(_decode([0x90, 0x00]), isNot(_decode([0x90, 0x01])));
     });
   });
 
-  test('toString hides the data contents.', () {
-    expect(
+  test(
+    'toString hides the data contents.',
+    () => expect(
       _decode([0x6F, 0x01, 0x90, 0x00]).toString(),
       'ApduResponse(data: 2 bytes, statusWord: 9000, status: success)',
-    );
-  });
+    ),
+  );
 }

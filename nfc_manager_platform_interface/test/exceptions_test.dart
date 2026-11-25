@@ -1,6 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
+typedef _FixedMessageCase = (
+  String name,
+  NfcException Function() create,
+  String toStringText,
+);
+
 void main() {
   group('NfcException', () {
     test(
@@ -18,119 +24,45 @@ void main() {
     );
   });
 
-  group('InvalidApduCommandException', () {
-    test('exposes the exception message.', () {
-      expect(
-        const InvalidApduCommandException().message,
-        'The platform rejected the APDU command.',
+  // Each entry creates a new instance, so equality is not identity.
+  for (final (name, create, text) in <_FixedMessageCase>[
+    (
+      'InvalidApduCommandException',
+      InvalidApduCommandException.new,
+      'InvalidApduCommandException: The platform rejected the APDU command.',
+    ),
+    (
+      'IsoDepNotSupportedException',
+      IsoDepNotSupportedException.new,
+      'IsoDepNotSupportedException: The NFC tag does not support ISO-DEP.',
+    ),
+    (
+      'NfcNotSupportedException',
+      NfcNotSupportedException.new,
+      'NfcNotSupportedException: This device does not support NFC.',
+    ),
+    (
+      'TagConnectionException',
+      TagConnectionException.new,
+      'TagConnectionException: Failed to establish a connection with the NFC '
+          'tag or the tag was lost.',
+    ),
+  ]) {
+    group(name, () {
+      test(
+        'toString shows the type and message.',
+        () => expect(create().toString(), text),
       );
+
+      test('equal instances are equal and have equal hash codes.', () {
+        final exception = create();
+        final equalException = create();
+
+        expect(exception, equalException);
+        expect(exception.hashCode, equalException.hashCode);
+      });
     });
-
-    test(
-      'includes the exception type and message in toString.',
-      () => expect(
-        const InvalidApduCommandException().toString(),
-        'InvalidApduCommandException: The platform rejected the APDU command.',
-      ),
-    );
-
-    test('equal exceptions have equal hash codes.', () {
-      const exception = InvalidApduCommandException();
-      // ignore: prefer_const_constructors, verify separate instances.
-      final equalException = InvalidApduCommandException();
-
-      expect(exception, equalException);
-      expect(exception.hashCode, equalException.hashCode);
-    });
-  });
-
-  group('IsoDepNotSupportedException', () {
-    test('exposes the exception message.', () {
-      expect(
-        const IsoDepNotSupportedException().message,
-        'The NFC tag does not support ISO-DEP.',
-      );
-    });
-
-    test(
-      'includes the exception type and message in toString.',
-      () => expect(
-        const IsoDepNotSupportedException().toString(),
-        'IsoDepNotSupportedException: The NFC tag does not support ISO-DEP.',
-      ),
-    );
-
-    test('equal exceptions have equal hash codes.', () {
-      const exception = IsoDepNotSupportedException();
-      // ignore: prefer_const_constructors, verify separate instances.
-      final equalException = IsoDepNotSupportedException();
-
-      expect(exception, equalException);
-      expect(exception.hashCode, equalException.hashCode);
-    });
-  });
-
-  group('NfcNotSupportedException', () {
-    test('exposes the exception message.', () {
-      expect(
-        const NfcNotSupportedException().message,
-        'This device does not support NFC.',
-      );
-    });
-
-    test('hash code includes the exception type and message.', () {
-      const exception = NfcNotSupportedException();
-
-      expect(
-        exception.hashCode,
-        Object.hash(exception.runtimeType, exception.message),
-      );
-    });
-
-    test(
-      'includes the exception type and message in toString.',
-      () => expect(
-        const NfcNotSupportedException().toString(),
-        'NfcNotSupportedException: This device does not support NFC.',
-      ),
-    );
-
-    test('equal exceptions have equal hash codes.', () {
-      const exception = NfcNotSupportedException();
-      // ignore: prefer_const_constructors, verify separate instances.
-      final equalException = NfcNotSupportedException();
-
-      expect(exception, equalException);
-      expect(exception.hashCode, equalException.hashCode);
-    });
-  });
-
-  group('TagConnectionException', () {
-    test('exposes the exception message.', () {
-      expect(
-        const TagConnectionException().message,
-        'Failed to establish a connection with the NFC tag or the tag was '
-        'lost.',
-      );
-    });
-    test(
-      'includes the exception type and message in toString.',
-      () => expect(
-        const TagConnectionException().toString(),
-        'TagConnectionException: Failed to establish a connection with the NFC'
-        ' tag or the tag was lost.',
-      ),
-    );
-
-    test('equal exceptions have equal hash codes.', () {
-      const exception = TagConnectionException();
-      // ignore: prefer_const_constructors, verify separate instances.
-      final equalException = TagConnectionException();
-
-      expect(exception, equalException);
-      expect(exception.hashCode, equalException.hashCode);
-    });
-  });
+  }
 
   group('NfcUnknownException', () {
     test(
@@ -180,7 +112,7 @@ void main() {
     });
 
     test(
-      'includes the exception type, code and message in toString.',
+      'toString shows the type, code and message.',
       () => expect(
         const NfcUnknownException(code: 'CODE', message: 'message').toString(),
         'NfcUnknownException(CODE): message',
@@ -188,7 +120,7 @@ void main() {
     );
 
     test(
-      'includes an explicitly empty message in toString.',
+      'toString keeps an explicitly empty message.',
       () => expect(
         const NfcUnknownException(code: 'CODE', message: '').toString(),
         'NfcUnknownException(CODE): ',
@@ -196,7 +128,7 @@ void main() {
     );
 
     test(
-      'omits a missing message from toString.',
+      'toString omits a missing message.',
       () => expect(
         const NfcUnknownException(code: 'CODE').toString(),
         'NfcUnknownException(CODE)',

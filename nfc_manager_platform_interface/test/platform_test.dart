@@ -27,15 +27,18 @@ void main() {
     );
   });
 
-  test('a subclass can register and supply platform behavior.', () async {
-    NfcManagerPlatform.instance = TestNfcManagerPlatform();
+  test(
+    'a registered subclass overrides only the methods it implements.',
+    () async {
+      NfcManagerPlatform.instance = TestNfcManagerPlatform();
 
-    expect(await NfcManagerPlatform.instance.isNfcSupported(), isTrue);
-    expect(
-      NfcManagerPlatform.instance.isHceSupported,
-      throwsUnimplementedError,
-    );
-  });
+      expect(await NfcManagerPlatform.instance.isNfcSupported(), isTrue);
+      expect(
+        NfcManagerPlatform.instance.isHceSupported,
+        throwsUnimplementedError,
+      );
+    },
+  );
 
   test('rejects implementations without the platform token.', () {
     expect(
@@ -45,7 +48,7 @@ void main() {
     expect(NfcManagerPlatform.instance, same(defaultPlatform));
   });
 
-  test('accepts the standard mock platform mixin in tests.', () {
+  test('accepts a mock that uses MockPlatformInterfaceMixin.', () {
     final mock = MockNfcManagerPlatform();
     NfcManagerPlatform.instance = mock;
 

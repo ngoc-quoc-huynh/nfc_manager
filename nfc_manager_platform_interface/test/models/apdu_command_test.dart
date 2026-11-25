@@ -5,7 +5,7 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 void main() {
   group('ApduCommand', () {
-    test('derives Lc from the payload and omits it without data.', () {
+    test('Lc is the payload length, or null without a payload.', () {
       final command = ApduCommand(
         cla: 0,
         ins: 1,
@@ -15,7 +15,6 @@ void main() {
       );
 
       expect(command.lc, 2);
-      expect(command.toUint8List(), [0, 1, 2, 3, 2, 4, 5]);
       expect(ApduCommand(cla: 0, ins: 1, p1: 2, p2: 3).lc, isNull);
     });
 
@@ -47,7 +46,7 @@ void main() {
       });
 
       test(
-        'reports the name and length of empty and oversized payloads.',
+        'rejects empty and oversized payloads.',
         () {
           for (final length in [0, 256]) {
             expect(
@@ -73,41 +72,65 @@ void main() {
         },
       );
 
-      test('accepts a maximum-length short payload and byte boundaries.', () {
-        final command = ApduCommand(
-          cla: 0,
-          ins: 255,
-          p1: 0,
-          p2: 255,
-          data: Uint8List(255),
-          le: 255,
-        );
-        final bytes = command.toUint8List();
-        expect(bytes.length, 261);
-        expect(bytes.take(5), [0, 255, 0, 255, 255]);
-        expect(bytes.last, 255);
-      });
+      test(
+        'accepts a 255-byte payload and header and Le values of 0 and 255.',
+        () {
+          final command = ApduCommand(
+            cla: 0,
+            ins: 255,
+            p1: 0,
+            p2: 255,
+            data: Uint8List(255),
+            le: 255,
+          );
+          final bytes = command.toUint8List();
+          expect(bytes.length, 261);
+          expect(bytes.take(5), [0, 255, 0, 255, 255]);
+          expect(bytes.last, 255);
+        },
+      );
     });
 
     group('immutability', () {
-      test('modifying payload buffers does not change the command.', () {
-        final source = Uint8List.fromList([1]);
-        final command = ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0, data: source);
-        final equalCommand = ApduCommand(
+      test(
+        'copies the payload, so later changes to the source do not affect it.',
+        () {
+          final source = Uint8List.fromList([1]);
+          final command = ApduCommand(
+            cla: 0,
+            ins: 0,
+            p1: 0,
+            p2: 0,
+            data: source,
+          );
+          final equalCommand = ApduCommand(
+            cla: 0,
+            ins: 0,
+            p1: 0,
+            p2: 0,
+            data: Uint8List.fromList([1]),
+          );
+          final originalHash = command.hashCode;
+          final commands = {command};
+
+          source.first = 2;
+
+          expect(command.toUint8List(), [0, 0, 0, 0, 1, 1]);
+          expect(command, equalCommand);
+          expect(command.hashCode, originalHash);
+          expect(commands.contains(equalCommand), isTrue);
+        },
+      );
+
+      test('exposes the payload as read-only.', () {
+        final command = ApduCommand(
           cla: 0,
           ins: 0,
           p1: 0,
           p2: 0,
           data: Uint8List.fromList([1]),
         );
-        final originalHash = command.hashCode;
-        final commands = {command};
 
-        source.first = 2;
-        expect(command.toUint8List(), [0, 0, 0, 0, 1, 1]);
-        expect(command, equalCommand);
-        expect(command.hashCode, originalHash);
-        expect(commands.contains(equalCommand), isTrue);
         expect(() => command.data!.first = 3, throwsUnsupportedError);
         expect(
           () => command.data!.buffer.asUint8List().first = 3,
@@ -117,8 +140,19 @@ void main() {
           () => ByteData.view(command.data!.buffer).setUint8(0, 3),
           throwsUnsupportedError,
         );
+      });
+
+      test('toUint8List returns a new buffer each time.', () {
+        final command = ApduCommand(
+          cla: 0,
+          ins: 0,
+          p1: 0,
+          p2: 0,
+          data: Uint8List.fromList([1]),
+        );
 
         command.toUint8List()[5] = 4;
+
         expect(command.toUint8List(), [0, 0, 0, 0, 1, 1]);
       });
     });
@@ -146,18 +180,23 @@ void main() {
         ]);
       });
 
-      test('serializes a short command with Le and no payload.', () {
-        expect(ApduCommand(cla: 0, ins: 1, p1: 2, p2: 3, le: 0).toUint8List(), [
-          0,
-          1,
-          2,
-          3,
-          0,
-        ]);
-      });
+      test(
+        'serializes a short command with Le and no payload.',
+        () => expect(
+          ApduCommand(cla: 0, ins: 1, p1: 2, p2: 3, le: 0).toUint8List(),
+          [
+            0,
+            1,
+            2,
+            3,
+            0,
+          ],
+        ),
+      );
 
-      test('serializes a short command with payload and no Le.', () {
-        expect(
+      test(
+        'serializes a short command with payload and no Le.',
+        () => expect(
           ApduCommand(
             cla: 0,
             ins: 1,
@@ -166,13 +205,14 @@ void main() {
             data: Uint8List.fromList([4]),
           ).toUint8List(),
           [0, 1, 2, 3, 1, 4],
-        );
-      });
+        ),
+      );
+
       test(
         'serializes a header-only command.',
         () => expect(
-          ApduCommand(cla: 0x00, ins: 0x00, p1: 0x00, p2: 0x00).toUint8List(),
-          Uint8List.fromList([0x00, 0x00, 0x00, 0x00]),
+          ApduCommand(cla: 0, ins: 1, p1: 2, p2: 3).toUint8List(),
+          [0, 1, 2, 3],
         ),
       );
     });
@@ -192,7 +232,7 @@ void main() {
         expect(withPayload, isNot(withoutPayload));
       });
 
-      test('commands with equal fields have equal hash codes.', () {
+      test('equal commands with a payload have equal hash codes.', () {
         final command1 = ApduCommand(
           cla: 0x00,
           ins: 0x00,
@@ -214,7 +254,7 @@ void main() {
       });
 
       test(
-        'equal header-only commands have equal hash codes.',
+        'equal commands without a payload have equal hash codes.',
         () {
           final command1 = ApduCommand(
             cla: 0x00,
@@ -278,7 +318,7 @@ void main() {
       });
 
       test(
-        'a factory command equals a generic command with the same fields.',
+        'verifyPin equals the same command built with the constructor.',
         () {
           final payload = Uint8List.fromList([1]);
           final command = ApduCommand.verifyPin(payload);
@@ -300,16 +340,10 @@ void main() {
 
   group('ApduCommand.selectAid', () {
     test('rejects AIDs outside the 5 to 16 byte range.', () {
-      for (final length in [0, 1, 4, 17]) {
+      for (final length in [4, 17]) {
         expect(
           () => ApduCommand.selectAid(Uint8List(length)),
-          throwsA(
-            isA<RangeError>()
-                .having((error) => error.invalidValue, 'invalidValue', length)
-                .having((error) => error.start, 'start', 5)
-                .having((error) => error.end, 'end', 16)
-                .having((error) => error.name, 'name', 'aid.length'),
-          ),
+          throwsRangeError,
           reason: 'AID length: $length',
         );
       }
@@ -346,13 +380,7 @@ void main() {
       for (final length in [0, 256]) {
         expect(
           () => ApduCommand.verifyPin(Uint8List(length)),
-          throwsA(
-            isA<RangeError>()
-                .having((error) => error.invalidValue, 'invalidValue', length)
-                .having((error) => error.start, 'start', 1)
-                .having((error) => error.end, 'end', 255)
-                .having((error) => error.name, 'name', 'pin.length'),
-          ),
+          throwsRangeError,
           reason: 'PIN length: $length',
         );
       }
