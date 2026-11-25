@@ -1,29 +1,23 @@
 package dev.huynh.nfc_manager_android.hce
 
 import dev.huynh.nfc_manager_android.InvalidHceArgumentsException
-import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
-import dev.huynh.nfc_manager_android.utils.error
+import dev.huynh.nfc_manager_android.endWithError
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 
 /**
- * Starts and stops the HCE session for the plugin's HCE event channel.
+ * Starts and stops HCE sessions for the plugin's HCE event channel.
  *
- * Listening starts a session that this handler owns; cancelling clears it. The
- * [HostCardEmulationService] reads the session to answer APDUs. Flutter invokes the stream
- * callbacks on the platform thread, where session changes and sink callbacks must stay.
+ * Listening with an `aid` (5–16 bytes) and a `pin` (1–255 bytes) starts a session that this
+ * handler owns and replaces any active session. Invalid arguments report
+ * [InvalidHceArgumentsException], end the stream, and leave any active session in place.
+ * Cancelling clears this handler's session. Flutter calls it on the main thread, where the
+ * session changes.
  */
 internal class HostCardEmulationStreamHandler : StreamHandler {
+    // Flutter can still deliver a listen that was queued before the engine detached.
     private var closed = false
 
-    /**
-     * Starts an HCE session from the `aid` and `pin` byte arrays in [arguments].
-     *
-     * An AID must be 5–16 bytes and a PIN must be 1–255 bytes. Invalid arguments report
-     * [InvalidHceArgumentsException] and end the stream without creating a session.
-     * A session owned by another handler stays in place. Flutter invokes this callback on the
-     * platform thread.
-     */
     override fun onListen(
         arguments: Any?,
         events: EventSink,
@@ -32,29 +26,27 @@ internal class HostCardEmulationStreamHandler : StreamHandler {
         val map = arguments as? Map<*, *>
         val aid = map?.get("aid") as? ByteArray
         val pin = map?.get("pin") as? ByteArray
-        if (aid == null || aid.size !in 5..16 || pin == null || pin.size !in 1..255) {
-            events.error(InvalidHceArgumentsException())
-            events.endOfStream()
+        if (aid == null || aid.size !in AID_LENGTH || pin == null || pin.size !in PIN_LENGTH) {
+            events.endWithError(InvalidHceArgumentsException())
             return
         }
-        val session =
-            HostCardEmulationConfig.Session(
-                owner = this,
-                aid = aid,
-                pin = pin,
-                sink = events,
-            )
-        HostCardEmulationConfig.start(session)
+        val session = HostCardEmulationSession(owner = this, aid = aid, pin = pin, sink = events)
+        HostCardEmulationSessionHolder.start(session)
         session.emit(HostCardEmulationStatus.READY)
     }
 
-    /** Clears the HCE session if this handler started it, on Flutter's platform thread. */
     override fun onCancel(arguments: Any?) = clearSession()
 
+    /** Clears this handler's session and rejects later listens, when the engine detaches. */
     fun close() {
         closed = true
         clearSession()
     }
 
-    private fun clearSession() = HostCardEmulationConfig.clear(owner = this)
+    private fun clearSession() = HostCardEmulationSessionHolder.clear(owner = this)
+
+    private companion object {
+        val AID_LENGTH = 5..16
+        val PIN_LENGTH = 1..255
+    }
 }

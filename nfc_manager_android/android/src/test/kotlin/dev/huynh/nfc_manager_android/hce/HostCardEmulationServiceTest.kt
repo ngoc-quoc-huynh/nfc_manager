@@ -1,16 +1,13 @@
 package dev.huynh.nfc_manager_android.hce
 
-import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
-import dev.huynh.nfc_manager_android.models.ResponseApdu
+import dev.huynh.nfc_manager_android.PinBlockedException
+import dev.huynh.nfc_manager_android.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
-import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.times
@@ -20,20 +17,6 @@ import org.mockito.kotlin.verifyNoMoreInteractions
 import kotlin.test.assertContentEquals
 
 class HostCardEmulationServiceTest {
-    private companion object {
-        val VALID_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x04)
-        val VALID_PIN = byteArrayOf(0x01, 0x02, 0x03, 0x04)
-        val OTHER_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x05)
-        val SELECT_HEADER = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00)
-        val VERIFY_HEADER = byteArrayOf(0x00, 0x20, 0x00, 0x00)
-
-        fun shortDataApdu(
-            header: ByteArray,
-            data: ByteArray,
-            le: Byte? = null,
-        ): ByteArray = header + data.size.toByte() + data + (le?.let { byteArrayOf(it) } ?: byteArrayOf())
-    }
-
     private val mockEventSink = mock<EventSink>()
     private val owner = mock<StreamHandler>()
     private val service = HostCardEmulationService()
@@ -42,383 +25,202 @@ class HostCardEmulationServiceTest {
     fun setup() = startSession()
 
     @AfterEach
-    fun tearDown() = HostCardEmulationConfig.clear(owner)
+    fun tearDown() = HostCardEmulationSessionHolder.clear(owner)
 
     @Test
-    fun `processCommandApdu emits HCE_NOT_READY when it is not configured`() {
-        HostCardEmulationConfig.clear(owner)
-        val response =
-            service.processCommandApdu(
-                commandByteArray = byteArrayOf(),
-                extras = null,
-            )
+    fun `processCommandApdu answers 69 82 without a session`() {
+        HostCardEmulationSessionHolder.clear(owner)
 
-        assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), response)
+        assertResponse(ResponseApdu.HCE_NOT_READY, process(byteArrayOf()))
+        verifyNoInteractions(mockEventSink)
     }
 
     @Test
-    fun `processCommandApdu emits NULL_COMMAND when command is null`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray = null,
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.NULL_COMMAND.toByteArray(), response)
+    fun `processCommandApdu answers 6A 00 for a null command`() {
+        assertResponse(ResponseApdu.NULL_COMMAND, process(null))
+        verifyNoInteractions(mockEventSink)
     }
 
     @Test
-    fun `processCommandApdu emits AID_SELECTED when command is SELECT command with correct AID`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray = shortDataApdu(SELECT_HEADER, VALID_AID),
-                extras = null,
-            )
+    fun `SELECT answers 90 00 for the configured AID and 6A 82 for another AID`() =
+        listOf(
+            Triple(selectCommand(VALID_AID), ResponseApdu.OK, HostCardEmulationStatus.AID_SELECTED),
+            Triple(selectCommand(VALID_AID, le = 0x00), ResponseApdu.OK, HostCardEmulationStatus.AID_SELECTED),
+            Triple(selectCommand(OTHER_AID), ResponseApdu.INVALID_AID, HostCardEmulationStatus.INVALID_AID),
+        ).forEach { (command, response, status) ->
+            val sink = mock<EventSink>()
+            startSession(sink = sink)
 
-        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits INVALID_AID when command is SELECT command with wrong AID`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray = shortDataApdu(SELECT_HEADER, OTHER_AID),
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.INVALID_AID.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_AID.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits PIN_VERIFIED when command is VERIFY command with correct PIN`() {
-        selectConfiguredAid()
-        val response =
-            service.processCommandApdu(
-                commandByteArray = shortDataApdu(VERIFY_HEADER, VALID_PIN),
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits WRONG_PIN when command is VERIFY command with wrong PIN`() {
-        selectConfiguredAid()
-        val response =
-            service.processCommandApdu(
-                commandByteArray = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09)),
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits WRONG_PIN when VERIFY PIN differs in the last byte`() {
-        startSession(pin = byteArrayOf(0x01, 0x02, 0x03, 0x04))
-        selectConfiguredAid()
-        val response =
-            service.processCommandApdu(
-                commandByteArray = byteArrayOf(0x00, 0x20, 0x00, 0x00, 0x04, 0x01, 0x02, 0x03, 0x05),
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits WRONG_PIN when VERIFY PIN is a prefix of the PIN`() {
-        startSession(pin = byteArrayOf(0x01, 0x02, 0x03, 0x04))
-        selectConfiguredAid()
-        val response =
-            service.processCommandApdu(
-                commandByteArray = byteArrayOf(0x00, 0x20, 0x00, 0x00, 0x02, 0x01, 0x02),
-                extras = null,
-            )
-
-        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
-    }
-
-    @Test
-    fun `processCommandApdu rejects SELECT and VERIFY commands without data`() {
-        val headers =
-            listOf(
-                byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00),
-                byteArrayOf(0x00, 0x20, 0x00, 0x00),
-            )
-        val suffixes =
-            listOf(
-                byteArrayOf(),
-                byteArrayOf(0x00),
-                byteArrayOf(0x00, 0x00),
-            )
-
-        for (header in headers) {
-            for (suffix in suffixes) {
-                val command = header + suffix
-                val response = service.processCommandApdu(command, null)
-
-                assertContentEquals(
-                    byteArrayOf(0x67, 0x00),
-                    response,
-                    "Command: ${command.contentToString()}",
-                )
-            }
+            assertResponse(response, process(command), command.contentToString())
+            verify(sink).success(status.name)
         }
 
-        verify(mockEventSink, times(headers.size * suffixes.size))
-            .success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
-        verifyNoMoreInteractions(mockEventSink)
-    }
+    @Test
+    fun `VERIFY with the configured PIN answers 90 00 and emits PIN_VERIFIED`() =
+        listOf(
+            VALID_PIN to verifyCommand(VALID_PIN),
+            LONG_PIN to verifyCommand(LONG_PIN),
+            LONG_PIN to verifyCommand(LONG_PIN, le = 0x00),
+        ).forEach { (pin, command) ->
+            val sink = mock<EventSink>()
+            startSession(pin = pin, sink = sink)
+            selectConfiguredAid()
+
+            assertResponse(ResponseApdu.OK, process(command), command.contentToString())
+            verify(sink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
+        }
 
     @Test
-    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED when the instruction is neither SELECT nor VERIFY`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0x00,
-                        0x00,
-                        0x00,
-                    ),
-                extras = null,
-            )
+    fun `VERIFY with another PIN answers 63 00 and emits WRONG_PIN`() =
+        listOf(
+            // Every byte differs, only the last byte differs, a prefix, and a long PIN followed by Le.
+            VALID_PIN to WRONG_PIN_COMMAND,
+            VALID_PIN to verifyCommand(byteArrayOf(0x01, 0x02, 0x03, 0x05)),
+            VALID_PIN to verifyCommand(byteArrayOf(0x01, 0x02)),
+            LONG_PIN to verifyCommand(LONG_PIN.copyOf().also { it[it.lastIndex]++ }, le = 0x00),
+        ).forEach { (pin, command) ->
+            val sink = mock<EventSink>()
+            startSession(pin = pin, sink = sink)
+            selectConfiguredAid()
 
-        assertContentEquals(ResponseApdu.FUNCTION_NOT_SUPPORTED.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED.name)
-    }
-
-    @Test
-    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH for a 6-byte command with Lc 00`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0x00, 0x00),
-                extras = null,
-            )
-
-        assertContentEquals(byteArrayOf(0x67, 0x00), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
-        verifyNoMoreInteractions(mockEventSink)
-    }
+            assertResponse(ResponseApdu.WRONG_PIN, process(command), command.contentToString())
+            verify(sink).success(HostCardEmulationStatus.WRONG_PIN.name)
+        }
 
     @Test
-    fun `processCommandApdu emits AID_SELECTED when SELECT carries a trailing Le`() {
-        val response =
-            service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID, le = 0x00), null)
-
-        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
-    }
-
-    @Test
-    fun `processCommandApdu rejects SELECT with two trailing bytes after declared data`() {
-        val command = shortDataApdu(SELECT_HEADER, VALID_AID) + byteArrayOf(0x00, 0x00)
-
-        val response = service.processCommandApdu(command, null)
-
-        assertContentEquals(byteArrayOf(0x67, 0x00), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
-        verifyNoMoreInteractions(mockEventSink)
-    }
-
-    @Test
-    fun `processCommandApdu emits PIN_VERIFIED for a 255-byte PIN`() {
-        val pin = ByteArray(255) { it.toByte() }
-        startSession(pin = pin)
-        selectConfiguredAid()
-
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin), null)
-
-        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits PIN_VERIFIED for a 255-byte PIN followed by Le`() {
-        val pin = ByteArray(255) { it.toByte() }
-        startSession(pin = pin)
-        selectConfiguredAid()
-
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, pin, le = 0x00), null)
-
-        assertContentEquals(ResponseApdu.OK.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.PIN_VERIFIED.name)
-    }
-
-    @Test
-    fun `processCommandApdu emits WRONG_PIN for a 255-byte PIN differing in the last byte`() {
-        val pin = ByteArray(255) { it.toByte() }
-        startSession(pin = pin)
-        selectConfiguredAid()
-        val attempt = pin.copyOf().also { it[it.lastIndex] = (it.last() + 1).toByte() }
-
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, attempt, le = 0x00), null)
-
-        assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.WRONG_PIN.name)
-    }
-
-    @Test
-    fun `processCommandApdu rejects extended-length SELECT and VERIFY commands`() {
-        // Extended-length APDUs (Lc = 00 followed by a two-byte length) are not supported.
+    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH`() {
         val commands =
             listOf(
+                // SELECT and VERIFY without data: no suffix, only Le, or Lc 00.
+                SELECT_HEADER,
+                SELECT_HEADER + byteArrayOf(0x00),
+                SELECT_HEADER + byteArrayOf(0x00, 0x00),
+                VERIFY_HEADER,
+                VERIFY_HEADER + byteArrayOf(0x00),
+                VERIFY_HEADER + byteArrayOf(0x00, 0x00),
+                // Lc says 5 data bytes, but only 3 follow.
+                SELECT_HEADER + byteArrayOf(0x05) + VALID_AID.copyOf(3),
+                // Two bytes follow the data, one more than Le allows.
+                selectCommand(VALID_AID) + byteArrayOf(0x00, 0x00),
+                // An extended-length encoding: Lc 00, then a two-byte length.
                 SELECT_HEADER + byteArrayOf(0x00, 0x00, VALID_AID.size.toByte()) + VALID_AID,
-                VERIFY_HEADER + byteArrayOf(0x00, 0x00, VALID_PIN.size.toByte()) + VALID_PIN,
-                VERIFY_HEADER + byteArrayOf(0x00, 0x01, 0x00) + ByteArray(256),
             )
 
-        for (command in commands) {
-            val response = service.processCommandApdu(command, null)
+        commands.forEach { assertResponse(ResponseApdu.WRONG_LENGTH, process(it), it.contentToString()) }
 
-            assertContentEquals(byteArrayOf(0x67, 0x00), response, "Command: ${command.contentToString()}")
-        }
         verify(mockEventSink, times(commands.size)).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
         verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test
-    fun `processCommandApdu rejects a command whose data is shorter than Lc`() {
-        val command = SELECT_HEADER + byteArrayOf(VALID_AID.size.toByte()) + VALID_AID.copyOf(VALID_AID.size - 2)
-
-        val response = service.processCommandApdu(command, null)
-
-        assertContentEquals(byteArrayOf(0x67, 0x00), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
-        verifyNoMoreInteractions(mockEventSink)
-    }
-
-    @Test
     fun `processCommandApdu answers 67 00 and emits INVALID_COMMAND for commands shorter than 4 bytes`() {
-        for (size in 0..3) {
-            val response =
-                service.processCommandApdu(
-                    commandByteArray = ByteArray(size),
-                    extras = null,
-                )
+        (0..3).forEach { size -> assertResponse(ResponseApdu.WRONG_LENGTH, process(ByteArray(size)), "$size bytes") }
 
-            assertContentEquals(byteArrayOf(0x67, 0x00), response, "command of $size bytes")
-        }
         verify(mockEventSink, times(4)).success(HostCardEmulationStatus.INVALID_COMMAND.name)
         verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test
-    fun `processCommandApdu answers 67 00 and emits INVALID_LC_LENGTH when Lc does not match the data length`() {
-        val response =
-            service.processCommandApdu(
-                commandByteArray =
-                    byteArrayOf(
-                        0x00,
-                        0x00,
-                        0x00,
-                        0x00,
-                        0x02,
-                        0x00,
-                    ),
-                extras = null,
-            )
+    fun `processCommandApdu emits FUNCTION_NOT_SUPPORTED and answers 6A 81 for unsupported commands`() =
+        listOf(
+            // An unknown instruction, then SELECT by file ID and VERIFY with P1 01.
+            byteArrayOf(0x00, 0x00, 0x00, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
+            byteArrayOf(0x00, 0xA4.toByte(), 0x00, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
+            byteArrayOf(0x00, 0x20, 0x01, 0x00) to ResponseApdu.FUNCTION_NOT_SUPPORTED,
+        ).forEach { (command, expected) ->
+            val sink = mock<EventSink>()
+            startSession(sink = sink)
 
-        assertContentEquals(byteArrayOf(0x67, 0x00), response)
-        verify(mockEventSink).success(HostCardEmulationStatus.INVALID_LC_LENGTH.name)
-    }
+            assertResponse(expected, process(command), command.contentToString())
+            verify(sink).success(HostCardEmulationStatus.FUNCTION_NOT_SUPPORTED.name)
+        }
 
     @Test
     fun `processCommandApdu blocks the PIN then ends the stream without stale events`() {
-        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
         selectConfiguredAid()
 
-        repeat(2) {
-            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
-        }
-        val blocked = service.processCommandApdu(wrongPin, null)
+        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
 
-        assertContentEquals(byteArrayOf(0x69, 0x83.toByte()), blocked)
         inOrder(mockEventSink) {
             verify(mockEventSink).success(HostCardEmulationStatus.AID_SELECTED.name)
             verify(mockEventSink, times(2)).success(HostCardEmulationStatus.WRONG_PIN.name)
-            verify(mockEventSink).error(
-                "PIN_BLOCKED",
-                "Card emulation ended after too many wrong PINs.",
-                null,
-            )
+            verify(mockEventSink).error(PinBlockedException())
             verify(mockEventSink).endOfStream()
         }
         service.onDeactivated(0)
-        assertContentEquals(
-            ResponseApdu.HCE_NOT_READY.toByteArray(),
-            service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null),
-        )
+        assertResponse(ResponseApdu.HCE_NOT_READY, process(verifyCommand(VALID_PIN)))
         verifyNoMoreInteractions(mockEventSink)
     }
 
     @Test
     fun `processCommandApdu keeps the wrong PIN count across deactivation and reselection`() {
-        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
-
         selectConfiguredAid()
-        repeat(2) { service.processCommandApdu(wrongPin, null) }
+        repeat(2) { process(WRONG_PIN_COMMAND) }
         service.onDeactivated(0)
         selectConfiguredAid()
-        val blocked = service.processCommandApdu(wrongPin, null)
 
-        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), blocked)
+        assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
         verify(mockEventSink).success(HostCardEmulationStatus.TAG_DISCONNECTED.name)
         verify(mockEventSink, times(2)).success(HostCardEmulationStatus.AID_SELECTED.name)
-        verify(mockEventSink).error(eq("PIN_BLOCKED"), any(), isNull())
+        verify(mockEventSink).error(PinBlockedException())
         verify(mockEventSink).endOfStream()
     }
 
     @Test
     fun `processCommandApdu resets the wrong PIN count after a correct PIN`() {
-        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
         selectConfiguredAid()
 
-        repeat(2) { service.processCommandApdu(wrongPin, null) }
-        service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
-        repeat(2) {
-            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
-        }
+        repeat(2) { process(WRONG_PIN_COMMAND) }
+        process(verifyCommand(VALID_PIN))
+        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
 
         verify(mockEventSink, times(4)).success(HostCardEmulationStatus.WRONG_PIN.name)
         verify(mockEventSink, never()).endOfStream()
     }
 
     @Test
-    fun `VERIFY before SELECT answers 69 85 without checking the PIN`() {
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
+    fun `new session after lockout receives a full wrong PIN budget`() {
+        selectConfiguredAid()
+        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
 
-        assertContentEquals(byteArrayOf(0x69, 0x85.toByte()), response)
+        val restartedSink = mock<EventSink>()
+        startSession(sink = restartedSink)
+        selectConfiguredAid()
+        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
+        assertResponse(ResponseApdu.PIN_BLOCKED, process(WRONG_PIN_COMMAND))
+
+        inOrder(restartedSink) {
+            verify(restartedSink).success(HostCardEmulationStatus.AID_SELECTED.name)
+            verify(restartedSink, times(2)).success(HostCardEmulationStatus.WRONG_PIN.name)
+            verify(restartedSink).error(PinBlockedException())
+            verify(restartedSink).endOfStream()
+        }
+        verifyNoMoreInteractions(restartedSink)
+    }
+
+    @Test
+    fun `VERIFY before SELECT answers 69 85 without checking the PIN`() {
+        assertResponse(ResponseApdu.AID_NOT_SELECTED, process(verifyCommand(VALID_PIN)))
         verifyNoInteractions(mockEventSink)
     }
 
     @Test
     fun `VERIFY before SELECT does not count as a wrong PIN`() {
-        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
-        repeat(3) { service.processCommandApdu(wrongPin, null) }
+        repeat(3) { process(WRONG_PIN_COMMAND) }
 
         selectConfiguredAid()
-        repeat(2) {
-            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
-        }
+        repeat(2) { assertResponse(ResponseApdu.WRONG_PIN, process(WRONG_PIN_COMMAND)) }
         verify(mockEventSink, never()).endOfStream()
     }
 
     @Test
     fun `VERIFY after a SELECT for another AID answers 69 85`() {
         selectConfiguredAid()
-        service.processCommandApdu(shortDataApdu(SELECT_HEADER, OTHER_AID), null)
+        process(selectCommand(OTHER_AID))
 
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
-
-        assertContentEquals(byteArrayOf(0x69, 0x85.toByte()), response)
+        assertResponse(ResponseApdu.AID_NOT_SELECTED, process(verifyCommand(VALID_PIN)))
         verify(mockEventSink, never()).success(HostCardEmulationStatus.PIN_VERIFIED.name)
     }
 
@@ -427,12 +229,10 @@ class HostCardEmulationServiceTest {
         selectConfiguredAid()
         service.onDeactivated(0)
 
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
-        assertContentEquals(byteArrayOf(0x69, 0x85.toByte()), response)
+        assertResponse(ResponseApdu.AID_NOT_SELECTED, process(verifyCommand(VALID_PIN)))
 
         selectConfiguredAid()
-        val reselected = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
-        assertContentEquals(ResponseApdu.OK.toByteArray(), reselected)
+        assertResponse(ResponseApdu.OK, process(verifyCommand(VALID_PIN)))
     }
 
     @Test
@@ -440,14 +240,12 @@ class HostCardEmulationServiceTest {
         selectConfiguredAid()
         startSession()
 
-        val response = service.processCommandApdu(shortDataApdu(VERIFY_HEADER, VALID_PIN), null)
-
-        assertContentEquals(byteArrayOf(0x69, 0x85.toByte()), response)
+        assertResponse(ResponseApdu.AID_NOT_SELECTED, process(verifyCommand(VALID_PIN)))
     }
 
     @Test
     fun `onDeactivated emits TAG_DISCONNECTED once for an active session that handled an APDU`() {
-        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+        process(selectCommand(VALID_AID))
 
         service.onDeactivated(0)
         service.onDeactivated(0)
@@ -458,24 +256,8 @@ class HostCardEmulationServiceTest {
     }
 
     @Test
-    fun `onDeactivated emits nothing when the active session has not handled an APDU`() {
-        service.onDeactivated(0)
-
-        verifyNoInteractions(mockEventSink)
-    }
-
-    @Test
-    fun `onDeactivated emits nothing after only a null command`() {
-        service.processCommandApdu(null, null)
-
-        service.onDeactivated(0)
-
-        verifyNoInteractions(mockEventSink)
-    }
-
-    @Test
     fun `onDeactivated emits TAG_DISCONNECTED after a malformed APDU`() {
-        service.processCommandApdu(byteArrayOf(), null)
+        process(byteArrayOf())
 
         service.onDeactivated(0)
 
@@ -485,8 +267,25 @@ class HostCardEmulationServiceTest {
     }
 
     @Test
+    fun `onDeactivated emits nothing without an active session that handled an APDU`() =
+        listOf<() -> Unit>(
+            // No APDU, only a null command, and no session.
+            {},
+            { process(null) },
+            { HostCardEmulationSessionHolder.clear(owner) },
+        ).forEach { arrange ->
+            val sink = mock<EventSink>()
+            startSession(sink = sink)
+            arrange()
+
+            service.onDeactivated(0)
+
+            verifyNoInteractions(sink)
+        }
+
+    @Test
     fun `onDeactivated does not emit TAG_DISCONNECTED when the session is replaced after an APDU`() {
-        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
+        process(selectCommand(VALID_AID))
         startSession(aid = OTHER_AID)
 
         service.onDeactivated(0)
@@ -497,8 +296,8 @@ class HostCardEmulationServiceTest {
 
     @Test
     fun `onDeactivated does not emit TAG_DISCONNECTED after the session is cancelled`() {
-        service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null)
-        HostCardEmulationConfig.clear(owner)
+        process(selectCommand(VALID_AID))
+        HostCardEmulationSessionHolder.clear(owner)
 
         service.onDeactivated(0)
 
@@ -506,61 +305,45 @@ class HostCardEmulationServiceTest {
         verifyNoMoreInteractions(mockEventSink)
     }
 
-    @Test
-    fun `onDeactivated emits nothing when it is not configured`() {
-        HostCardEmulationConfig.clear(owner)
+    private fun process(command: ByteArray?) = service.processCommandApdu(command, extras = null)
 
-        service.onDeactivated(0)
+    private fun assertResponse(
+        expected: ResponseApdu,
+        actual: ByteArray,
+        message: String? = null,
+    ) = assertContentEquals(expected.toByteArray(), actual, message)
 
-        verifyNoInteractions(mockEventSink)
-    }
-
-    private fun selectConfiguredAid() =
-        assertContentEquals(
-            ResponseApdu.OK.toByteArray(),
-            service.processCommandApdu(shortDataApdu(SELECT_HEADER, VALID_AID), null),
-        )
+    private fun selectConfiguredAid() = assertResponse(ResponseApdu.OK, process(selectCommand(VALID_AID)))
 
     private fun startSession(
         aid: ByteArray = VALID_AID,
         pin: ByteArray = VALID_PIN,
         sink: EventSink = mockEventSink,
-    ) = HostCardEmulationConfig.start(
-        HostCardEmulationConfig.Session(
-            owner = owner,
-            aid = aid,
-            pin = pin,
-            sink = sink,
-        ),
-    )
+    ) = HostCardEmulationSessionHolder.start(HostCardEmulationSession(owner = owner, aid = aid, pin = pin, sink = sink))
 
-    @Test
-    fun `new session after lockout receives a full wrong PIN budget`() {
-        val wrongPin = shortDataApdu(VERIFY_HEADER, byteArrayOf(0x09, 0x09, 0x09, 0x09))
-        selectConfiguredAid()
-        repeat(2) {
-            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
-        }
-        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), service.processCommandApdu(wrongPin, null))
+    private companion object {
+        val VALID_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x04)
+        val OTHER_AID = byteArrayOf(0xF0.toByte(), 0x01, 0x02, 0x03, 0x05)
+        val VALID_PIN = byteArrayOf(0x01, 0x02, 0x03, 0x04)
+        val LONG_PIN = ByteArray(255) { it.toByte() }
+        val SELECT_HEADER = byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00)
+        val VERIFY_HEADER = byteArrayOf(0x00, 0x20, 0x00, 0x00)
+        val WRONG_PIN_COMMAND = verifyCommand(byteArrayOf(0x09, 0x09, 0x09, 0x09))
 
-        val restartedSink = mock<EventSink>()
-        startSession(sink = restartedSink)
-        selectConfiguredAid()
-        repeat(2) {
-            assertContentEquals(ResponseApdu.WRONG_PIN.toByteArray(), service.processCommandApdu(wrongPin, null))
-        }
-        assertContentEquals(ResponseApdu.PIN_BLOCKED.toByteArray(), service.processCommandApdu(wrongPin, null))
+        fun selectCommand(
+            aid: ByteArray,
+            le: Byte? = null,
+        ) = shortDataApdu(SELECT_HEADER, aid, le)
 
-        inOrder(restartedSink) {
-            verify(restartedSink).success(HostCardEmulationStatus.AID_SELECTED.name)
-            verify(restartedSink, times(2)).success(HostCardEmulationStatus.WRONG_PIN.name)
-            verify(restartedSink).error(
-                "PIN_BLOCKED",
-                "Card emulation ended after too many wrong PINs.",
-                null,
-            )
-            verify(restartedSink).endOfStream()
-        }
-        verifyNoMoreInteractions(restartedSink)
+        fun verifyCommand(
+            pin: ByteArray,
+            le: Byte? = null,
+        ) = shortDataApdu(VERIFY_HEADER, pin, le)
+
+        private fun shortDataApdu(
+            header: ByteArray,
+            data: ByteArray,
+            le: Byte?,
+        ) = header + data.size.toByte() + data + listOfNotNull(le)
     }
 }

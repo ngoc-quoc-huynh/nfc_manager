@@ -2,11 +2,9 @@ package dev.huynh.nfc_manager_android
 
 import android.nfc.NfcAdapter
 import androidx.annotation.VisibleForTesting
-import dev.huynh.nfc_manager_android.feature.FeatureChecker
 import dev.huynh.nfc_manager_android.hce.HostCardEmulationStreamHandler
 import dev.huynh.nfc_manager_android.reader.DiscoveryStreamHandler
 import dev.huynh.nfc_manager_android.reader.TagReader
-import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -16,50 +14,27 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 
-/**
- * The main plugin class for the NFC Manager Android plugin.
- *
- * This class handles the initialization, configuration, and management of the NFC functionality.
- */
+/** Connects the Flutter channels to NFC discovery, commands, and HCE. */
 class NfcManagerPlugin :
     ActivityAware,
     FlutterPlugin,
     MethodCallHandler {
-    /**
-     * The method channel for communicating with the Flutter side.
-     */
     private lateinit var methodChannel: MethodChannel
 
-    /**
-     * The event channel for handling NFC tag discovery events.
-     */
     private lateinit var discoveryEventChannel: EventChannel
 
-    /**
-     * The event channel for handling NFC Host Card Emulation (HCE) events.
-     */
     private lateinit var hostCardEmulationEventChannel: EventChannel
 
-    /**
-     * The NFC adapter for handling NFC operations.
-     */
     private var nfcAdapter: NfcAdapter? = null
 
-    /**
-     * The feature checker for checking the NFC capabilities of the device.
-     */
     @VisibleForTesting
     internal lateinit var featureChecker: FeatureChecker
 
-    /**
-     * The tag reader for handling NFC tag operations.
-     */
+    /** The reader for the attached activity, or null without one. */
     @VisibleForTesting
     internal var tagReader: TagReader? = null
 
-    /**
-     * The stream handler for HCE events. It owns the HCE session it starts.
-     */
+    /** The HCE stream handler; it owns the HCE session it starts. */
     @VisibleForTesting
     internal var hostCardEmulationStreamHandler: HostCardEmulationStreamHandler? = null
 
@@ -123,40 +98,22 @@ class NfcManagerPlugin :
     override fun onMethodCall(
         call: MethodCall,
         result: Result,
-    ) {
-        when (call.method) {
-            "isHceSupported" -> result.success(featureChecker.isHceSupported())
-            "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
-            "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
-            "sendCommand" -> sendCommand(call, result)
-            else -> result.notImplemented()
-        }
+    ) = when (call.method) {
+        "isHceSupported" -> result.success(featureChecker.isHceSupported())
+        "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
+        "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
+        "sendCommand" -> sendCommand(call, result)
+        else -> result.notImplemented()
     }
 
     private fun sendCommand(
         call: MethodCall,
         result: Result,
     ) {
-        val command = (call.arguments as? Map<*, *>)?.get("command") as? ByteArray
-        if (command == null) {
-            result.error(InvalidArgumentsException())
-            return
-        }
-
-        val currentTagReader = tagReader
-        if (currentTagReader == null) {
-            result.error(TagConnectionException())
-            return
-        }
-
-        try {
-            currentTagReader.sendCommand(
-                command,
-                onSuccess = result::success,
-                onError = { result.error(it as? NfcException ?: UnexpectedNfcException()) },
-            )
-        } catch (exception: NfcException) {
-            result.error(exception)
-        }
+        val command =
+            (call.arguments as? Map<*, *>)?.get("command") as? ByteArray
+                ?: return result.error(InvalidArgumentsException())
+        val reader = tagReader ?: return result.error(TagConnectionException())
+        reader.sendCommand(command, onSuccess = result::success, onError = result::error)
     }
 }

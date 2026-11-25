@@ -5,6 +5,7 @@ import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.IsoDep
 import androidx.annotation.VisibleForTesting
+import dev.huynh.nfc_manager_android.CommandApdu
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
 import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.InvalidLcDataLengthException
@@ -13,9 +14,9 @@ import dev.huynh.nfc_manager_android.NfcException
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
 import dev.huynh.nfc_manager_android.UnexpectedNfcException
-import dev.huynh.nfc_manager_android.models.CommandApdu
-import dev.huynh.nfc_manager_android.utils.error
-import dev.huynh.nfc_manager_android.utils.toHexString
+import dev.huynh.nfc_manager_android.endWithError
+import dev.huynh.nfc_manager_android.error
+import dev.huynh.nfc_manager_android.toHex
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.EventChannel.StreamHandler
 import java.io.IOException
@@ -56,31 +57,28 @@ internal class TagReader(
     private var isListening = false
 
     /**
-     * Sends a command to the active tag and replies on the main thread.
+     * Sends [command] to the active tag and replies on the main thread.
      *
-     * A malformed command, or one exceeding Android's transceive limit, is answered with
-     * [InvalidApduCommandException] and the tag stays connected.
-     * If the I/O executor rejects the request, [onError] is called immediately on the caller
-     * thread.
-     *
-     * @throws NfcException if the command is invalid or no tag is connected.
+     * A malformed command, or one longer than Android's transceive limit, is answered with
+     * [InvalidApduCommandException], and the tag stays connected. Without a tag, it is answered
+     * with [TagConnectionException].
      */
     fun sendCommand(
         command: ByteArray,
         onSuccess: (ByteArray) -> Unit,
-        onError: (Throwable) -> Unit,
+        onError: (NfcException) -> Unit,
     ) {
         try {
             CommandApdu.fromByteArray(command)
+        } catch (exception: InvalidApduCommandException) {
+            return onError(exception)
         } catch (_: InvalidLcDataLengthException) {
-            throw InvalidApduCommandException()
+            return onError(InvalidApduCommandException())
         }
 
         val (tag, commandSession) =
-            synchronized(stateLock) {
-                val tag = isoDep ?: throw TagConnectionException()
-                tag to session
-            }
+            synchronized(stateLock) { isoDep?.let { it to session } }
+                ?: return onError(TagConnectionException())
 
         try {
             ioExecutor.execute {
@@ -96,64 +94,72 @@ internal class TagReader(
         commandSession: Long,
         command: ByteArray,
         onSuccess: (ByteArray) -> Unit,
-        onError: (Throwable) -> Unit,
-    ) {
-        if (!isActive(tag, commandSession)) {
-            mainThreadExecutor.execute { onError(TagConnectionException()) }
-            return
-        }
-
-        val response =
-            try {
-                // Android fails an oversized transceive with an IOException, which would
-                // drop the tag, so reject it here. A length of 0 is unknown; let the tag decide.
-                val maxLength = tag.maxTransceiveLength
-                if (maxLength > 0 && command.size > maxLength) null else tag.transceive(command)
-            } catch (exception: Exception) {
-                val connectionLost =
-                    exception is IOException ||
-                        exception is SecurityException ||
-                        !isActive(tag, commandSession)
-                val error =
-                    if (connectionLost) {
-                        discard(tag)
-                        TagConnectionException()
-                    } else {
-                        exception
-                    }
-                mainThreadExecutor.execute { onError(error) }
-                return
-            }
-
-        if (response == null) {
-            mainThreadExecutor.execute { onError(InvalidApduCommandException()) }
-        } else {
-            mainThreadExecutor.execute { onSuccess(response) }
-        }
+        onError: (NfcException) -> Unit,
+    ) = try {
+        val response = transceive(tag, commandSession, command)
+        mainThreadExecutor.execute { onSuccess(response) }
+    } catch (exception: NfcException) {
+        mainThreadExecutor.execute { onError(exception) }
     }
+
+    /**
+     * @throws InvalidApduCommandException if the command exceeds the transceive limit.
+     * @throws TagConnectionException if the tag is no longer active or the connection failed.
+     * @throws UnexpectedNfcException if the transceive failed for another reason.
+     */
+    private fun transceive(
+        tag: IsoDep,
+        commandSession: Long,
+        command: ByteArray,
+    ): ByteArray {
+        if (!isActive(tag, commandSession)) throw TagConnectionException()
+        // Android fails an oversized transceive with an IOException, which looks like a lost
+        // tag, so reject it here. A length of 0 is unknown; let the tag decide.
+        val maxLength = callTag(tag, commandSession) { tag.maxTransceiveLength }
+        if (maxLength in 1 until command.size) throw InvalidApduCommandException()
+        return callTag(tag, commandSession) { tag.transceive(command) }
+    }
+
+    /**
+     * Runs [call] on [tag]. An I/O or security failure, or one caused by cancellation, discards the
+     * tag and throws [TagConnectionException]; any other failure throws [UnexpectedNfcException].
+     */
+    private inline fun <T> callTag(
+        tag: IsoDep,
+        commandSession: Long,
+        call: () -> T,
+    ): T =
+        try {
+            call()
+        } catch (exception: Exception) {
+            if (exception !is IOException && exception !is SecurityException && isActive(tag, commandSession)) {
+                throw UnexpectedNfcException()
+            }
+            discard(tag)
+            throw TagConnectionException()
+        }
 
     override fun onListen(
         arguments: Any?,
-        events: EventSink?,
+        events: EventSink,
     ) {
         val requestedTimeout =
             try {
                 parseTimeout(arguments)
             } catch (exception: InvalidArgumentsException) {
-                events?.error(exception)
-                events?.endOfStream()
+                events.endWithError(exception)
                 return
             }
         val adapter = nfcAdapter
         if (adapter == null) {
-            events?.error(NfcNotSupportedException())
-            events?.endOfStream()
+            events.endWithError(NfcNotSupportedException())
             return
         }
 
         cancelSession()
         val listenSession =
             synchronized(stateLock) {
+                // dispose already shut down the worker.
                 if (ioExecutor.isShutdown) return
                 session += 1
                 isListening = true
@@ -174,8 +180,7 @@ internal class TagReader(
         } catch (_: Exception) {
             // cancelSession clears eventSink, so report through the sink this call received.
             cancelSession(listenSession)
-            events?.error(UnexpectedNfcException())
-            events?.endOfStream()
+            events.endWithError(UnexpectedNfcException())
         }
     }
 
@@ -184,10 +189,8 @@ internal class TagReader(
     }
 
     /**
-     * Releases the reader and worker when the plugin detaches from its Activity or engine.
-     *
-     * An active discovery stream is ended so the Dart listener is not left waiting for tags.
-     * Call on the main thread.
+     * Ends an active discovery stream and releases the reader and its worker. Call on the main
+     * thread when the plugin detaches from its activity or engine.
      */
     fun dispose() {
         ioExecutor.shutdown()
@@ -236,7 +239,7 @@ internal class TagReader(
         try {
             tagIsoDep.connect()
             requestedTimeout?.let { tagIsoDep.timeout = it }
-            val tagId = tag.id.toHexString()
+            val tagId = tag.id.toHex()
 
             // Decide under the lock, but close outside it: close() is blocking I/O.
             val (accepted, previous) =
@@ -322,19 +325,12 @@ internal class TagReader(
      * Reads the optional positive `timeout` in milliseconds from the discovery arguments.
      *
      * @throws InvalidArgumentsException if the arguments are not a map or the timeout is not a
-     * positive integer.
+     * positive `Int`.
      */
     private fun parseTimeout(arguments: Any?): Int? {
-        val options =
-            when (arguments) {
-                null -> emptyMap<Any?, Any?>()
-                is Map<*, *> -> arguments
-                else -> throw InvalidArgumentsException()
-            }
-        val value = options["timeout"] ?: return null
-        val requestedTimeout = value as? Int ?: throw InvalidArgumentsException()
-        if (requestedTimeout <= 0) throw InvalidArgumentsException()
-        return requestedTimeout
+        if (arguments != null && arguments !is Map<*, *>) throw InvalidArgumentsException()
+        val value = arguments?.get("timeout") ?: return null
+        return (value as? Int)?.takeIf { it > 0 } ?: throw InvalidArgumentsException()
     }
 
     /** Delivers to the sink on the main thread, dropping events from stale sessions. */
@@ -343,7 +339,7 @@ internal class TagReader(
         action: (EventSink) -> Unit,
     ) {
         mainThreadExecutor.execute {
-            val sink = synchronized(stateLock) { if (isListening && session == listenSession) eventSink else null }
+            val sink = synchronized(stateLock) { eventSink.takeIf { isCurrentSession(listenSession) } }
             sink?.let(action)
         }
     }

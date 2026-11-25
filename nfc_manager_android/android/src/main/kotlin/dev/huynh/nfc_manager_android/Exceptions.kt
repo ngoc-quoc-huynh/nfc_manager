@@ -1,97 +1,75 @@
 package dev.huynh.nfc_manager_android
 
 /**
- * Base class for all NFC exceptions.
+ * An error reported to Flutter with a stable [code] and a fixed message.
  *
- * @param code The error code.
- * @param message The error message.
+ * Messages never include received values such as commands, AIDs or PINs.
  */
 internal sealed class NfcException(
     val code: String,
-    message: String,
+    override val message: String,
 ) : Exception(message)
 
-/**
- * Exception thrown when the arguments received from the Flutter side are missing or have the
- * wrong type.
- *
- * The message is fixed and never echoes the received value or its type.
- */
+/** The arguments from Flutter are missing, mistyped, or out of range. */
 internal class InvalidArgumentsException :
     NfcException(
         "INVALID_ARGUMENTS",
-        "The arguments are missing or have the wrong type.",
+        "The arguments are missing, mistyped, or out of range.",
     )
 
-/** Reports the required HCE argument sizes without including the received values. */
+/** The HCE AID or PIN is missing or has the wrong length. */
 internal class InvalidHceArgumentsException :
     NfcException(
         "INVALID_ARGUMENTS",
         "HCE requires an AID of 5–16 bytes and a PIN of 1–255 bytes.",
     )
 
-/**
- * Exception thrown when the APDU command is shorter than 4 bytes or longer than
- * Android's transceive limit.
- *
- * The message is fixed and never echoes the command or its length.
- */
+/** The APDU command is malformed or longer than Android's transceive limit. */
 internal class InvalidApduCommandException :
     NfcException(
         "INVALID_APDU_COMMAND",
-        "APDU command must be at least 4 bytes long and no longer than Android's transceive limit.",
+        "The APDU command is malformed or longer than Android's transceive limit.",
     )
 
-/**
- * Exception thrown when the LC value does not match the length of the Data field in the APDU command.
- */
-internal class InvalidLcDataLengthException :
-    NfcException(
-        "INVALID_LC_DATA_LENGTH",
-        "The LC value does not match the length of the Data field in the APDU command.",
-    )
-
-/**
- * Exception thrown when card emulation ends after too many wrong PINs in a row.
- */
+/** Card emulation ended after 3 wrong PINs in a row. */
 internal class PinBlockedException :
     NfcException(
         "PIN_BLOCKED",
         "Card emulation ended after too many wrong PINs.",
     )
 
-/**
- * Exception thrown when the NFC tag does not support ISO-DEP.
- */
+/** The NFC tag does not support ISO-DEP. */
 internal class IsoDepNotSupportedException :
     NfcException(
         "ISO_DEP_NOT_SUPPORTED",
         "The NFC tag does not support ISO-DEP.",
     )
 
-/**
- * Exception thrown when the device does not support NFC.
- */
+/** The device has no NFC adapter. */
 internal class NfcNotSupportedException :
     NfcException(
         "NFC_NOT_SUPPORTED",
         "This device does not support NFC.",
     )
 
-/**
- * Exception thrown when the tag connection failed.
- */
+/** No tag is connected, the connection failed, or the tag was lost. */
 internal class TagConnectionException :
     NfcException(
         "TAG_CONNECTION_FAILED",
         "Failed to establish a connection with the NFC tag or the tag was lost.",
     )
 
-/**
- * Exception thrown when an unexpected error occurs while reading NFC tags.
- */
+/** The NFC reader failed unexpectedly, or discovery started without an attached activity. */
 internal class UnexpectedNfcException :
     NfcException(
         "NFC_ERROR",
         "Unexpected NFC reader error.",
     )
+
+/**
+ * The Lc byte of an APDU command is `00` or does not match its data length, or SELECT or VERIFY
+ * has no data.
+ *
+ * Internal only: callers translate it, so it never reaches Flutter.
+ */
+internal class InvalidLcDataLengthException : Exception()

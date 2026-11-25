@@ -6,27 +6,28 @@ import android.nfc.Tag
 import android.nfc.TagLostException
 import android.nfc.tech.IsoDep
 import dev.huynh.nfc_manager_android.InvalidApduCommandException
+import dev.huynh.nfc_manager_android.InvalidArgumentsException
 import dev.huynh.nfc_manager_android.IsoDepNotSupportedException
+import dev.huynh.nfc_manager_android.NfcException
 import dev.huynh.nfc_manager_android.NfcNotSupportedException
 import dev.huynh.nfc_manager_android.TagConnectionException
-import dev.huynh.nfc_manager_android.utils.error
+import dev.huynh.nfc_manager_android.UnexpectedNfcException
+import dev.huynh.nfc_manager_android.error
 import io.flutter.plugin.common.EventChannel.EventSink
 import org.junit.jupiter.api.AfterEach
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertSame
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertDoesNotThrow
 import org.junit.jupiter.api.assertThrows
-import org.mockito.Mockito
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.timeout
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
@@ -42,6 +43,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class TagReaderTest {
@@ -51,6 +56,7 @@ class TagReaderTest {
     private val mockNfcAdapter = mock<NfcAdapter>()
     private val mockTag = mock<Tag>()
     private val command = byteArrayOf(0x00, 0x00, 0x00, 0x00)
+    private val ok = byteArrayOf(0x90.toByte(), 0x00)
     private val ioExecutor =
         Executors.newSingleThreadExecutor { runnable ->
             Thread(runnable, IO_THREAD_NAME).apply { isDaemon = true }
@@ -61,7 +67,7 @@ class TagReaderTest {
 
     @BeforeEach
     fun setup() {
-        tagReader = newTagReader(mockNfcAdapter)
+        tagReader = newTagReader()
     }
 
     @AfterEach
@@ -70,12 +76,12 @@ class TagReaderTest {
     }
 
     @Test
-    fun `sendCommand sends successfully`() {
+    fun `sendCommand returns the tag response on the main thread`() {
         tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+        whenever(mockIsoDep.transceive(command)).thenReturn(ok)
 
         assertContentEquals(
-            byteArrayOf(0x90.toByte(), 0x00),
+            ok,
             sendCommand(command),
         )
         verify(mockIsoDep).transceive(command)
@@ -87,16 +93,10 @@ class TagReaderTest {
         val worker = mock<ExecutorService>()
         val task = argumentCaptor<Runnable>()
         val callbackError = IOException("Callback failed")
-        val onError = mock<(Throwable) -> Unit>()
-        tagReader =
-            TagReader(
-                activity = mockActivity,
-                nfcAdapter = mockNfcAdapter,
-                ioExecutor = worker,
-                mainThreadExecutor = Runnable::run,
-            )
+        val onError = mock<(NfcException) -> Unit>()
+        tagReader = newTagReader(ioExecutor = worker, mainThreadExecutor = Runnable::run)
         tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+        whenever(mockIsoDep.transceive(command)).thenReturn(ok)
 
         tagReader.sendCommand(command, onSuccess = { throw callbackError }, onError = onError)
         verify(worker).execute(task.capture())
@@ -108,7 +108,7 @@ class TagReaderTest {
     }
 
     @Test
-    fun `default main-thread executor delegates replies to Activity runOnUiThread`() {
+    fun `sendCommand replies through Activity runOnUiThread by default`() {
         val lengthReadThread = AtomicReference<String>()
         whenever(mockActivity.runOnUiThread(any())).thenAnswer { invocation ->
             invocation.getArgument<Runnable>(0).run()
@@ -117,14 +117,14 @@ class TagReaderTest {
             lengthReadThread.set(Thread.currentThread().name)
             0
         }
-        whenever(mockIsoDep.transceive(command)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+        whenever(mockIsoDep.transceive(command)).thenReturn(ok)
         val defaultTagReader = TagReader(activity = mockActivity, nfcAdapter = mockNfcAdapter)
 
         try {
             defaultTagReader.isoDep = mockIsoDep
 
             assertContentEquals(
-                byteArrayOf(0x90.toByte(), 0x00),
+                ok,
                 sendCommand(command, defaultTagReader),
             )
             assertEquals("nfc-tag-io", lengthReadThread.get())
@@ -135,125 +135,50 @@ class TagReaderTest {
     }
 
     @Test
-    fun `sendCommand throws TagConnectionException if isoDep is null`() {
+    fun `sendCommand reports TagConnectionException without a connected tag`() {
         tagReader.isoDep = null
 
         assertThrows<TagConnectionException> {
             sendCommand(command)
         }
-        verify(mockIsoDep, times(0)).transceive(command)
+        verify(mockIsoDep, never()).transceive(command)
     }
 
     @Test
-    fun `sendCommand throws TagConnectionException if TagLostException is thrown`() {
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenThrow(TagLostException())
+    fun `sendCommand closes the tag and throws TagConnectionException when transceive fails`() =
+        listOf(TagLostException(), SecurityException(), IOException()).forEach { failure ->
+            val isoDep = mock<IsoDep>()
+            tagReader.isoDep = isoDep
+            whenever(isoDep.transceive(command)).thenThrow(failure)
 
-        assertThrows<TagConnectionException> {
-            sendCommand(command)
-        }
-        assertNull(tagReader.isoDep)
-        verify(mockIsoDep).transceive(command)
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-    }
+            assertThrows<TagConnectionException> { sendCommand(command) }
 
-    @Test
-    fun `sendCommand throws TagConnectionException if SecurityException is thrown`() {
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenThrow(SecurityException())
-
-        assertThrows<TagConnectionException> {
-            sendCommand(command)
-        }
-        assertNull(tagReader.isoDep)
-        verify(mockIsoDep).transceive(command)
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-    }
-
-    @Test
-    fun `sendCommand closes and clears IsoDep when IOException is thrown`() {
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenThrow(IOException())
-
-        assertThrows<TagConnectionException> { sendCommand(command) }
-
-        assertNull(tagReader.isoDep)
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-    }
-
-    @Test
-    fun `sendCommand maps IllegalStateException after cancellation`() {
-        val transceiveStarted = CountDownLatch(1)
-        val closeCalled = CountDownLatch(1)
-        whenever(mockIsoDep.transceive(command)).thenAnswer {
-            transceiveStarted.countDown()
-            assertTrue(closeCalled.await(2, TimeUnit.SECONDS))
-            throw IllegalStateException("connection closed")
-        }
-        whenever(mockIsoDep.close()).thenAnswer {
-            closeCalled.countDown()
-        }
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        tagReader.isoDep = mockIsoDep
-
-        val caller = Executors.newSingleThreadExecutor()
-        try {
-            val commandResult =
-                caller.submit<TagConnectionException> {
-                    assertThrows<TagConnectionException> { sendCommand(command) }
-                }
-
-            assertTrue(transceiveStarted.await(2, TimeUnit.SECONDS))
-            tagReader.onCancel(null)
-            commandResult.get(2, TimeUnit.SECONDS)
             assertNull(tagReader.isoDep)
-        } finally {
-            caller.shutdownNow()
-        }
-    }
-
-    @Test
-    fun `sendCommand preserves IllegalStateException while connection remains active`() {
-        val failure = IllegalStateException("unexpected active connection state")
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.transceive(command)).thenThrow(failure)
-
-        assertSame(
-            failure,
-            assertThrows<IllegalStateException> { sendCommand(command) },
-        )
-
-        verify(mockIsoDep, times(0)).close()
-    }
-
-    @Test
-    fun `sendCommand rejects malformed APDU before transceive`() {
-        tagReader.isoDep = mockIsoDep
-
-        assertThrows<InvalidApduCommandException> {
-            tagReader.sendCommand(byteArrayOf(), onSuccess = {}, onError = {})
+            verify(isoDep, timeout(TIMEOUT_MS)).close()
         }
 
-        verifyNoInteractions(mockIsoDep)
+    @Test
+    fun `sendCommand reports an unexpected transceive failure while the tag stays connected`() {
+        tagReader.isoDep = mockIsoDep
+        whenever(mockIsoDep.transceive(command)).thenThrow(IllegalStateException("raw native detail"))
+
+        assertThrows<UnexpectedNfcException> { sendCommand(command) }
+
+        verify(mockIsoDep, never()).close()
+        assertSame(mockIsoDep, tagReader.isoDep)
     }
 
     @Test
-    fun `sendCommand reports an Lc mismatch as InvalidApduCommandException`() {
+    fun `sendCommand rejects malformed commands before transceive`() {
         tagReader.isoDep = mockIsoDep
-
-        assertThrows<InvalidApduCommandException> {
-            tagReader.sendCommand(byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x05, 0x01), onSuccess = {}, onError = {})
-        }
-
-        verifyNoInteractions(mockIsoDep)
-    }
-
-    @Test
-    fun `sendCommand rejects a six-byte command with zero Lc before transceive`() {
-        tagReader.isoDep = mockIsoDep
-
-        assertThrows<InvalidApduCommandException> {
-            tagReader.sendCommand(byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x00, 0x01), onSuccess = {}, onError = {})
+        listOf(
+            byteArrayOf(),
+            // Lc says 5 data bytes, but only 1 follows.
+            byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x05, 0x01),
+            // Lc 00 cannot be followed by data.
+            byteArrayOf(0x00, 0xA4.toByte(), 0x04, 0x00, 0x00, 0x01),
+        ).forEach { malformed ->
+            assertThrows<InvalidApduCommandException> { sendCommand(malformed) }
         }
 
         verifyNoInteractions(mockIsoDep)
@@ -271,7 +196,7 @@ class TagReaderTest {
         // Android rejects an oversized command with an IOException, which looks like a lost tag.
         whenever(mockIsoDep.transceive(oversizedCommand))
             .thenThrow(IOException("Transceive length exceeds supported maximum"))
-        whenever(mockIsoDep.transceive(command)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+        whenever(mockIsoDep.transceive(command)).thenReturn(ok)
 
         assertThrows<InvalidApduCommandException> { sendCommand(oversizedCommand) }
 
@@ -279,7 +204,7 @@ class TagReaderTest {
         verify(mockIsoDep, never()).transceive(oversizedCommand)
         verify(mockIsoDep, never()).close()
         assertSame(mockIsoDep, tagReader.isoDep)
-        assertContentEquals(byteArrayOf(0x90.toByte(), 0x00), sendCommand(command))
+        assertContentEquals(ok, sendCommand(command))
     }
 
     @Test
@@ -288,9 +213,9 @@ class TagReaderTest {
         val longCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00, 0xFF.toByte()) + ByteArray(256)
         tagReader.isoDep = mockIsoDep
         whenever(mockIsoDep.maxTransceiveLength).thenReturn(0)
-        whenever(mockIsoDep.transceive(longCommand)).thenReturn(byteArrayOf(0x90.toByte(), 0x00))
+        whenever(mockIsoDep.transceive(longCommand)).thenReturn(ok)
 
-        assertContentEquals(byteArrayOf(0x90.toByte(), 0x00), sendCommand(longCommand))
+        assertContentEquals(ok, sendCommand(longCommand))
         verify(mockIsoDep).transceive(longCommand)
     }
 
@@ -330,48 +255,22 @@ class TagReaderTest {
             ),
             isNull(),
         )
-        verify(mockNfcAdapter, times(0)).disableReaderMode(mockActivity)
+        verify(mockNfcAdapter, never()).disableReaderMode(mockActivity)
     }
 
     @Test
-    fun `onListen emits INVALID_ARGUMENTS for malformed arguments without enabling reader mode`() {
-        tagReader.onListen("invalid", mockEventSink)
-
-        verifyInvalidArgumentsEmitted()
-        verifyNoInteractions(mockNfcAdapter)
-    }
-
-    @Test
-    fun `onListen emits INVALID_ARGUMENTS for a non-integer timeout without enabling reader mode`() {
-        tagReader.onListen(mapOf("timeout" to "100"), mockEventSink)
-
-        verifyInvalidArgumentsEmitted()
-        verifyNoInteractions(mockNfcAdapter)
-    }
-
-    @Test
-    fun `onListen emits INVALID_ARGUMENTS for a non-positive timeout without enabling reader mode`() {
-        tagReader.onListen(mapOf("timeout" to 0), mockEventSink)
-
-        verifyInvalidArgumentsEmitted()
-        verifyNoInteractions(mockNfcAdapter)
-    }
-
-    @Test
-    fun `onListen emits INVALID_ARGUMENTS for a negative timeout without enabling reader mode`() {
-        tagReader.onListen(mapOf("timeout" to -1), mockEventSink)
-
-        verifyInvalidArgumentsEmitted()
-        verifyNoInteractions(mockNfcAdapter)
-    }
-
-    @Test
-    fun `onListen rejects timeouts beyond the Int range without enabling reader mode`() {
-        // The standard message codec delivers a Dart int outside the 32-bit range as a Long.
-        val invalidTimeouts = listOf(Int.MAX_VALUE.toLong() + 1, (1L shl 32) + 1)
-        invalidTimeouts.forEach { timeout ->
+    fun `onListen emits INVALID_ARGUMENTS for invalid arguments without enabling reader mode`() {
+        listOf(
+            "invalid",
+            mapOf("timeout" to "100"),
+            mapOf("timeout" to 0),
+            mapOf("timeout" to -1),
+            // The standard message codec delivers a Dart int outside the 32-bit range as a Long.
+            mapOf("timeout" to Int.MAX_VALUE.toLong() + 1),
+            mapOf("timeout" to (1L shl 32) + 1),
+        ).forEach { arguments ->
             val events = mock<EventSink>()
-            tagReader.onListen(mapOf("timeout" to timeout), events)
+            tagReader.onListen(arguments, events)
             verifyInvalidArgumentsEmitted(events)
         }
 
@@ -386,7 +285,7 @@ class TagReaderTest {
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
-        verify(mockEventSink).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink).error(UnexpectedNfcException())
         verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
@@ -404,36 +303,32 @@ class TagReaderTest {
 
         assertDoesNotThrow { tagReader.onListen(mapOf("timeout" to null), mockEventSink) }
 
-        verify(mockEventSink, times(1)).error("NFC_ERROR", "Unexpected NFC reader error.", null)
+        verify(mockEventSink, times(1)).error(UnexpectedNfcException())
         verify(mockEventSink).endOfStream()
         verifyNoMoreInteractions(mockEventSink)
         assertNull(tagReader.eventSink)
     }
 
     @Test
-    fun `onTagFound emits success when IsoDep is available`() {
-        isoDepFor = mapOf(mockTag to mockIsoDep)::get
-        whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
+    fun `onTagFound connects with the requested timeout and emits the tag ID`() =
+        listOf(null, 3000).forEach { requestedTimeout ->
+            val isoDep = mock<IsoDep>()
+            val events = mock<EventSink>()
+            isoDepFor = mapOf(mockTag to isoDep)::get
+            whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
 
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        discoverTag(mockTag)
+            tagReader.onListen(mapOf("timeout" to requestedTimeout), events)
+            discoverTag(mockTag)
 
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).connect()
-        verify(mockIsoDep, times(0)).timeout
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("00")
-    }
-
-    @Test
-    fun `onTagFound emits success with timeout when IsoDep is available`() {
-        isoDepFor = mapOf(mockTag to mockIsoDep)::get
-        whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
-
-        tagReader.onListen(mapOf("timeout" to 3000), mockEventSink)
-        discoverTag(mockTag)
-
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("00")
-        verify(mockIsoDep).timeout = 3000
-    }
+            verify(events, timeout(TIMEOUT_MS)).success("00")
+            verify(isoDep).connect()
+            if (requestedTimeout == null) {
+                verify(isoDep, never()).timeout = any()
+            } else {
+                verify(isoDep).timeout = requestedTimeout
+            }
+            tagReader.onCancel(null)
+        }
 
     @Test
     fun `onTagFound emits IsoDepNotSupportedException when IsoDep is null`() {
@@ -443,13 +338,12 @@ class TagReaderTest {
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
         discoverTag(mockTag)
 
-        verify(mockIsoDep, times(0)).connect()
-        verify(mockIsoDep, times(0)).timeout = 3000
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(IsoDepNotSupportedException())
+        verify(mockIsoDep, never()).connect()
+        verify(mockEventSink, timeout(TIMEOUT_MS)).error(IsoDepNotSupportedException())
     }
 
     @Test
-    fun `onTagFound emits TagConnectionException when IsoDep get throws SecurityException and keeps discovering`() {
+    fun `onTagFound reports a stale tag and keeps discovering`() {
         val secondTag = mock<Tag>()
         whenever(secondTag.id).thenReturn(byteArrayOf(0x02))
         isoDepFor = { tag ->
@@ -471,49 +365,26 @@ class TagReaderTest {
     }
 
     @Test
-    fun `onTagFound emits TagConnectionException when connect throws`() {
-        isoDepFor = mapOf(mockTag to mockIsoDep)::get
-        whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
-        whenever(mockIsoDep.connect()).thenThrow(IOException())
+    fun `onTagFound closes the tag and reports a failed connect`() =
+        listOf<Pair<Exception, NfcException>>(
+            SecurityException() to TagConnectionException(),
+            IllegalStateException() to UnexpectedNfcException(),
+        ).forEach { (failure, error) ->
+            val isoDep = mock<IsoDep>()
+            val events = mock<EventSink>()
+            isoDepFor = mapOf(mockTag to isoDep)::get
+            whenever(isoDep.connect()).thenThrow(failure)
 
-        tagReader.onListen(mapOf("timeout" to 3000), mockEventSink)
-        discoverTag(mockTag)
+            tagReader.onListen(mapOf("timeout" to null), events)
+            discoverTag(mockTag)
 
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).connect()
-        verify(mockIsoDep, times(0)).timeout = 3000
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(TagConnectionException())
-    }
-
-    @Test
-    fun `onTagFound emits TagConnectionException when connect throws SecurityException`() {
-        isoDepFor = mapOf(mockTag to mockIsoDep)::get
-        whenever(mockIsoDep.connect()).thenThrow(SecurityException())
-
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        discoverTag(mockTag)
-
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(TagConnectionException())
-    }
+            verify(isoDep, timeout(TIMEOUT_MS)).close()
+            verify(events, timeout(TIMEOUT_MS)).error(error)
+            tagReader.onCancel(null)
+        }
 
     @Test
-    fun `onTagFound reports unexpected connection failures`() {
-        isoDepFor = mapOf(mockTag to mockIsoDep)::get
-        whenever(mockIsoDep.connect()).thenThrow(IllegalStateException())
-
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        discoverTag(mockTag)
-
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(
-            "NFC_ERROR",
-            "Unexpected NFC reader error.",
-            null,
-        )
-    }
-
-    @Test
-    fun `onTagFound closes failed connection and allows a later tag`() {
+    fun `onTagFound closes a failed connection and accepts the next tag`() {
         val secondTag = mock<Tag>()
         val secondIsoDep = mock<IsoDep>()
         whenever(mockTag.id).thenReturn(byteArrayOf(0x01))
@@ -523,12 +394,12 @@ class TagReaderTest {
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
         discoverTag(mockTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).error(TagConnectionException())
+        verify(mockEventSink, timeout(TIMEOUT_MS)).error(TagConnectionException())
         discoverTag(secondTag)
 
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-        Mockito.verify(secondIsoDep, Mockito.timeout(2_000)).connect()
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("02")
+        verify(mockIsoDep, timeout(TIMEOUT_MS)).close()
+        verify(secondIsoDep, timeout(TIMEOUT_MS)).connect()
+        verify(mockEventSink, timeout(TIMEOUT_MS)).success("02")
     }
 
     @Test
@@ -541,11 +412,11 @@ class TagReaderTest {
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
         discoverTag(mockTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("01")
+        verify(mockEventSink, timeout(TIMEOUT_MS)).success("01")
         discoverTag(secondTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("02")
+        verify(mockEventSink, timeout(TIMEOUT_MS)).success("02")
 
-        verify(mockIsoDep, Mockito.timeout(2_000)).close()
+        verify(mockIsoDep, timeout(TIMEOUT_MS)).close()
         verify(secondIsoDep).connect()
     }
 
@@ -568,7 +439,7 @@ class TagReaderTest {
         allowQueuedWork.countDown()
         queuedWorkFinished.get(2, TimeUnit.SECONDS)
 
-        verify(mockIsoDep, times(0)).connect()
+        verify(mockIsoDep, never()).connect()
     }
 
     @Test
@@ -576,17 +447,13 @@ class TagReaderTest {
         val mainThreadCallbackQueued = CountDownLatch(1)
         val pendingMainThreadCallback = AtomicReference<Runnable?>()
         whenever(mockTag.id).thenReturn(byteArrayOf(0x00))
+        isoDepFor = { mockIsoDep }
         tagReader =
-            TagReader(
-                activity = mockActivity,
-                nfcAdapter = mockNfcAdapter,
-                ioExecutor = ioExecutor,
-                mainThreadExecutor =
-                    Executor { callback ->
-                        pendingMainThreadCallback.set(callback)
-                        mainThreadCallbackQueued.countDown()
-                    },
-                isoDepFor = { mockIsoDep },
+            newTagReader(
+                mainThreadExecutor = { callback ->
+                    pendingMainThreadCallback.set(callback)
+                    mainThreadCallbackQueued.countDown()
+                },
             )
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
@@ -655,7 +522,7 @@ class TagReaderTest {
     }
 
     @Test
-    fun `queued command from old session is rejected and old tag is closed only once`() {
+    fun `onListen fails commands from the old session and closes the old tag once`() {
         val firstCommand = byteArrayOf(0x00, 0x00, 0x00, 0x00)
         val queuedCommand = byteArrayOf(0x00, 0x01, 0x00, 0x00)
         val secondTag = mock<Tag>()
@@ -680,7 +547,7 @@ class TagReaderTest {
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
         discoverTag(mockTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("01")
+        verify(mockEventSink, timeout(TIMEOUT_MS)).success("01")
 
         tagReader.sendCommand(
             firstCommand,
@@ -702,36 +569,16 @@ class TagReaderTest {
 
         tagReader.onListen(mapOf("timeout" to 3000), mockEventSink)
         discoverTag(secondTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("02")
+        verify(mockEventSink, timeout(TIMEOUT_MS)).success("02")
 
         assertTrue(firstCommandFinished.await(2, TimeUnit.SECONDS))
         assertTrue(queuedCommandFinished.await(2, TimeUnit.SECONDS))
-        assertTrue(firstCommandError.get() is TagConnectionException)
-        assertTrue(queuedCommandError.get() is TagConnectionException)
-        Mockito.verify(secondIsoDep, Mockito.timeout(2_000)).connect()
+        assertIs<TagConnectionException>(firstCommandError.get())
+        assertIs<TagConnectionException>(queuedCommandError.get())
+        verify(secondIsoDep, timeout(TIMEOUT_MS)).connect()
         verify(secondIsoDep).timeout = 3000
-        verify(secondIsoDep, times(0)).transceive(queuedCommand)
+        verify(secondIsoDep, never()).transceive(queuedCommand)
         verify(mockIsoDep, times(1)).close()
-    }
-
-    @Test
-    fun `onListen releases the previous tag and accepts a tag in the new session`() {
-        val secondTag = mock<Tag>()
-        val secondIsoDep = mock<IsoDep>()
-        whenever(mockTag.id).thenReturn(byteArrayOf(0x01))
-        whenever(secondTag.id).thenReturn(byteArrayOf(0x02))
-        isoDepFor = mapOf(mockTag to mockIsoDep, secondTag to secondIsoDep)::get
-
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        discoverTag(mockTag)
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("01")
-
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        discoverTag(secondTag)
-
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
-        Mockito.verify(secondIsoDep, Mockito.timeout(2_000)).connect()
-        Mockito.verify(mockEventSink, Mockito.timeout(2_000)).success("02")
         verify(mockNfcAdapter).disableReaderMode(mockActivity)
     }
 
@@ -739,74 +586,65 @@ class TagReaderTest {
     fun `onTagFound ignores a callback after cancellation`() {
         isoDepFor = mapOf(mockTag to mockIsoDep)::get
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        val callbackCaptor = argumentCaptor<NfcAdapter.ReaderCallback>()
-        verify(mockNfcAdapter).enableReaderMode(
-            eq(mockActivity),
-            callbackCaptor.capture(),
-            any(),
-            isNull(),
-        )
+
         tagReader.onCancel(null)
-        callbackCaptor.firstValue.onTagDiscovered(mockTag)
+        discoverTag(mockTag)
 
         verifyNoInteractions(mockEventSink)
-        verify(mockIsoDep, times(0)).connect()
+        verify(mockIsoDep, never()).connect()
     }
 
     @Test
-    fun `onCancel clears state when IsoDep close throws IOException`() {
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        tagReader.isoDep = mockIsoDep
-        whenever(mockIsoDep.close()).thenThrow(IOException())
+    fun `onCancel closes IsoDep to interrupt a blocked command, which reports TagConnectionException`() =
+        // An interrupted transceive fails with an IOException or, after close, an IllegalStateException.
+        listOf(IOException("closed"), IllegalStateException("connection closed")).forEach { failure ->
+            val isoDep = mock<IsoDep>()
+            val transceiveStarted = CountDownLatch(1)
+            val closeCalled = CountDownLatch(1)
+            whenever(isoDep.transceive(command)).thenAnswer {
+                transceiveStarted.countDown()
+                assertTrue(closeCalled.await(2, TimeUnit.SECONDS))
+                throw failure
+            }
+            whenever(isoDep.close()).thenAnswer {
+                closeCalled.countDown()
+                throw IOException("already lost")
+            }
+            tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+            tagReader.isoDep = isoDep
 
-        tagReader.onCancel(null)
+            val caller = Executors.newSingleThreadExecutor()
+            try {
+                val commandResult =
+                    caller.submit<TagConnectionException> {
+                        assertThrows<TagConnectionException> { sendCommand(command) }
+                    }
 
-        assertNull(tagReader.eventSink)
-        assertNull(tagReader.isoDep)
-    }
+                assertTrue(transceiveStarted.await(2, TimeUnit.SECONDS))
+                tagReader.onCancel(null)
+                commandResult.get(2, TimeUnit.SECONDS)
+                assertNull(tagReader.isoDep)
+            } finally {
+                caller.shutdownNow()
+            }
+        }
 
     @Test
-    fun `onCancel closes IsoDep to interrupt a blocked command`() {
-        val transceiveStarted = CountDownLatch(1)
-        val closeCalled = CountDownLatch(1)
-        whenever(mockIsoDep.transceive(command)).thenAnswer {
-            transceiveStarted.countDown()
-            assertTrue(closeCalled.await(2, TimeUnit.SECONDS))
-            throw IOException("closed")
-        }
-        whenever(mockIsoDep.close()).thenAnswer {
-            closeCalled.countDown()
-            throw IOException("already lost")
-        }
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        tagReader.isoDep = mockIsoDep
+    fun `onCancel stops discovery and clears state even if closing the tag fails`() {
+        listOf(false, true).forEach { closeFails ->
+            val isoDep = mock<IsoDep>()
+            if (closeFails) whenever(isoDep.close()).thenThrow(IOException())
+            tagReader.onListen(mapOf("timeout" to null), mockEventSink)
+            tagReader.isoDep = isoDep
 
-        val caller = Executors.newSingleThreadExecutor()
-        try {
-            val commandResult =
-                caller.submit<TagConnectionException> {
-                    assertThrows<TagConnectionException> { sendCommand(command) }
-                }
-
-            assertTrue(transceiveStarted.await(2, TimeUnit.SECONDS))
             tagReader.onCancel(null)
-            commandResult.get(2, TimeUnit.SECONDS)
+
+            assertNull(tagReader.eventSink)
             assertNull(tagReader.isoDep)
-        } finally {
-            caller.shutdownNow()
+            verify(isoDep, timeout(TIMEOUT_MS)).close()
         }
-    }
 
-    @Test
-    fun `onCancel should stop discovery and nullify eventSink`() {
-        tagReader.onListen(mapOf("timeout" to null), mockEventSink)
-        tagReader.isoDep = mockIsoDep
-        tagReader.onCancel(null)
-
-        assertNull(tagReader.eventSink)
-        assertNull(tagReader.isoDep)
-        verify(mockNfcAdapter).disableReaderMode(mockActivity)
-        Mockito.verify(mockIsoDep, Mockito.timeout(2_000)).close()
+        verify(mockNfcAdapter, times(2)).disableReaderMode(mockActivity)
     }
 
     @Test
@@ -834,7 +672,7 @@ class TagReaderTest {
     }
 
     @Test
-    fun `dispose clears active state when mocked reader mode release fails`() {
+    fun `dispose is safe to repeat when disableReaderMode fails`() {
         tagReader.onListen(mapOf("timeout" to 3000), mockEventSink)
         tagReader.isoDep = mockIsoDep
         doThrow(IllegalStateException("activity is already destroyed"))
@@ -854,17 +692,17 @@ class TagReaderTest {
     }
 
     @Test
-    fun `dispose ends the stream only once`() {
+    fun `onListen after dispose does not start discovery`() {
+        tagReader.dispose()
+
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
-        tagReader.dispose()
-        tagReader.dispose()
-
-        verify(mockEventSink, times(1)).endOfStream()
+        verifyNoInteractions(mockEventSink)
+        verify(mockNfcAdapter, never()).enableReaderMode(any(), any(), any(), isNull())
     }
 
     @Test
-    fun `dispose without discovery has no stream to end`() {
+    fun `dispose after onCancel does not end the stream`() {
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
         tagReader.onCancel(null)
 
@@ -873,17 +711,21 @@ class TagReaderTest {
         verifyNoInteractions(mockEventSink)
     }
 
-    private fun newTagReader(nfcAdapter: NfcAdapter?) =
-        TagReader(
-            activity = mockActivity,
-            nfcAdapter = nfcAdapter,
-            ioExecutor = ioExecutor,
-            mainThreadExecutor = { reply ->
+    private fun newTagReader(
+        nfcAdapter: NfcAdapter? = mockNfcAdapter,
+        ioExecutor: ExecutorService = this.ioExecutor,
+        mainThreadExecutor: Executor =
+            Executor { reply ->
                 mainThreadPosts.incrementAndGet()
                 reply.run()
             },
-            isoDepFor = { tag -> isoDepFor(tag) },
-        )
+    ) = TagReader(
+        activity = mockActivity,
+        nfcAdapter = nfcAdapter,
+        ioExecutor = ioExecutor,
+        mainThreadExecutor = mainThreadExecutor,
+        isoDepFor = { tag -> isoDepFor(tag) },
+    )
 
     private fun sendCommand(
         command: ByteArray,
@@ -899,18 +741,14 @@ class TagReaderTest {
     }
 
     private fun verifyInvalidArgumentsEmitted(events: EventSink = mockEventSink) {
-        verify(events).error(
-            "INVALID_ARGUMENTS",
-            "The arguments are missing or have the wrong type.",
-            null,
-        )
+        verify(events).error(InvalidArgumentsException())
         verify(events).endOfStream()
         verifyNoMoreInteractions(events)
     }
 
     private fun discoverTag(tag: Tag) {
         val callbackCaptor = argumentCaptor<NfcAdapter.ReaderCallback>()
-        verify(mockNfcAdapter, Mockito.atLeastOnce()).enableReaderMode(
+        verify(mockNfcAdapter, atLeastOnce()).enableReaderMode(
             eq(mockActivity),
             callbackCaptor.capture(),
             any(),
@@ -921,5 +759,6 @@ class TagReaderTest {
 
     private companion object {
         const val IO_THREAD_NAME = "test-nfc-io"
+        const val TIMEOUT_MS = 2_000L
     }
 }

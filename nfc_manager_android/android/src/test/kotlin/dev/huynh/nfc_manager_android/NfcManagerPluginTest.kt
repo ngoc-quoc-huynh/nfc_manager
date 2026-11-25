@@ -5,14 +5,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.nfc.NfcAdapter
 import android.util.Log
-import dev.huynh.nfc_manager_android.feature.FeatureChecker
-import dev.huynh.nfc_manager_android.hce.HostCardEmulationConfig
 import dev.huynh.nfc_manager_android.hce.HostCardEmulationService
+import dev.huynh.nfc_manager_android.hce.HostCardEmulationSessionHolder
+import dev.huynh.nfc_manager_android.hce.HostCardEmulationStatus
 import dev.huynh.nfc_manager_android.hce.HostCardEmulationStreamHandler
-import dev.huynh.nfc_manager_android.models.HostCardEmulationStatus
-import dev.huynh.nfc_manager_android.models.ResponseApdu
+import dev.huynh.nfc_manager_android.hce.ResponseApdu
 import dev.huynh.nfc_manager_android.reader.TagReader
-import dev.huynh.nfc_manager_android.utils.error
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.BinaryMessenger
@@ -20,7 +18,6 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.EventChannel.EventSink
 import io.flutter.plugin.common.FlutterException
 import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.StandardMethodCodec
 import org.junit.jupiter.api.AfterEach
@@ -42,6 +39,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 class NfcManagerPluginTest {
     private val mockFeatureChecker = mock<FeatureChecker>()
@@ -58,166 +56,121 @@ class NfcManagerPluginTest {
 
     @AfterEach
     fun tearDown() {
-        HostCardEmulationConfig.session?.let { HostCardEmulationConfig.clear(it.owner) }
+        HostCardEmulationSessionHolder.active?.let { HostCardEmulationSessionHolder.clear(it.owner) }
     }
 
     @Test
-    fun `isHceSupported method call returns correctly`() {
-        whenever(mockFeatureChecker.isHceSupported()).thenReturn(true)
-        plugin.onMethodCall(
-            MethodCall("isHceSupported", null),
-            mockResult,
-        )
+    fun `feature checks return the FeatureChecker result`() =
+        listOf<Pair<String, FeatureChecker.() -> Boolean>>(
+            "isHceSupported" to { isHceSupported() },
+            "isNfcSupported" to { isNfcSupported() },
+            "isNfcEnabled" to { isNfcEnabled() },
+        ).forEach { (method, check) ->
+            whenever(mockFeatureChecker.check()).thenReturn(true)
+            val result = mock<Result>()
 
-        verify(mockResult).success(true)
-    }
+            plugin.onMethodCall(MethodCall(method, null), result)
 
-    @Test
-    fun `isNfcSupported method call returns correctly`() {
-        whenever(mockFeatureChecker.isNfcSupported()).thenReturn(true)
-        plugin.onMethodCall(
-            MethodCall("isNfcSupported", null),
-            mockResult,
-        )
-
-        verify(mockResult).success(true)
-    }
+            verify(result).success(true)
+        }
 
     @Test
-    fun `isNfcEnabled method call returns correctly`() {
-        whenever(mockFeatureChecker.isNfcEnabled()).thenReturn(true)
-        plugin.onMethodCall(
-            MethodCall("isNfcEnabled", null),
-            mockResult,
-        )
-
-        verify(mockResult).success(true)
-    }
-
-    @Test
-    fun `sendCommand method call returns correctly`() {
+    fun `sendCommand returns the tag response`() {
         whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer { invocation ->
             invocation.getArgument<(ByteArray) -> Unit>(1)(ResponseApdu.OK.toByteArray())
         }
-        plugin.onMethodCall(
-            MethodCall(
-                "sendCommand",
-                mapOf("command" to byteArrayOf()),
-            ),
-            mockResult,
-        )
+
+        plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to byteArrayOf())), mockResult)
 
         verify(mockResult).success(ResponseApdu.OK.toByteArray())
     }
 
     @Test
-    fun `sendCommand method call returns error if method throws`() {
-        whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer {
-            throw TagConnectionException()
+    fun `sendCommand reports an NFC error from the reader`() {
+        whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer { invocation ->
+            invocation.getArgument<(NfcException) -> Unit>(2)(TagConnectionException())
         }
-        plugin.onMethodCall(
-            MethodCall(
-                "sendCommand",
-                mapOf("command" to byteArrayOf()),
-            ),
-            mockResult,
-        )
+
+        plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to byteArrayOf())), mockResult)
 
         verify(mockResult).error(TagConnectionException())
     }
 
     @Test
-    fun `sendCommand method call returns error from asynchronous NFC failure`() {
-        whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer { invocation ->
-            invocation.getArgument<(Throwable) -> Unit>(2)(TagConnectionException())
-        }
-        plugin.onMethodCall(
-            MethodCall("sendCommand", mapOf("command" to byteArrayOf())),
-            mockResult,
-        )
+    fun `sendCommand without an activity reports TAG_CONNECTION_FAILED`() {
+        plugin.tagReader = null
+
+        plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to byteArrayOf())), mockResult)
 
         verify(mockResult).error(TagConnectionException())
     }
 
     @Test
-    fun `sendCommand reports unexpected asynchronous failures`() {
-        whenever(mockTagReader.sendCommand(any(), any(), any())).thenAnswer { invocation ->
-            invocation.getArgument<(Throwable) -> Unit>(2)(IllegalStateException())
+    fun `sendCommand rejects a missing or non-byte command with INVALID_ARGUMENTS`() =
+        listOf(null, mapOf("command" to "invalid")).forEach { arguments ->
+            val result = mock<Result>()
+            plugin.onMethodCall(MethodCall("sendCommand", arguments), result)
+            verify(result).error(InvalidArgumentsException())
         }
-        plugin.onMethodCall(
-            MethodCall("sendCommand", mapOf("command" to byteArrayOf())),
-            mockResult,
-        )
-
-        verify(mockResult).error("NFC_ERROR", "Unexpected NFC reader error.", null)
-    }
-
-    @Test
-    fun `sendCommand method call rejects a missing command`() {
-        plugin.onMethodCall(MethodCall("sendCommand", null), mockResult)
-
-        verify(mockResult).error(InvalidArgumentsException())
-    }
-
-    @Test
-    fun `sendCommand method call rejects a malformed command`() {
-        plugin.onMethodCall(MethodCall("sendCommand", mapOf("command" to "invalid")), mockResult)
-
-        verify(mockResult).error(InvalidArgumentsException())
-    }
 
     @Test
     fun `discovery reports an error and ends when started without an activity`() {
-        val channel = DiscoveryChannel()
+        val channels = PluginChannels()
         plugin.tagReader = null
 
-        assertNull(StandardMethodCodec.INSTANCE.decodeEnvelope(assertNotNull(channel.call("listen"))))
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(DISCOVERY_CHANNEL, "listen"))))
 
         val event = argumentCaptor<ByteBuffer>()
-        verify(channel.messenger, times(2)).send(eq(channel.name), event.capture())
-        assertEquals(1.toByte(), assertNotNull(event.firstValue).apply { flip() }.get())
+        verify(channels.messenger, times(2)).send(eq(DISCOVERY_CHANNEL), event.capture())
+        val error = assertFailsWith<FlutterException> { codec.decodeEnvelope(assertNotNull(event.firstValue).apply { flip() }) }
+        assertEquals("NFC_ERROR", error.code)
         assertNull(event.lastValue)
     }
 
     @Test
+    fun `discovery cancel stops the current reader`() {
+        val channels = PluginChannels()
+        channels.attachActivity()
+        assertNotNull(channels.call(DISCOVERY_CHANNEL, "listen"))
+        assertNotNull(assertNotNull(plugin.tagReader).eventSink)
+
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(DISCOVERY_CHANNEL, "cancel"))))
+
+        assertNull(assertNotNull(plugin.tagReader).eventSink)
+        plugin.onDetachedFromActivity()
+    }
+
+    @Test
     fun `discovery accepts cancellation after an activity detaches`() {
-        val channel = DiscoveryChannel()
-        channel.attachActivity()
-        assertNull(StandardMethodCodec.INSTANCE.decodeEnvelope(assertNotNull(channel.call("listen"))))
+        val channels = PluginChannels()
+        channels.attachActivity()
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(DISCOVERY_CHANNEL, "listen"))))
 
         plugin.onDetachedFromActivity()
 
-        val reply = assertNotNull(channel.call("cancel"))
-        assertNull(StandardMethodCodec.INSTANCE.decodeEnvelope(reply))
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(DISCOVERY_CHANNEL, "cancel"))))
     }
 
     @Test
     fun `discovery delivers events from the reader after activity reattachment`() {
-        val channel = DiscoveryChannel()
-        channel.attachActivity()
-        assertNotNull(channel.call("listen"))
+        val channels = PluginChannels()
+        channels.attachActivity()
+        assertNotNull(channels.call(DISCOVERY_CHANNEL, "listen"))
         val previousReader = plugin.tagReader
         plugin.onDetachedFromActivityForConfigChanges()
-        assertNotNull(channel.call("cancel"))
+        assertNotNull(channels.call(DISCOVERY_CHANNEL, "cancel"))
 
-        channel.reattachActivityForConfigChanges()
-        assertNotNull(channel.call("listen"))
+        channels.reattachActivityForConfigChanges()
+        assertNotNull(channels.call(DISCOVERY_CHANNEL, "listen"))
         val reader = assertNotNull(plugin.tagReader)
         assertNull(previousReader?.eventSink)
         assertNotNull(reader.eventSink).success("04A1")
 
         val event = argumentCaptor<ByteBuffer>()
-        verify(channel.messenger, times(2)).send(eq(channel.name), event.capture())
+        verify(channels.messenger, times(2)).send(eq(DISCOVERY_CHANNEL), event.capture())
         assertNull(event.firstValue)
-        assertEquals("04A1", StandardMethodCodec.INSTANCE.decodeEnvelope(event.lastValue.apply { flip() }))
+        assertEquals("04A1", codec.decodeEnvelope(event.lastValue.apply { flip() }))
         plugin.onDetachedFromActivity()
-    }
-
-    @Test
-    fun `activity detachment cancels and releases the tag reader`() {
-        plugin.onDetachedFromActivity()
-
-        verify(mockTagReader).dispose()
     }
 
     @Test
@@ -238,29 +191,24 @@ class NfcManagerPluginTest {
     }
 
     @Test
-    fun `engine detachment cancels and releases the tag reader`() {
-        val mockMethodChannel = mock<MethodChannel>()
-        val mockDiscoveryEventChannel = mock<EventChannel>()
-        val mockHostCardEmulationEventChannel = mock<EventChannel>()
-        setChannels(mockMethodChannel, mockDiscoveryEventChannel, mockHostCardEmulationEventChannel)
+    fun `engine detachment clears the channel handlers and disposes the tag reader`() {
+        val channels = PluginChannels()
 
-        plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
+        channels.detachEngine()
 
-        verify(mockMethodChannel).setMethodCallHandler(null)
-        verify(mockDiscoveryEventChannel).setStreamHandler(null)
-        verify(mockHostCardEmulationEventChannel).setStreamHandler(null)
+        listOf(METHOD_CHANNEL, DISCOVERY_CHANNEL, HCE_CHANNEL).forEach { channel ->
+            verify(channels.messenger).setMessageHandler(channel, null)
+        }
         verify(mockTagReader).dispose()
     }
 
     @Test
     fun `engine detachment during emulation stops HCE responses`() {
+        val channels = PluginChannels()
         val mockEventSink = mock<EventSink>()
-        val streamHandler = HostCardEmulationStreamHandler()
-        plugin.hostCardEmulationStreamHandler = streamHandler
-        setChannels()
-        streamHandler.onListen(hceArguments, mockEventSink)
+        assertNotNull(plugin.hostCardEmulationStreamHandler).onListen(hceArguments, mockEventSink)
 
-        plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
+        channels.detachEngine()
         val response = HostCardEmulationService().processCommandApdu(selectCommand, null)
 
         assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), response)
@@ -271,12 +219,11 @@ class NfcManagerPluginTest {
 
     @Test
     fun `engine detachment keeps an HCE session started by another engine`() {
+        val channels = PluginChannels()
         val mockEventSink = mock<EventSink>()
-        plugin.hostCardEmulationStreamHandler = HostCardEmulationStreamHandler()
-        setChannels()
         HostCardEmulationStreamHandler().onListen(hceArguments, mockEventSink)
 
-        plugin.onDetachedFromEngine(mock<FlutterPlugin.FlutterPluginBinding>())
+        channels.detachEngine()
         val response = HostCardEmulationService().processCommandApdu(selectCommand, null)
 
         assertContentEquals(ResponseApdu.OK.toByteArray(), response)
@@ -285,41 +232,20 @@ class NfcManagerPluginTest {
 
     @Test
     fun `HCE rejects an invalid AID length and accepts the next listen`() {
-        val channel = "dev.huynh/nfc_manager_android/host_card_emulation"
-        val codec = StandardMethodCodec.INSTANCE
-        val messenger = mock<BinaryMessenger>()
-        val context = mock<Context> { on { packageManager } doReturn mock<PackageManager>() }
-        val binding =
-            mock<FlutterPlugin.FlutterPluginBinding> {
-                on { applicationContext } doReturn context
-                on { binaryMessenger } doReturn messenger
-            }
-        mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
-        val handler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
-        verify(messenger).setMessageHandler(eq(channel), handler.capture())
+        val channels = PluginChannels()
 
-        fun listen(arguments: Map<String, ByteArray>) {
-            val message = codec.encodeMethodCall(MethodCall("listen", arguments)).apply { flip() }
-            handler.firstValue.onMessage(message) { reply ->
-                assertNull(codec.decodeEnvelope(assertNotNull(reply).apply { flip() }))
-            }
-        }
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(HCE_CHANNEL, "listen", hceArguments + ("aid" to ByteArray(4))))))
+        assertNull(HostCardEmulationSessionHolder.active)
 
-        listen(hceArguments + ("aid" to ByteArray(4)))
-        assertNull(HostCardEmulationConfig.session)
-
-        listen(hceArguments)
-        kotlin.test.assertSame<EventChannel.StreamHandler?>(
+        assertNull(codec.decodeEnvelope(assertNotNull(channels.call(HCE_CHANNEL, "listen", hceArguments))))
+        assertSame<EventChannel.StreamHandler?>(
             plugin.hostCardEmulationStreamHandler,
-            assertNotNull(HostCardEmulationConfig.session).owner,
+            assertNotNull(HostCardEmulationSessionHolder.active).owner,
         )
 
         val events = argumentCaptor<ByteBuffer>()
-        verify(messenger, times(3)).send(eq(channel), events.capture())
-        val invalidArguments =
-            assertFailsWith<FlutterException> {
-                codec.decodeEnvelope(assertNotNull(events.firstValue).apply { flip() })
-            }
+        verify(channels.messenger, times(3)).send(eq(HCE_CHANNEL), events.capture())
+        val invalidArguments = assertFailsWith<FlutterException> { codec.decodeEnvelope(assertNotNull(events.firstValue).apply { flip() }) }
         assertEquals("INVALID_ARGUMENTS", invalidArguments.code)
         assertEquals("HCE requires an AID of 5–16 bytes and a PIN of 1–255 bytes.", invalidArguments.message)
         assertNull(invalidArguments.details)
@@ -329,27 +255,18 @@ class NfcManagerPluginTest {
 
     @Test
     fun `a queued HCE listen cannot restore or replace a session after engine detachment`() {
-        val messenger = mock<BinaryMessenger>()
-        val context = mock<Context>()
-        whenever(context.packageManager).thenReturn(mock<PackageManager>())
-        val binding = mock<FlutterPlugin.FlutterPluginBinding>()
-        whenever(binding.applicationContext).thenReturn(context)
-        whenever(binding.binaryMessenger).thenReturn(messenger)
-        mockStatic(NfcAdapter::class.java).use { plugin.onAttachedToEngine(binding) }
-        val handler = argumentCaptor<BinaryMessenger.BinaryMessageHandler>()
-        verify(messenger).setMessageHandler(eq("dev.huynh/nfc_manager_android/host_card_emulation"), handler.capture())
+        val channels = PluginChannels()
+        // Flutter may still deliver a listen to the handler it looked up before detachment.
+        val handler = channels.handler(HCE_CHANNEL)
 
-        fun deliverListen() {
-            val message = StandardMethodCodec.INSTANCE.encodeMethodCall(MethodCall("listen", hceArguments))
-            message.rewind()
-            mockStatic(Log::class.java).use { handler.firstValue.onMessage(message, mock()) }
-        }
+        // The rejected listen is logged by Flutter's stream request handler.
+        fun deliverListen() = mockStatic(Log::class.java).use { channels.send(handler, "listen", hceArguments) }
 
         val service = HostCardEmulationService()
         deliverListen()
         assertContentEquals(ResponseApdu.OK.toByteArray(), service.processCommandApdu(selectCommand, null))
 
-        plugin.onDetachedFromEngine(binding)
+        channels.detachEngine()
         assertContentEquals(ResponseApdu.HCE_NOT_READY.toByteArray(), service.processCommandApdu(selectCommand, null))
 
         deliverListen()
@@ -363,72 +280,68 @@ class NfcManagerPluginTest {
     }
 
     @Test
-    fun `throws not implemented for other method calls`() {
-        plugin.onMethodCall(
-            MethodCall("other", null),
-            mockResult,
-        )
+    fun `unknown method calls return notImplemented`() {
+        plugin.onMethodCall(MethodCall("other", null), mockResult)
+
         verify(mockResult).notImplemented()
     }
 
-    private inner class DiscoveryChannel {
-        val name = "dev.huynh/nfc_manager_android/discovery"
+    /** Attaches [plugin] to an engine with a mock messenger and records each channel's handler. */
+    private inner class PluginChannels {
         val messenger = mock<BinaryMessenger>()
-        private val adapter = mock<NfcAdapter>()
-        private var handler: BinaryMessenger.BinaryMessageHandler? = null
+        private val handlers = mutableMapOf<String, BinaryMessenger.BinaryMessageHandler?>()
+        private val context = mock<Context> { on { packageManager } doReturn mock<PackageManager>() }
+        private val binding =
+            mock<FlutterPlugin.FlutterPluginBinding> {
+                on { applicationContext } doReturn context
+                on { binaryMessenger } doReturn messenger
+            }
 
         init {
-            whenever(messenger.setMessageHandler(eq(name), anyOrNull())).thenAnswer {
-                handler = it.getArgument(1)
+            whenever(messenger.setMessageHandler(any(), anyOrNull())).thenAnswer {
+                handlers[it.getArgument(0)] = it.getArgument(1)
                 null
             }
-            val context = mock<Context> { on { packageManager } doReturn mock<PackageManager>() }
-            val binding =
-                mock<FlutterPlugin.FlutterPluginBinding> {
-                    on { applicationContext } doReturn context
-                    on { binaryMessenger } doReturn messenger
-                }
             mockStatic(NfcAdapter::class.java).use {
-                it.`when`<NfcAdapter> { NfcAdapter.getDefaultAdapter(context) }.thenReturn(adapter)
+                it.`when`<NfcAdapter> { NfcAdapter.getDefaultAdapter(context) }.thenReturn(mock<NfcAdapter>())
                 plugin.onAttachedToEngine(binding)
             }
         }
 
-        fun attachActivity() {
-            plugin.onAttachedToActivity(activityBinding())
-        }
+        fun handler(channel: String) = assertNotNull(handlers[channel])
 
-        fun reattachActivityForConfigChanges() {
-            plugin.onReattachedToActivityForConfigChanges(activityBinding())
-        }
+        /** Sends a method call to [channel] and returns the reply, or null if none was sent. */
+        fun call(
+            channel: String,
+            method: String,
+            arguments: Any? = null,
+        ) = handlers[channel]?.let { send(it, method, arguments) }
 
-        fun call(method: String): ByteBuffer? {
-            val codec = StandardMethodCodec.INSTANCE
+        fun send(
+            handler: BinaryMessenger.BinaryMessageHandler,
+            method: String,
+            arguments: Any?,
+        ): ByteBuffer? {
             var reply: ByteBuffer? = null
-            handler?.onMessage(codec.encodeMethodCall(MethodCall(method, null)).apply { flip() }) {
+            handler.onMessage(codec.encodeMethodCall(MethodCall(method, arguments)).apply { flip() }) {
                 reply = it?.apply { flip() }
             }
             return reply
         }
 
-        private fun activityBinding() =
-            mock<ActivityPluginBinding> {
-                on { activity } doReturn mock<Activity>()
-            }
+        fun attachActivity() = plugin.onAttachedToActivity(activityBinding())
+
+        fun reattachActivityForConfigChanges() = plugin.onReattachedToActivityForConfigChanges(activityBinding())
+
+        fun detachEngine() = plugin.onDetachedFromEngine(binding)
+
+        private fun activityBinding() = mock<ActivityPluginBinding> { on { activity } doReturn mock<Activity>() }
     }
 
-    private fun setChannels(
-        methodChannel: MethodChannel = mock(),
-        discoveryEventChannel: EventChannel = mock(),
-        hostCardEmulationEventChannel: EventChannel = mock(),
-    ) = mapOf(
-        "methodChannel" to methodChannel,
-        "discoveryEventChannel" to discoveryEventChannel,
-        "hostCardEmulationEventChannel" to hostCardEmulationEventChannel,
-    ).forEach { (fieldName, value) ->
-        NfcManagerPlugin::class.java.getDeclaredField(fieldName).apply {
-            isAccessible = true
-            set(plugin, value)
-        }
+    private companion object {
+        const val METHOD_CHANNEL = "dev.huynh/nfc_manager_android"
+        const val DISCOVERY_CHANNEL = "dev.huynh/nfc_manager_android/discovery"
+        const val HCE_CHANNEL = "dev.huynh/nfc_manager_android/host_card_emulation"
+        val codec: StandardMethodCodec = StandardMethodCodec.INSTANCE
     }
 }

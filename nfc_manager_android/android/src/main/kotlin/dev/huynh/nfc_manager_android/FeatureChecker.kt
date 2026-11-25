@@ -1,0 +1,16 @@
+package dev.huynh.nfc_manager_android
+
+import android.content.pm.PackageManager
+import android.nfc.NfcAdapter
+
+/** Checks the device's NFC and HCE support. */
+internal class FeatureChecker(
+    private val nfcAdapter: NfcAdapter?,
+    private val packageManager: PackageManager,
+) {
+    fun isHceSupported(): Boolean = packageManager.hasSystemFeature(PackageManager.FEATURE_NFC_HOST_CARD_EMULATION)
+
+    fun isNfcSupported(): Boolean = nfcAdapter != null
+
+    fun isNfcEnabled(): Boolean = nfcAdapter?.isEnabled == true
+}
