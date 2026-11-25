@@ -4,11 +4,16 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 
 /// Provides access to the registered NFC platform implementation.
 ///
-/// On Android, native NFC errors mapped by command or stream operations use
-/// an [NfcException] subtype. [NfcUnknownException.code] identifies an error
-/// without a dedicated subtype. Treat [NfcException.message] as untrusted
-/// diagnostic text. Use the exception type or code in app logic and your own
-/// text in user-facing messages.
+/// Android is currently the only implementation, and platform-specific
+/// behavior described here is Android's. On a platform without an
+/// implementation, every method throws [UnimplementedError] synchronously.
+///
+/// Futures can complete with `MissingPluginException` if the native plugin is
+/// missing, and [isHceSupported], [isNfcSupported] and [isNfcEnabled] with
+/// `PlatformException` if the native call fails. Other errors are
+/// [NfcException] subtypes; [NfcUnknownException.code] identifies one without
+/// a dedicated subtype. Treat [NfcException.message] as untrusted diagnostic
+/// text: use the type or code in app logic and your own user-facing text.
 class NfcManager {
   /// Creates an [NfcManager] that uses the registered NFC platform
   /// implementation.
@@ -21,35 +26,13 @@ class NfcManager {
   static NfcManagerPlatform get _platform => NfcManagerPlatform.instance;
 
   /// Checks if the device supports Host Card Emulation (HCE).
-  ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
-  ///
-  /// On Android, a failed native call can complete the future with
-  /// `PlatformException` or, if the native handler is missing,
-  /// `MissingPluginException`.
   Future<bool> isHceSupported() => _platform.isHceSupported();
 
   /// Checks if the device supports NFC.
-  ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
-  ///
-  /// On Android, a failed native call can complete the future with
-  /// `PlatformException` or, if the native handler is missing,
-  /// `MissingPluginException`.
   Future<bool> isNfcSupported() => _platform.isNfcSupported();
 
-  /// Checks if NFC is enabled on the device.
-  ///
-  /// On Android, the result is false when the device has no NFC adapter.
-  ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
-  ///
-  /// On Android, a failed native call can complete the future with
-  /// `PlatformException` or, if the native handler is missing,
-  /// `MissingPluginException`.
+  /// Checks if NFC is enabled on the device. Returns false without an NFC
+  /// adapter.
   Future<bool> isNfcEnabled() => _platform.isNfcEnabled();
 
   /// Discovers ISO-DEP tags and returns a stream of their identifiers.
@@ -57,38 +40,23 @@ class NfcManager {
   /// Each identifier is the tag ID as two uppercase hexadecimal digits per
   /// byte, for example `04A1B2C3`. Decode it with [HexString.hexToBytes].
   ///
-  /// Discovery starts when the stream is listened to. Keep only one active
-  /// discovery subscription across all calls to [startDiscovery]. To stop
-  /// discovery early, cancel the subscription. To restart, wait for the stream
-  /// to finish or await cancellation, then call [startDiscovery] and listen
-  /// to the new stream.
+  /// Discovery starts when the stream is listened to and stops when the
+  /// subscription is cancelled. Only one discovery can run: before listening
+  /// to a new stream, let the previous one finish or await its cancellation.
+  /// Detaching the activity ends the stream; start again after reattachment.
   ///
-  /// On Android, [timeout] applies to each APDU exchange after the tag
-  /// connects. Tag discovery and connection are outside this timeout.
+  /// [timeout] limits each APDU exchange, not tag discovery or connection. A
+  /// null [timeout] uses the platform default. Throws [ArgumentError]
+  /// synchronously unless it is a positive whole number of milliseconds up to
+  /// 2147483647.
   ///
-  /// On Android, detaching the host UI (the activity) ends the stream. To
-  /// resume, call [startDiscovery] after reattachment and listen to the new
-  /// stream.
-  ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
-  ///
-  /// Throws [ArgumentError] synchronously if a non-null [timeout] is not a
-  /// positive whole number of milliseconds up to 2147483647. A null [timeout]
-  /// uses the platform default.
-  ///
-  /// On Android, the stream reports [NfcUnknownException] with code `NFC_ERROR`
-  /// and closes if there is no attached activity or Android throws while
-  /// enabling reader mode.
-  /// With an attached activity but no NFC adapter, it reports
-  /// [NfcNotSupportedException] and closes.
-  ///
-  /// Per-tag errors allow discovery to continue. These include
-  /// [IsoDepNotSupportedException] when a tag lacks ISO-DEP and
-  /// [TagConnectionException] when the connection fails. Other reader errors
-  /// and invalid event payloads can also reach the listener as
-  /// [NfcUnknownException]. Flutter reports event-channel activation and
-  /// cancellation failures through `FlutterError`.
+  /// The stream reports an error and closes if discovery cannot start:
+  /// [NfcNotSupportedException] without an NFC adapter, or
+  /// [NfcUnknownException] with code `NFC_ERROR` without an attached activity
+  /// or when reader mode fails. Per-tag errors keep discovery running:
+  /// [IsoDepNotSupportedException] for a tag without ISO-DEP,
+  /// [TagConnectionException] for a failed connection, and
+  /// [NfcUnknownException] for other reader errors.
   Stream<String> startDiscovery({Duration? timeout}) {
     _checkTimeout(timeout);
     return _platform.startDiscovery(timeout: timeout);
@@ -96,58 +64,39 @@ class NfcManager {
 
   /// Sends an APDU command to the connected tag and returns its response.
   ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
+  /// The response holds the card's status bytes, including failure statuses;
+  /// these are not thrown. The future completes with an error for:
   ///
-  /// On Android, the returned future can complete with these errors.
-  ///
-  /// * [InvalidApduCommandException] if the platform rejects [command], for
-  ///   example when it exceeds the known transceive limit. Android rejects
-  ///   such a command before transmission and keeps the tag connected.
-  /// * [TagConnectionException] if there is no active connection, an I/O
-  ///   failure interrupts the exchange, or the response is missing either
-  ///   status byte.
-  /// * [NfcUnknownException] for other native error codes.
-  /// * `MissingPluginException` if the native handler is missing.
-  ///
-  /// Card status bytes, including failure statuses, are returned in
-  /// [ApduResponse].
+  /// * [InvalidApduCommandException] if the command is longer than the tag's
+  ///   maximum transceive length. It is not sent and the tag stays connected.
+  /// * [TagConnectionException] if no tag is connected, the exchange fails,
+  ///   or the response is shorter than 2 bytes.
+  /// * [NfcUnknownException] for other native errors.
   Future<ApduResponse> sendCommand(ApduCommand command) =>
       _platform.sendCommand(command);
 
   /// Emulates a card using [aid] and [pin] and returns a stream of HCE events.
   ///
-  /// Listening to a new stream starts emulation with a fresh PIN retry budget.
-  /// Cancel the subscription to stop emulation. Finish or cancel the existing
-  /// subscription before listening to a new stream. The platform may need [aid]
-  /// to be registered as well; on Android, declare it in the HCE service
-  /// configuration.
-  /// [HostCardEmulationStatus.ready] confirms that the configuration is stored.
-  /// Use [isHceSupported] and [isNfcEnabled] to check device capabilities and
-  /// NFC state separately. Routing depends on the Android service setup.
+  /// Emulation starts when the stream is listened to, and
+  /// [HostCardEmulationStatus.ready] means readers can now select [aid].
+  /// Cancel the subscription to stop emulation. Only one emulation runs per
+  /// app process: finish or cancel the current subscription before listening
+  /// again. Listening from another Flutter engine replaces the emulation, and
+  /// the replaced stream receives no further events.
   ///
-  /// Encode the [pin] text before calling this method, for example with
-  /// `utf8.encode`.
+  /// Declare [aid] in the HCE service configuration. Emulation does not check
+  /// device support or NFC state, so `ready` is emitted even when NFC is off;
+  /// check [isHceSupported] and [isNfcEnabled] first.
   ///
-  /// On Android, 3 wrong PINs in a row end the stream with an
-  /// [NfcUnknownException] whose code is `PIN_BLOCKED`. The count
-  /// carries over when the reader disconnects or selects the [aid] again. A
-  /// correct PIN resets it. Offer the user a restart after `PIN_BLOCKED`.
+  /// Encode the [pin] text first, for example with `utf8.encode`. The reader
+  /// must select [aid] before VERIFY; otherwise VERIFY is answered with
+  /// `69 85` and does not count as a wrong PIN. Each listen allows 3 wrong
+  /// PINs in a row; a correct PIN resets the count, and reconnecting or
+  /// reselecting does not. The third ends the stream with
+  /// [NfcUnknownException] code `PIN_BLOCKED`; offer the user a restart.
   ///
-  /// Throws [UnimplementedError] synchronously if there is no registered
-  /// implementation for this method.
-  ///
-  /// Throws [RangeError] synchronously, before delegating to the platform, if
-  /// [aid] is not between 5 and 16 bytes inclusive or [pin] is not between 1
-  /// and 255 bytes inclusive. The error is named `aid.length` or `pin.length`,
-  /// respectively. [aid] is validated first, so its error is thrown if both
-  /// lengths are invalid.
-  ///
-  /// On Android, native errors without a dedicated subtype arrive as
-  /// [NfcUnknownException] stream errors. An invalid event payload or an
-  /// unrecognized HCE status also reports [NfcUnknownException] and allows the
-  /// stream to continue. Flutter reports event-channel activation and
-  /// cancellation failures through `FlutterError`.
+  /// Throws [RangeError] synchronously if [aid] is not 5–16 bytes or [pin] is
+  /// not 1–255 bytes.
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,
     required Uint8List pin,

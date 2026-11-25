@@ -7,26 +7,27 @@ enum HostCardEmulationStatus {
   /// This does not confirm that NFC is enabled or the AID is routed correctly.
   ready,
 
-  /// The command header contains fewer than four bytes.
+  /// The command is shorter than the 4-byte header.
   invalidCommand,
 
-  /// The declared Lc does not match the command data length, or a SELECT/VERIFY
-  /// command is missing required data.
+  /// The Lc byte is `00` or does not match the command data, or a
+  /// SELECT/VERIFY command has no data.
   invalidLcLength,
 
-  /// Indicates that the AID (Application Identifier) has been selected.
+  /// The received AID matched the configured AID.
   aidSelected,
 
   /// The received AID did not match the configured AID.
   invalidAid,
 
-  /// The received PIN matched the configured PIN for this command.
+  /// The received PIN matched the configured PIN.
   pinVerified,
 
-  /// Indicates that the PIN is incorrect.
+  /// The received PIN did not match. The platform may end the stream after
+  /// repeated wrong PINs.
   wrongPin,
 
-  /// Indicates that the function is not supported.
+  /// The command is not SELECT AID (`A4 04`) or VERIFY (`20 00`).
   functionNotSupported,
 
   /// The NFC link ended or the reader switched to another service.

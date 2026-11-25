@@ -11,7 +11,7 @@ import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 /// Platform implementations must extend this class and set [instance] when
 /// they register. Methods that are not overridden throw [UnimplementedError].
 abstract class NfcManagerPlatform extends PlatformInterface {
-  /// Constructs a [NfcManagerPlatform].
+  /// Constructs an [NfcManagerPlatform].
   NfcManagerPlatform() : super(token: _token);
 
   // Used to verify that registered implementations extend this class.
@@ -49,8 +49,7 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   ///
   /// Start discovery when the stream is listened to. Emit an identifier
   /// after connecting to the tag. Encode each byte of the tag ID as two
-  /// uppercase hexadecimal digits, for example `04A1B2C3`. Decode the ID
-  /// with `hexToBytes`.
+  /// uppercase hexadecimal digits, for example `04A1B2C3`.
   ///
   /// Maintain one active tag connection for [sendCommand]. A new successful
   /// connection replaces the previous one. Release the connection when
@@ -75,10 +74,9 @@ abstract class NfcManagerPlatform extends PlatformInterface {
 
   /// Sends an APDU command to the connected tag and returns its response.
   ///
-  /// The [ApduResponse] keeps the response data and both status bytes.
-  /// Reports [InvalidApduCommandException] if the platform rejects the
-  /// command. Card status bytes, including failure statuses, are returned in
-  /// [ApduResponse].
+  /// Return the card's status bytes, including failure statuses, in the
+  /// [ApduResponse]. Report [InvalidApduCommandException] if the platform
+  /// rejects the command.
   ///
   /// [TagConnectionException] reports a missing connection, a lost tag, an
   /// I/O failure during the exchange, or a response with fewer than 2 bytes.
@@ -96,10 +94,8 @@ abstract class NfcManagerPlatform extends PlatformInterface {
   /// to stop emulation. Use one active emulation subscription at a time.
   ///
   /// The platform may require [aid] to be registered with the operating system
-  /// as well. A ready event confirms that the configuration is stored. It does
-  /// not confirm that NFC is enabled or that the device routes commands to the
-  /// service.
-  /// Choose the byte encoding of [pin] before calling this method.
+  /// as well. Emit [HostCardEmulationStatus.ready] once the configuration is
+  /// stored.
   ///
   /// The stream reports [NfcUnknownException] for native HCE errors without a
   /// dedicated exception type and for unrecognized or malformed HCE events.

@@ -8,7 +8,6 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 ///
 /// Android native errors without a dedicated [NfcException] subtype are
 /// reported as [NfcUnknownException] with their native code and message.
-/// The Dart adapter also uses this exception for event decoding errors.
 ///
 /// * `INVALID_ARGUMENTS`: the plugin received missing, mistyped, or
 ///   out-of-range arguments.
@@ -21,8 +20,12 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 ///   reports this error and ends, and further commands are answered with
 ///   `69 82` until emulation starts again.
 ///
-/// An [InvalidApduCommandException] can mean the command is longer than
-/// `IsoDep.getMaxTransceiveLength` allows; the tag stays connected.
+/// An [InvalidApduCommandException] also means the command exceeds
+/// `IsoDep.getMaxTransceiveLength`.
+///
+/// Discovery needs an attached activity. Detaching it ends the stream and
+/// releases the tag. Streams from separate `startDiscovery` calls share one
+/// native channel and can interrupt one another.
 ///
 /// Flutter reports event-channel activation and cancellation failures through
 /// [FlutterError].
@@ -64,29 +67,6 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   Future<bool> isNfcEnabled() async =>
       (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
 
-  /// Callers must keep at most one subscription active across all calls to
-  /// [startDiscovery]. Subscriptions to the same returned broadcast stream
-  /// share a reader session. When the last listener cancels, the reader stops
-  /// and releases the active tag. Separately returned streams use the same
-  /// platform event channel and can interrupt one another.
-  ///
-  /// After a stream completes, or after awaiting cancellation, call
-  /// [startDiscovery] again and listen to the new stream to restart. Detaching
-  /// the Android activity ends the stream and releases the tag. Wait for
-  /// reattachment before restarting.
-  ///
-  /// The public `NfcManager` throws [ArgumentError] synchronously for an
-  /// invalid [timeout]. Direct calls convert the duration with
-  /// [Duration.inMilliseconds], which truncates fractional milliseconds. If
-  /// the forwarded value is outside 1–2147483647, the stream reports
-  /// [NfcUnknownException] with code `INVALID_ARGUMENTS` and ends. A null
-  /// value uses the Android default.
-  ///
-  /// If the activity is missing or enabling reader mode fails, the stream
-  /// reports [NfcUnknownException] with code `NFC_ERROR` and ends. With an
-  /// attached activity but no NFC adapter, the stream reports
-  /// [NfcNotSupportedException] and ends. Discovery continues after individual
-  /// tag errors.
   @override
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
@@ -101,8 +81,6 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
         {'command': command.toUint8List()},
       );
 
-      // A response without both status bytes comes from the tag, so report it
-      // as a failed exchange rather than a decoder FormatException.
       if (response == null || response.length < 2) {
         throw const TagConnectionException();
       }
@@ -113,8 +91,6 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
     }
   }
 
-  /// Invalid AID or PIN lengths produce a [NfcUnknownException] with code
-  /// `INVALID_ARGUMENTS` after the stream is listened to. The stream then ends.
   @override
   Stream<HostCardEmulationStatus> startEmulation({
     required Uint8List aid,

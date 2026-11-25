@@ -5,117 +5,106 @@
 [![release](https://img.shields.io/github/v/release/ngoc-quoc-huynh/nfc_manager)](https://github.com/ngoc-quoc-huynh/nfc_manager/releases/latest)
 [![license](https://img.shields.io/github/license/ngoc-quoc-huynh/nfc_manager)](https://raw.githubusercontent.com/ngoc-quoc-huynh/nfc_manager/refs/heads/main/LICENSE)
 
-The `nfc_manager` is a comprehensive Flutter plugin designed to facilitate easy and efficient
-interaction with a device's NFC capabilities. It provides a streamlined, high-level API for NFC
-operations, ensuring seamless integration into your Flutter applications.
+Discover ISO-DEP tags, exchange APDU commands, and emulate cards with Host Card
+Emulation (HCE) on Android.
 
-## Features
+## Install
 
-- **NFC Discovery**: Enables the detection of NFC tags and devices in proximity.
-- **Host Card Emulation (HCE)**: Supports emulating NFC cards, allowing devices to act like an NFC
-  card.
-- **APDU Commands**: Facilitates sending and receiving APDU commands, essential for advanced NFC
-  operations.
-
-## Usage
-
-To use the `nfc_manager` plugin, add it to your `pubspec.yaml` file:
+This package is not on pub.dev. Add it as a git dependency and pin a release
+tag:
 
 ```yaml
 dependencies:
   nfc_manager:
     git:
       url: https://github.com/ngoc-quoc-huynh/nfc_manager
+      path: nfc_manager
+      ref: v2.0.0
 ```
 
-### Android HCE setup
+It requires Flutter 3.44 and Dart 3.12 or later. The Android implementation and
+the NFC permission are included automatically.
 
-To use the `nfc_manager` plugin on Android, you need to configure your `AndroidManifest.xml` and
-create an `apduservice.xml` file in the `xml` directory under `res`.
+## Usage
 
-#### Update `AndroidManifest.xml`
+```dart
+import 'dart:convert';
 
-Locate your `AndroidManifest.xml` file typically found in `src/main/`. Add the following service
-declaration inside the `<application>` tag:
+import 'package:nfc_manager/nfc_manager.dart';
 
-```xml
-<service android:name="dev.huynh.nfc_manager_android.host_card_emulation.HostCardEmulation"
-    android:exported="true" android:permission="android.permission.BIND_NFC_SERVICE">
-    <intent-filter>
-        <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
-    </intent-filter>
-    <meta-data android:name="android.nfc.cardemulation.host_apdu_service"
-        android:resource="@xml/apduservice" />
-</service>
+const nfcManager = NfcManager();
 ```
 
-#### Create `apduservice.xml`
+## Read a tag
 
-Navigate to the `res/xml` directory in your project. If the `xml` directory does not exist, create
-it. Then, add the following content to a new file named `apduservice.xml`:
+Check `isNfcEnabled()`, then listen to `startDiscovery()`. Each event is the ID
+of a connected tag, and `sendCommand()` talks to that tag:
 
-```xml
-<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
-    android:apduServiceBanner="@drawable/launch_background"
-    android:description="@string/service_description" android:requireDeviceUnlock="true">
-    <aid-group android:category="other" android:description="@string/aid_group_description">
-        <!-- This AID can be customized as needed -->
-        <aid-filter android:name="F000000001" />
-    </aid-group>
-</host-apdu-service>
-```
-
-#### Define Resource Strings
-
-Ensure these strings are defined in your `strings.xml` file located in `res/values/`:
-
-```xml
-<resources>
-    <string name="service_description">Custom NFC Manager Android Service</string>
-    <string name="aid_group_description">Custom AID group for NFC Manager Android</string>
-</resources>
-```
-
-This setup ensures that your Android application is prepared to handle NFC card emulation via the
-`nfc_manager` plugin. 
-
-### Minimal Examples
-
-#### Checking device capabilities
-- **HCE Support**: Determine if Host Card Emulation (HCE) is supported.
-  ```dart
-  NfcManager().isHceSupported();
-  ```
-- **NFC Support**: Check if NFC is supported on the device.
-  ```dart
-  NfcManager().isNfcSupported();
-  ```
-- **NFC Enabled**: Verify if NFC is enabled.
-  ```dart
-  NfcManager().isNfcEnabled();
-  ```
-
-#### Starting NFC operations
-- **Discover NFC Tags**: Begin the discovery of nearby NFC tags.
-  ```dart
-  NfcManager().startDiscovery();
-  ```
-
-#### Communicating with NFC tags
-- **Send an APDU Command**: Send a command to an NFC tag using a specific Application Identifier (AID).
-  ```dart
-  const aid = 'F000000001';
-  final command = SelectAidCommand(aid.toUint8List(isHex: true));
-  final response = await NfcManager().sendCommand(command);
-  ```
-
-#### Emulating an NFC card
-- **Start NFC Card Emulation**: Emulate an NFC card using a provided AID and PIN.
-  ```dart
-  const aid = 'F000000001';
-  const pin = '1234';
-  final stream = NfcManager().startEmulation(
-    aid: aid.toUint8List(isHex: true),
-    pin: pin.toUint8List(),
+```dart
+final subscription = nfcManager.startDiscovery().listen((tagId) async {
+  final response = await nfcManager.sendCommand(
+    ApduCommand.selectAid('F000000001'.hexToBytes()),
   );
-  ```
+  print(response.status);
+});
+```
+
+Cancel the subscription to stop discovery.
+
+## Emulate a card
+
+1. Declare the HCE service inside `<application>` in
+   `android/app/src/main/AndroidManifest.xml`:
+
+   ```xml
+   <service
+       android:name="dev.huynh.nfc_manager_android.hce.HostCardEmulationService"
+       android:exported="true"
+       android:permission="android.permission.BIND_NFC_SERVICE">
+       <intent-filter>
+           <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+       </intent-filter>
+       <meta-data
+           android:name="android.nfc.cardemulation.host_apdu_service"
+           android:resource="@xml/apduservice" />
+   </service>
+   ```
+
+2. Create `android/app/src/main/res/xml/apduservice.xml` with your AID:
+
+   ```xml
+   <host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+       android:description="@string/service_description"
+       android:requireDeviceUnlock="true">
+       <aid-group
+           android:category="other"
+           android:description="@string/aid_group_description">
+           <aid-filter android:name="F000000001" />
+       </aid-group>
+   </host-apdu-service>
+   ```
+
+3. Add both strings to `android/app/src/main/res/values/strings.xml`:
+
+   ```xml
+   <resources>
+       <string name="service_description">My NFC card</string>
+       <string name="aid_group_description">My card application</string>
+   </resources>
+   ```
+
+4. Check `isHceSupported()` and `isNfcEnabled()`, then start emulation with
+   the same AID:
+
+   ```dart
+   final subscription = nfcManager
+       .startEmulation(aid: 'F000000001'.hexToBytes(), pin: utf8.encode('1234'))
+       .listen(print);
+   ```
+
+Cancel the subscription to stop emulation.
+
+## Example
+
+The [example app](example/) reads tags and emulates the demo card. See its
+[README](example/README.md) for what to try.

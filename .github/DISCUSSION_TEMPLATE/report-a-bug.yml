@@ -4,13 +4,13 @@ body:
       value: |
         Before filling out the discussion fields, please consider the following:
         - Search for any [existing bugs](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/categories/report-a-bug).
-        - Review the [guidelines for reporting bugs](https://github.com/ngoc-quoc-huynh/nfc_manager/blob/main/CONTRIBUTING.md#report-a-bug) to ensure your report is clear and helpful.
+        - Redact card identifiers, APDU payloads, PINs, and other credentials from screenshots and logs.
 
   - type: input
     attributes:
       label: Plugin version
-      description: Specify the plugin version you are using (e.g., 1.0.0).
-      placeholder: 1.0.0
+      description: The release tag or commit from your git dependency.
+      placeholder: v1.0.0
     validations:
       required: true
 
@@ -80,12 +80,12 @@ body:
     attributes:
       label: Screenshots
       description: >-
-        Provide links to screenshots or images that can help illustrate the issue (if applicable). Redact sensitive card identifiers, APDU payloads, and credentials before sharing screenshots or logs.
-      placeholder: Link to screenshots or images …
+        Drag images here or paste links that help illustrate the issue (if applicable).
+      placeholder: Drag images here or paste links …
 
   - type: textarea
     attributes:
       label: Additional information
       description: >-
-        Provide any other useful information, such as the tag technology or external reader model. Redact sensitive card identifiers, APDU payloads, and credentials before sharing logs.
+        Provide any other useful information, such as the tag technology or external reader model.
       placeholder: Tag technology, external reader model, or other relevant details …

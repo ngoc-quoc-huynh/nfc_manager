@@ -1,19 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:nfc_manager_platform_interface/src/extensions.dart';
 
-/// An immutable Application Protocol Data Unit (APDU) response.
-///
-/// A response is the optional response [data] followed by the two status
-/// bytes [sw1] and [sw2]. Use [isSuccess] to check for `90 00`, [status] to
-/// classify the status words this plugin recognizes, and [sw2] for
-/// status-word parameters such as remaining bytes or retry counters.
+/// An immutable Application Protocol Data Unit (APDU) response: optional
+/// [data] followed by the status bytes [sw1] and [sw2].
 @immutable
 final class ApduResponse {
   const ApduResponse._(this.data, this.sw1, this.sw2);
 
   /// Decodes a raw response: the response data followed by SW1 and SW2.
-  ///
-  /// [data] is an unmodifiable copy of the response payload.
   ///
   /// Throws [FormatException] if [bytes] contains fewer than 2 bytes. The
   /// exception never contains the response, which may hold sensitive data.
@@ -46,8 +40,7 @@ final class ApduResponse {
 
   /// Whether the status word is `90 00`, normal processing.
   ///
-  /// Other normal-processing words, such as `61 XX` (more data available),
-  /// are not success here; check [sw1] and [sw2] for them.
+  /// Other normal-processing words, such as `61 XX`, are not success.
   bool get isSuccess => statusWord == 0x9000;
 
   /// The classification of [statusWord], or [ApduStatus.unknown].
@@ -67,8 +60,6 @@ final class ApduResponse {
     _ => .unknown,
   };
 
-  /// Responses are equal when their [data] contents, [sw1], and [sw2] are
-  /// equal.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -89,9 +80,6 @@ final class ApduResponse {
 }
 
 /// The ISO/IEC 7816-4 status words that [ApduResponse.status] recognizes.
-///
-/// Each value matches the status words listed on it. Any other word is
-/// [unknown]; read [ApduResponse.sw1] and [ApduResponse.sw2] for those.
 enum ApduStatus {
   /// `90 00`: normal processing, no further qualification.
   success,
@@ -101,30 +89,23 @@ enum ApduStatus {
   moreDataAvailable,
 
   /// `63 00` or `63 CX`: verification, such as a PIN check, failed. In
-  /// `63 CX`, X is the number of retries left. This plugin's card emulation
-  /// returns `63 C2`, then `63 C1`, for the first two consecutive wrong PINs.
+  /// `63 CX`, X is the number of retries left.
   verificationFailed,
 
-  /// `67 00`: wrong length, no further indication. This plugin's card
-  /// emulation returns it for a command that is too short or whose Lc does
-  /// not match its data length.
+  /// `67 00`: wrong length, no further indication.
   wrongLength,
 
-  /// `69 82`: security status not satisfied. This plugin's card emulation
-  /// returns it when emulation is not configured.
+  /// `69 82`: security status not satisfied.
   securityStatusNotSatisfied,
 
-  /// `69 83`: authentication method blocked. This plugin's card emulation
-  /// returns it when the third consecutive wrong PIN blocks the session.
+  /// `69 83`: authentication method blocked.
   authenticationMethodBlocked,
 
-  /// `69 85`: conditions of use not satisfied. This plugin's card emulation
-  /// returns it for VERIFY before the reader selects the configured AID.
+  /// `69 85`: conditions of use not satisfied.
   conditionsOfUseNotSatisfied,
 
   /// `6A 00` or `6A 86`: wrong parameters P1-P2, with no information given
-  /// or incorrect P1-P2. This plugin's card emulation returns `6A 00` when
-  /// Android delivers no command.
+  /// or incorrect P1-P2.
   wrongParameters,
 
   /// `6A 81`: function not supported.

@@ -6,12 +6,10 @@ import 'dart:typed_data';
 extension HexString on String {
   /// Decodes hexadecimal byte pairs into bytes.
   ///
-  /// Accepts the digits 0–9, a–f, and A–F. Empty input returns an empty
+  /// Accepts the digits 0–9, a–f, and A–F; empty input returns an empty
   /// buffer. Throws [FormatException] for an odd length or any other
-  /// character, including signs, prefixes, whitespace, and non-ASCII digits.
-  /// Odd length is checked first and reports no offset. For even-length input,
-  /// the offset of the first invalid character is its UTF-16 code-unit index.
-  /// The exception never contains the input, which may be a secret.
+  /// character, such as a `0x` prefix or whitespace. The exception never
+  /// contains the input, which may be a secret.
   Uint8List hexToBytes() {
     if (length.isOdd) {
       throw const FormatException('Hex string must have an even length.');
@@ -43,7 +41,7 @@ extension HexString on String {
 extension HexBytes on Uint8List {
   /// Returns two uppercase hexadecimal digits per byte.
   ///
-  /// Uppercase matches the tag IDs reported by Android.
+  /// Uppercase matches the tag IDs from `startDiscovery`.
   String toHex() {
     final buffer = StringBuffer();
     for (final byte in this) {

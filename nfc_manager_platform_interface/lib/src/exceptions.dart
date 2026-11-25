@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:nfc_manager_platform_interface/src/models/command.dart';
 
 /// Base class for all NFC exceptions.
 @immutable
 sealed class NfcException implements Exception {
   const NfcException(this.message);
 
-  /// The message associated with the exception.
+  /// A readable description for logs. It may change between versions; match
+  /// on the type or [NfcUnknownException.code] instead.
   final String? message;
 
   @override
@@ -20,11 +20,8 @@ sealed class NfcException implements Exception {
   int get hashCode => Object.hash(runtimeType, message);
 }
 
-/// Exception thrown when the platform rejected the APDU command.
-///
-/// [ApduCommand] already enforces the APDU structure, so this reports a limit
-/// of the platform or tag. For example, Android rejects commands that exceed
-/// its maximum transceive length before transmission. The tag stays connected.
+/// Exception thrown when the platform rejects an APDU command, for example
+/// because it is too long. The tag stays connected.
 final class InvalidApduCommandException extends NfcException {
   /// Constructs an [InvalidApduCommandException].
   const InvalidApduCommandException()
@@ -53,8 +50,8 @@ final class NfcNotSupportedException extends NfcException {
   String toString() => 'NfcNotSupportedException: $message';
 }
 
-/// Exception thrown when the device fails to establish a connection with the
-/// NFC tag or the tag is lost.
+/// Exception thrown when the device fails to connect to the NFC tag, or the
+/// exchange with the tag fails.
 final class TagConnectionException extends NfcException {
   /// Constructs a [TagConnectionException].
   const TagConnectionException()
@@ -71,11 +68,9 @@ final class TagConnectionException extends NfcException {
 /// [NfcException] subtype.
 ///
 /// Each platform implementation defines its [code] values. See its package
-/// documentation. The optional [message] is diagnostic text and may change.
-/// Treat it as untrusted input.
+/// documentation. Treat [message] as untrusted input.
 final class NfcUnknownException extends NfcException {
-  /// Constructs an [NfcUnknownException] with an error [code] and
-  /// optional [message].
+  /// Constructs an [NfcUnknownException].
   const NfcUnknownException({required this.code, String? message})
     : super(message);
 

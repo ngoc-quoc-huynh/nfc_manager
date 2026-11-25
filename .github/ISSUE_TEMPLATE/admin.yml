@@ -3,12 +3,8 @@ description: Issue template for NFC Manager administrators only.
 body:
   - type: markdown
     attributes:
-      value: '# NFC Manager administrators only'
-
-  - type: markdown
-    attributes:
       value: |
-        **Attention!** This form is for NFC Manager administrators only.
+        **This form is for NFC Manager administrators only.**
         If you're a user, please create a [GitHub Discussion](https://github.com/ngoc-quoc-huynh/nfc_manager/discussions/new/choose) instead.
 
   - type: textarea

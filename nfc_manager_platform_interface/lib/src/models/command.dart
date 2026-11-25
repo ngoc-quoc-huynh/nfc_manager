@@ -10,9 +10,9 @@ import 'package:nfc_manager_platform_interface/src/validation.dart';
 final class ApduCommand {
   /// Creates a command and copies its payload.
   ///
-  /// Header bytes must be 0–255. [le], when provided, must be 0–255.
-  /// If provided, [data] must contain 1–255 bytes. [lc] is derived
-  /// from its length and is null when data is absent.
+  /// Header bytes and [le] must be 0–255. [data], if provided, must contain
+  /// 1–255 bytes; [lc] is its length.
+  ///
   /// Throws [RangeError] if these requirements are not met.
   ApduCommand({
     required this.cla,
@@ -33,8 +33,8 @@ final class ApduCommand {
 
   /// Creates a SELECT command for an Application Identifier (AID).
   ///
-  /// Uses the header `00 A4 04 00`, includes [aid] as the payload, and omits
-  /// [le]. The AID must contain 5–16 bytes. The payload is copied.
+  /// Uses the header `00 A4 04 00` with [aid] as the payload and no Le.
+  /// The AID must contain 5–16 bytes.
   ///
   /// Throws [RangeError] if the AID length is outside that range.
   factory ApduCommand.selectAid(Uint8List aid) {
@@ -87,10 +87,7 @@ final class ApduCommand {
   /// In a short APDU, zero encodes an expected length of 256 bytes.
   final int? le;
 
-  /// Returns an independent, unmodifiable copy of [data], or null if absent.
-  ///
-  /// Throws [RangeError] if [data] contains fewer than 1 or more than
-  /// 255 bytes.
+  /// Returns an unmodifiable copy of [data], or null if absent.
   static Uint8List? _copyData(Uint8List? data) {
     if (data == null) {
       return null;
@@ -100,9 +97,6 @@ final class ApduCommand {
   }
 
   /// Serializes the command into a new [Uint8List].
-  ///
-  /// Includes [lc] only with [data], and [le] only when provided.
-  /// Modifying the returned buffer does not change this command.
   Uint8List toUint8List() => Uint8List.fromList([
     cla,
     ins,
@@ -113,8 +107,6 @@ final class ApduCommand {
     ?le,
   ]);
 
-  /// Commands are equal when their header fields, [data] contents, and [le]
-  /// are equal.
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
