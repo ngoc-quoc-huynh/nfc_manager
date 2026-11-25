@@ -1,24 +1,17 @@
-.PHONY: style check check-dart check-example test
+.PHONY: style format analyze metrics test
 
-PUB_FLAGS ?=
+style: format
+	@$(MAKE) --no-print-directory --jobs analyze metrics
 
-style:
+format:
 	dart format .
-	flutter analyze $(PUB_FLAGS)
+
+analyze:
+	flutter analyze
+
+metrics:
 	dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
 
-check: check-dart check-example
-
-check-dart:
-	dart format --output=none --set-exit-if-changed lib test
-	flutter analyze --no-pub lib test
-	dart run dart_code_linter:metrics analyze lib test --set-exit-on-violation-level=warning
-
-check-example:
-	cd example && dart format --output=none --set-exit-if-changed .
-	cd example && flutter analyze --no-pub
-	cd example && dart run dart_code_linter:metrics analyze . --set-exit-on-violation-level=warning
-
 test:
-	flutter test $(PUB_FLAGS) --coverage --test-randomize-ordering-seed=$(or $(seed),random)
+	flutter test --coverage --test-randomize-ordering-seed=$(or $(seed),random)
 	dart run test_cov_console
