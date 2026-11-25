@@ -91,7 +91,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
       .receiveBroadcastStream({'timeout': timeout?.inMilliseconds})
       .map(_decodeStringEvent)
-      .handleError(_onStreamError, test: _isPlatformException);
+      .handleError(_onStreamError, test: (e) => e is PlatformException);
 
   @override
   Future<ApduResponse> sendCommand(ApduCommand command) async {
@@ -122,16 +122,14 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   }) => hostCardEmulationEventChannel
       .receiveBroadcastStream({'aid': aid, 'pin': pin})
       .map((event) => _toHostCardEmulationStatus(_decodeStringEvent(event)))
-      .handleError(_onStreamError, test: _isPlatformException);
+      .handleError(_onStreamError, test: (e) => e is PlatformException);
 
   static String _decodeStringEvent(Object? event) => switch (event) {
     final String value => value,
     _ => throw const NfcUnknownException(code: 'INVALID_EVENT_PAYLOAD'),
   };
 
-  bool _isPlatformException(Object? error) => error is PlatformException;
-
-  Never _onStreamError(Object error, StackTrace stackTrace) =>
+  static Never _onStreamError(Object error, StackTrace stackTrace) =>
       Error.throwWithStackTrace(
         _toNfcException(error as PlatformException),
         stackTrace,
