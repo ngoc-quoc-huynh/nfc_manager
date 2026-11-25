@@ -159,14 +159,18 @@ internal class TagReader(
         cancelSession()
         val listenSession =
             synchronized(stateLock) {
-                // dispose already shut down the worker.
-                if (ioExecutor.isShutdown) return
+                if (ioExecutor.isShutdown) return@synchronized null
                 session += 1
                 isListening = true
                 eventSink = events
                 timeout = requestedTimeout
                 session
             }
+        if (listenSession == null) {
+            // dispose already shut down the worker.
+            events.endWithError(UnexpectedNfcException())
+            return
+        }
 
         try {
             adapter.enableReaderMode(

@@ -692,12 +692,13 @@ class TagReaderTest {
     }
 
     @Test
-    fun `onListen after dispose does not start discovery`() {
+    fun `onListen after dispose ends the stream with NFC_ERROR`() {
         tagReader.dispose()
 
         tagReader.onListen(mapOf("timeout" to null), mockEventSink)
 
-        verifyNoInteractions(mockEventSink)
+        verify(mockEventSink).error(UnexpectedNfcException())
+        verify(mockEventSink).endOfStream()
         verify(mockNfcAdapter, never()).enableReaderMode(any(), any(), any(), isNull())
     }
 
