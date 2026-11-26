@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/demo_card.dart';
 

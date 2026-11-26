@@ -94,6 +94,20 @@ jobs:
         with:
           version: "2026.11.14"
           install: false
+          cache: false
+
+      - name: Cache minimum Flutter
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.local/share/mise/installs/flutter/${{ env.MISE_FLUTTER_VERSION }}
+          key: ${{ runner.os }}-mise-flutter-${{ env.MISE_FLUTTER_VERSION }}
+
+      - name: Cache minimum Flutter dependencies
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ~/.pub-cache
+          key: ${{ runner.os }}-pub-min-${{ env.MISE_FLUTTER_VERSION }}-${{ hashFiles('**/pubspec.yaml', '**/pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-min-${{ env.MISE_FLUTTER_VERSION }}-
 
       - name: Log Flutter version
         run: mise x flutter@${{ env.MISE_FLUTTER_VERSION }} -- flutter --version
