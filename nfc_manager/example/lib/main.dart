@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager_example/host_card_emulation.dart';
 import 'package:nfc_manager_example/tag_reader.dart';
