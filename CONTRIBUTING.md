@@ -18,7 +18,8 @@ Before creating a pull request, please follow these steps:
 3. **Install the tools**: Install Flutter, JDK 21, and ktlint, then run `flutter pub get` in each package you change.
 4. **Add tests**: If you’ve fixed a bug or added new functionality, please include tests.
 5. **Format, analyze, and test**: In each package you change, run `make style` and `make test`. For Kotlin changes,
-   also run them in `nfc_manager_android/android`.
+   also run them in `nfc_manager_android/android`. After changing `nfc_manager_android/pigeons/messages.dart`, run
+   `make pigeon` in `nfc_manager_android` and commit the generated files.
 6. **Create the pull request**: Submit your PR and include a detailed description of the changes made. State whether you
    tested NFC or HCE on a physical device, because unit tests do not cover hardware behavior.
 7. **Verify status checks**: Ensure all status checks are passing before finalizing your PR.

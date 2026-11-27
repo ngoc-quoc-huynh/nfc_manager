@@ -1,6 +1,6 @@
 .PHONY: style test
 
-KOTLIN_FILES := '**/*.{kt,kts}' '!**/build/**' '!**/.gradle/**'
+KOTLIN_FILES := '**/*.{kt,kts}' '!**/*.g.kt' '!**/build/**' '!**/.gradle/**'
 
 # The example's Gradle build includes this plugin as a subproject. Its
 # `flutter pub get` writes the Flutter SDK path that Gradle needs.

@@ -13,11 +13,10 @@ void main() {
   final originalPlatform = NfcManagerPlatform.instance;
 
   final nfcManager = NfcManagerAndroidPlatform();
-  final methodChannel = nfcManager.methodChannel;
 
   tearDown(() {
     NfcManagerPlatform.instance = originalPlatform;
-    methodChannel.clearMockCallHandler();
+    clearMockHostApiHandlers();
     nfcManager.discoveryEventChannel.clearMockStream();
     nfcManager.hostCardEmulationEventChannel.clearMockStream();
   });
@@ -35,10 +34,9 @@ void main() {
     group(method, () {
       for (final response in [true, false]) {
         test('calls $method and returns $response.', () async {
-          methodChannel.setMockCallHandler((call) async {
-            expect(call.method, method);
-            expect(call.arguments, isNull);
-            return response;
+          setMockHostApiHandler(method, (message) {
+            expect(message, isNull);
+            return [response];
           });
 
           expect(await check(), response);
@@ -122,14 +120,15 @@ void main() {
 
   group('sendCommand', () {
     test(
-      'sends the command bytes as the command argument.',
+      'sends the command bytes as the only argument.',
       () async {
-        methodChannel.setMockCallHandler((call) async {
-          expect(call.method, 'sendCommand');
-          expect(call.arguments, {
-            'command': Uint8List.fromList([0, 0xA4, 4, 0, 5, 0xF0, 0, 0, 0, 1]),
-          });
-          return Uint8List.fromList([0x90, 0]);
+        setMockHostApiHandler('sendCommand', (message) {
+          expect(message, [
+            Uint8List.fromList([0, 0xA4, 4, 0, 5, 0xF0, 0, 0, 0, 1]),
+          ]);
+          return [
+            Uint8List.fromList([0x90, 0]),
+          ];
         });
 
         final response = await nfcManager.sendCommand(
@@ -142,8 +141,11 @@ void main() {
     );
 
     test('keeps the response data and both status bytes.', () async {
-      methodChannel.setMockResponse(
-        Uint8List.fromList([0x6F, 0x02, 0x84, 0x00, 0x6C, 0x10]),
+      setMockHostApiHandler(
+        'sendCommand',
+        (_) => [
+          Uint8List.fromList([0x6F, 0x02, 0x84, 0x00, 0x6C, 0x10]),
+        ],
       );
 
       final response = await nfcManager.sendCommand(
@@ -156,16 +158,16 @@ void main() {
       expect(response.status, ApduStatus.wrongLeField);
     });
 
-    for (final bytes in <List<int>?>[
-      null,
+    for (final bytes in <List<int>>[
       [],
       [0x90],
     ]) {
       test(
         'throws TagConnectionException for the response $bytes.',
         () async {
-          methodChannel.setMockResponse(
-            bytes == null ? null : Uint8List.fromList(bytes),
+          setMockHostApiHandler(
+            'sendCommand',
+            (_) => [Uint8List.fromList(bytes)],
           );
 
           await expectLater(
@@ -175,6 +177,20 @@ void main() {
         },
       );
     }
+
+    test(
+      'throws NfcUnknownException with "channel-error" without the plugin.',
+      () => expectLater(
+        nfcManager.sendCommand(ApduCommand(cla: 0, ins: 0, p1: 0, p2: 0)),
+        throwsA(
+          isA<NfcUnknownException>().having(
+            (e) => e.code,
+            'code',
+            'channel-error',
+          ),
+        ),
+      ),
+    );
   });
 
   group('native errors', () {
@@ -204,8 +220,9 @@ void main() {
       ),
     ]) {
       test('sendCommand maps "$code" to $expected.', () async {
-        methodChannel.setMockCallHandler(
-          (_) async => throw PlatformException(code: code, message: message),
+        setMockHostApiHandler(
+          'sendCommand',
+          (_) => [code, message, null],
         );
 
         await expectLater(

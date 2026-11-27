@@ -10,16 +10,31 @@ void main() {
     'sends a command before cancelling discovery and shows HCE readiness.',
     (tester) async {
       final calls = <String>[];
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        ..setMockMethodCallHandler(
-          const MethodChannel('dev.huynh/nfc_manager_android'),
-          (call) async {
-            calls.add(call.method);
-            return call.method == 'sendCommand'
-                ? Uint8List.fromList([0x90, 0x00])
-                : true;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      for (final method in [
+        'isHceSupported',
+        'isNfcSupported',
+        'isNfcEnabled',
+        'sendCommand',
+      ]) {
+        messenger.setMockDecodedMessageHandler<Object?>(
+          BasicMessageChannel(
+            'dev.flutter.pigeon.nfc_manager_android.NfcManagerHostApi.$method',
+            const StandardMessageCodec(),
+          ),
+          (_) async {
+            calls.add(method);
+            return [
+              if (method == 'sendCommand')
+                Uint8List.fromList([0x90, 0x00])
+              else
+                true,
+            ];
           },
-        )
+        );
+      }
+      messenger
         ..setMockStreamHandler(
           const EventChannel('dev.huynh/nfc_manager_android/discovery'),
           MockStreamHandler.inline(

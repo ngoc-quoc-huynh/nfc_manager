@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:nfc_manager_android/src/messages.g.dart';
 import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.dart';
 
 /// The Android implementation of [NfcManagerPlatform].
@@ -9,8 +10,10 @@ import 'package:nfc_manager_platform_interface/nfc_manager_platform_interface.da
 /// Android native errors without a dedicated [NfcException] subtype are
 /// reported as [NfcUnknownException] with their native code and message.
 ///
-/// * `INVALID_ARGUMENTS`: the plugin received missing, mistyped, or
+/// * `INVALID_ARGUMENTS`: discovery or HCE received missing, mistyped, or
 ///   out-of-range arguments.
+/// * `channel-error`: the Android plugin is not registered for this Flutter
+///   engine. Feature checks throw it as a [PlatformException].
 /// * `NFC_ERROR`: the NFC reader failed unexpectedly or discovery started
 ///   without an attached Android activity.
 /// * `INVALID_EVENT_PAYLOAD`: discovery or HCE received a non-string event.
@@ -33,11 +36,7 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   /// Constructs an [NfcManagerAndroidPlatform].
   NfcManagerAndroidPlatform();
 
-  /// The Android request channel.
-  @visibleForTesting
-  final MethodChannel methodChannel = const MethodChannel(
-    'dev.huynh/nfc_manager_android',
-  );
+  final _hostApi = NfcManagerHostApi();
 
   /// The Android discovery event channel.
   @visibleForTesting
@@ -56,16 +55,13 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
       NfcManagerPlatform.instance = NfcManagerAndroidPlatform();
 
   @override
-  Future<bool> isHceSupported() async =>
-      (await methodChannel.invokeMethod<bool>('isHceSupported'))!;
+  Future<bool> isHceSupported() => _hostApi.isHceSupported();
 
   @override
-  Future<bool> isNfcSupported() async =>
-      (await methodChannel.invokeMethod<bool>('isNfcSupported'))!;
+  Future<bool> isNfcSupported() => _hostApi.isNfcSupported();
 
   @override
-  Future<bool> isNfcEnabled() async =>
-      (await methodChannel.invokeMethod<bool>('isNfcEnabled'))!;
+  Future<bool> isNfcEnabled() => _hostApi.isNfcEnabled();
 
   @override
   Stream<String> startDiscovery({Duration? timeout}) => discoveryEventChannel
@@ -76,12 +72,9 @@ final class NfcManagerAndroidPlatform extends NfcManagerPlatform {
   @override
   Future<ApduResponse> sendCommand(ApduCommand command) async {
     try {
-      final response = await methodChannel.invokeMethod<Uint8List>(
-        'sendCommand',
-        {'command': command.toUint8List()},
-      );
+      final response = await _hostApi.sendCommand(command.toUint8List());
 
-      if (response == null || response.length < 2) {
+      if (response.length < 2) {
         throw const TagConnectionException();
       }
 

@@ -9,18 +9,12 @@ import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.EventChannel
-import io.flutter.plugin.common.MethodCall
-import io.flutter.plugin.common.MethodChannel
-import io.flutter.plugin.common.MethodChannel.MethodCallHandler
-import io.flutter.plugin.common.MethodChannel.Result
 
-/** Connects the Flutter channels to NFC discovery, commands, and HCE. */
+/** Connects the Pigeon host API and event channels to NFC discovery, commands, and HCE. */
 class NfcManagerPlugin :
     ActivityAware,
     FlutterPlugin,
-    MethodCallHandler {
-    private lateinit var methodChannel: MethodChannel
-
+    NfcManagerHostApi {
     private lateinit var discoveryEventChannel: EventChannel
 
     private lateinit var hostCardEmulationEventChannel: EventChannel
@@ -46,11 +40,7 @@ class NfcManagerPlugin :
                 nfcAdapter = nfcAdapter,
                 packageManager = context.packageManager,
             )
-        methodChannel =
-            MethodChannel(
-                flutterPluginBinding.binaryMessenger,
-                "dev.huynh/nfc_manager_android",
-            ).apply { setMethodCallHandler(this@NfcManagerPlugin) }
+        NfcManagerHostApi.setUp(flutterPluginBinding.binaryMessenger, this)
         discoveryEventChannel =
             EventChannel(
                 flutterPluginBinding.binaryMessenger,
@@ -69,7 +59,7 @@ class NfcManagerPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        methodChannel.setMethodCallHandler(null)
+        NfcManagerHostApi.setUp(binding.binaryMessenger, null)
         discoveryEventChannel.setStreamHandler(null)
         hostCardEmulationStreamHandler?.close()
         hostCardEmulationEventChannel.setStreamHandler(null)
@@ -95,25 +85,21 @@ class NfcManagerPlugin :
         tagReader = null
     }
 
-    override fun onMethodCall(
-        call: MethodCall,
-        result: Result,
-    ) = when (call.method) {
-        "isHceSupported" -> result.success(featureChecker.isHceSupported())
-        "isNfcSupported" -> result.success(featureChecker.isNfcSupported())
-        "isNfcEnabled" -> result.success(featureChecker.isNfcEnabled())
-        "sendCommand" -> sendCommand(call, result)
-        else -> result.notImplemented()
-    }
+    override fun isHceSupported() = featureChecker.isHceSupported()
 
-    private fun sendCommand(
-        call: MethodCall,
-        result: Result,
+    override fun isNfcSupported() = featureChecker.isNfcSupported()
+
+    override fun isNfcEnabled() = featureChecker.isNfcEnabled()
+
+    override fun sendCommand(
+        command: ByteArray,
+        callback: (Result<ByteArray>) -> Unit,
     ) {
-        val command =
-            (call.arguments as? Map<*, *>)?.get("command") as? ByteArray
-                ?: return result.error(InvalidArgumentsException())
-        val reader = tagReader ?: return result.error(TagConnectionException())
-        reader.sendCommand(command, onSuccess = result::success, onError = result::error)
+        val reader = tagReader ?: return callback(Result.failure(TagConnectionException().toFlutterError()))
+        reader.sendCommand(
+            command,
+            onSuccess = { callback(Result.success(it)) },
+            onError = { callback(Result.failure(it.toFlutterError())) },
+        )
     }
 }

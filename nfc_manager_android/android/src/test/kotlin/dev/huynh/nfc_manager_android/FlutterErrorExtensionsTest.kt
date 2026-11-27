@@ -1,23 +1,24 @@
 package dev.huynh.nfc_manager_android
 
 import io.flutter.plugin.common.EventChannel.EventSink
-import io.flutter.plugin.common.MethodChannel.Result
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class FlutterErrorExtensionsTest {
     @Test
-    fun `Result error replies with the exception code and message`() {
-        val result = mock<Result>()
+    fun `toFlutterError keeps the exception code and message without details`() {
+        val error = NfcNotSupportedException().toFlutterError()
 
-        result.error(NfcNotSupportedException())
-
-        verify(result).error("NFC_NOT_SUPPORTED", "This device does not support NFC.", null)
+        assertEquals("NFC_NOT_SUPPORTED", error.code)
+        assertEquals("This device does not support NFC.", error.message)
+        assertNull(error.details)
     }
 
     @Test
-    fun `EventSink error sends the exception code and message`() {
+    fun `EventSink error sends the exception code and message without details`() {
         val sink = mock<EventSink>()
 
         sink.error(NfcNotSupportedException())

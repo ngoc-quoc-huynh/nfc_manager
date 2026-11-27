@@ -16,6 +16,8 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  # After a Pigeon update, run `make pigeon`; CI checks the generated files.
+  pigeon: ^30.0.4
   test_cov_console: ^0.2.2
 
   # Linter
