@@ -1,7 +1,7 @@
 name: nfc_manager_platform_interface
 description: A common platform interface for the nfc_manager plugin.
 publish_to: none
-version: 1.2.0
+version: 2.0.0
 
 environment:
   sdk: ^3.12.0
